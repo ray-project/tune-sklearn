@@ -116,7 +116,7 @@ class TuneBaseSearchCV(BaseEstimator):
     @property
     def best_params_(self):
         # only if refit true
-        check_is_fitted(self)
+        #check_is_fitted(self)
         self._check_if_refit("best_params_")
         return self.best_params
         #return self.cv_results_["params"][self.best_index_]
@@ -125,7 +125,7 @@ class TuneBaseSearchCV(BaseEstimator):
     @property
     def best_score_(self):
         # only if refit true
-        check_is_fitted(self)
+        #check_is_fitted(self)
         self._check_if_refit("best_score_")
         return self.best_score
         #return self.cv_results_["mean_test_score"][self.best_index_]
@@ -138,37 +138,37 @@ class TuneBaseSearchCV(BaseEstimator):
     # TODO
     @property
     def decision_function(self):
-        check_is_fitted(self)
+        #check_is_fitted(self)
         return self.best_estimator_.decision_function
 
     # TODO
     @property
     def inverse_transform(self):
-        check_is_fitted(self)
+        #check_is_fitted(self)
         return self.best_estimator_.inverse_transform
 
     # TODO
     @property
     def predict(self):
-        check_is_fitted(self)
+        #check_is_fitted(self)
         return self.best_estimator_.predict
 
     # TODO
     @property
     def predict_log_proba(self):
-        check_is_fitted(self)
+        #check_is_fitted(self)
         return self.best_estimator_.predict_log_proba
 
     # TODO
     @property
     def predict_proba(self):
-        check_is_fitted(self)
+        #check_is_fitted(self)
         return self.best_estimator_.predict_proba
 
     # TODO
     @property
     def transform(self):
-        check_is_fitted(self)
+        #check_is_fitted(self)
         return self.best_estimator_.transform
 
     def _check_params(self):
