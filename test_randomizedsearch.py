@@ -27,6 +27,7 @@ import unittest
 # TODO: Either convert to individual examples or to python unittests
 
 class RandomizedSearchTest(unittest.TestCase):
+    '''
     def test_random_forest(self):
         iris = datasets.load_iris()
         x = iris.data
@@ -134,6 +135,7 @@ class RandomizedSearchTest(unittest.TestCase):
             )
 
 
+            '''
     def test_pbt(self):
         iris = datasets.load_iris()
         x = iris.data
@@ -170,7 +172,7 @@ class RandomizedSearchTest(unittest.TestCase):
         accuracy = np.count_nonzero(np.array(pred) == np.array(y_test))/len(pred)
         print(accuracy)
         print(tune_search.best_params_)
-
+'''
     def test_linear_iris(self):
         iris = datasets.load_iris()
         X = iris.data
@@ -195,6 +197,7 @@ class RandomizedSearchTest(unittest.TestCase):
         accuracy = np.count_nonzero(np.array(pred) == np.array(y))/len(pred)
         print(accuracy)
 
+'''
 
 if __name__ == '__main__':
     unittest.main()

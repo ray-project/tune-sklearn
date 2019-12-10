@@ -116,17 +116,19 @@ class TuneBaseSearchCV(BaseEstimator):
     @property
     def best_params_(self):
         # only if refit true
-        check_is_fitted(self, "cv_results_")
+        check_is_fitted(self)
         self._check_if_refit("best_params_")
-        return self.cv_results_["params"][self.best_index_]
+        return self.best_params
+        #return self.cv_results_["params"][self.best_index_]
 
     # TODO
     @property
     def best_score_(self):
         # only if refit true
-        check_is_fitted(self, "cv_results_")
+        check_is_fitted(self)
         self._check_if_refit("best_score_")
-        return self.cv_results_["mean_test_score"][self.best_index_]
+        return self.best_score
+        #return self.cv_results_["mean_test_score"][self.best_index_]
 
     # TODO
     @property
@@ -136,37 +138,37 @@ class TuneBaseSearchCV(BaseEstimator):
     # TODO
     @property
     def decision_function(self):
-        check_is_fitted(self, "cv_results_")
+        check_is_fitted(self)
         return self.best_estimator_.decision_function
 
     # TODO
     @property
     def inverse_transform(self):
-        check_is_fitted(self, "cv_results_")
+        check_is_fitted(self)
         return self.best_estimator_.inverse_transform
 
     # TODO
     @property
     def predict(self):
-        check_is_fitted(self, "cv_results_")
+        check_is_fitted(self)
         return self.best_estimator_.predict
 
     # TODO
     @property
     def predict_log_proba(self):
-        check_is_fitted(self, "cv_results_")
+        check_is_fitted(self)
         return self.best_estimator_.predict_log_proba
 
     # TODO
     @property
     def predict_proba(self):
-        check_is_fitted(self, "cv_results_")
+        check_is_fitted(self)
         return self.best_estimator_.predict_proba
 
     # TODO
     @property
     def transform(self):
-        check_is_fitted(self, "cv_results_")
+        check_is_fitted(self)
         return self.best_estimator_.transform
 
     def _check_params(self):
@@ -232,51 +234,43 @@ class TuneBaseSearchCV(BaseEstimator):
         config['iters'] = self.iters
         config['return_train_score'] = self.return_train_score
 
-        candidate_params = list(self._get_param_iterator())
-        n_samples = n_splits * len(candidate_params)
+        #candidate_params = list(self._get_param_iterator())
+        #n_samples = n_splits * len(candidate_params)
 
-        if self.early_stopping:
-            config['estimator'] = [clone(self.estimator) for _ in range(cv.get_n_splits(X, y))]
-            analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.scheduler,
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop={"training_iteration":self.iters},
-                    num_samples=n_samples,
-                    config=config,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    )
-        else:
-            config['estimator'] = self.estimator
-            analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.scheduler,
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop={"training_iteration":self.iters},
-                    num_samples=n_samples,
-                    config=config,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    )
+        self._fill_config_hyperparam(config)
+        analysis = self._tune_run(config, resources_per_trial)
 
-        self.cv_results_ = self._format_results(candidate_params, n_splits, analysis)
+
+        #self.cv_results_ = self._format_results(candidate_params, n_splits, analysis)
 
         if self.refit:
+            best_config = analysis.get_best_config(metric="average_test_score", mode="max")
+            for key in ['estimator', 'scheduler', 'X', 'y', 'groups', 'cv', 'fit_params', 'scoring', 'early_stopping', 'iters', 'return_train_score']:
+                best_config.pop(key)
+            self.best_params = best_config
+            '''
             self.best_index_ = np.flatnonzero(
                 self.cv_results_["rank_test_score"] == 1
             )[0]
+            '''
             self.best_estimator_ = clone(self.estimator)
-            self.best_estimator_.set_params(**self.best_params_)
+            self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
+
+            df = analysis.dataframe(metric="average_test_score", mode="max")
+            self.best_score = df["average_test_score"]
 
         return self
 
     def score(self, X, y=None):
         # only if refit true
         return self.scorer_(self.best_estimator_, X, y)
+
+    def _fill_config_hyperparam(self, config):
+        raise NotImplementedError("Define in child class")
+
+    def _tune_run(self):
+        raise NotImplementedError("Define in child class")
 
     def _format_results(self, candidate_params, n_splits, out):
         # TODO: Extract relevant parts out of `analysis` object from Tune
@@ -288,6 +282,7 @@ class TuneBaseSearchCV(BaseEstimator):
         else:
             arrays = [zip(*(df[df["done"] == True][["average_test_score", "time_total_s"]].to_numpy())) for df in dfs.values()]
             test_scores, fit_times = zip(*arrays)
+        print(n_splits, test_scores)
 
         results = {"params": candidate_params}
         n_candidates = len(candidate_params)
@@ -366,6 +361,40 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
     def _get_param_iterator(self):
         return ParameterSampler(self.param_distributions, self.num_samples, random_state=self.random_state)
 
+    def _fill_config_hyperparam(self, config):
+        for key, distribution in self.param_distributions.items():
+            config[key] = tune.sample_from(lambda spec: distribution.rvs(1)[0])
+
+    def _tune_run(self, config, resources_per_trial):
+        if self.early_stopping:
+            config['estimator'] = [clone(self.estimator) for _ in range(config['cv'].get_n_splits(config['X'], config['y']))]
+            analysis = tune.run(
+                    _Trainable,
+                    scheduler=self.scheduler,
+                    reuse_actors=True,
+                    verbose=self.verbose,
+                    stop={"training_iteration":self.iters},
+                    num_samples=self.num_samples,
+                    config=config,
+                    checkpoint_at_end=True,
+                    resources_per_trial=resources_per_trial,
+                    )
+        else:
+            config['estimator'] = self.estimator
+            analysis = tune.run(
+                    _Trainable,
+                    scheduler=self.scheduler,
+                    reuse_actors=True,
+                    verbose=self.verbose,
+                    stop={"training_iteration":self.iters},
+                    num_samples=self.num_samples,
+                    config=config,
+                    checkpoint_at_end=True,
+                    resources_per_trial=resources_per_trial,
+                    )
+
+        return analysis
+
 
 class TuneGridSearchCV(TuneBaseSearchCV):
     def __init__(self,
@@ -400,3 +429,35 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
     def _get_param_iterator(self):
         return ParameterGrid(self.param_grid)
+
+    def _fill_config_hyperparam(self, config):
+        for key, distribution in self.param_grid.items():
+            config[key] = tune.grid_search(list(distribution))
+
+    def _tune_run(self, config, resources_per_trial):
+        if self.early_stopping:
+            config['estimator'] = [clone(self.estimator) for _ in range(config['cv'].get_n_splits(config['X'], config['y']))]
+            analysis = tune.run(
+                    _Trainable,
+                    scheduler=self.scheduler,
+                    reuse_actors=True,
+                    verbose=self.verbose,
+                    stop={"training_iteration":self.iters},
+                    config=config,
+                    checkpoint_at_end=True,
+                    resources_per_trial=resources_per_trial,
+                    )
+        else:
+            config['estimator'] = self.estimator
+            analysis = tune.run(
+                    _Trainable,
+                    scheduler=self.scheduler,
+                    reuse_actors=True,
+                    verbose=self.verbose,
+                    stop={"training_iteration":self.iters},
+                    config=config,
+                    checkpoint_at_end=True,
+                    resources_per_trial=resources_per_trial,
+                    )
+
+        return analysis
