@@ -1,0 +1,28 @@
+language: python
+os:
+  - linux
+python:
+  - "3.6"
+  - "3.7"
+
+matrix:
+  include:
+    - python: 3.6
+      env: PYTHON=3.6 
+    - python: 3.7
+      env: PYTHON=3.7
+
+notifications:
+  email: false
+
+install:
+  - pip install -U pip
+  - pip install -r requirements.txt
+
+script:
+  - python -m unittest test_randomizedsearch.py
+  - python -m unittest test_gridsearch.py
+
+cache:
+  directories:
+    - $HOME/tune-sklearn-cache
