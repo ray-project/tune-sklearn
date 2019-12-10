@@ -12,28 +12,19 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.5)
 
 clf = SGDClassifier()
 param_grid = {
-    'n_estimators': scipy.stats.randint(20, 80),
     'alpha': scipy.stats.uniform(1e-4, 1e-1)
 }
 
-scheduler = PopulationBasedTraining(
-            time_attr="training_iteration",
-            metric="average_test_score",
-            mode="max",
-            perturbation_interval=5,
-            resample_probability=1.0,
-            hyperparam_mutations = {
-                "alpha" : lambda: np.random.choice([1e-4, 1e-3, 1e-2, 1e-1])
-            })
-
 tune_search = TuneRandomizedSearchCV(clf, 
-            param_grid=param_grid,
+            param_distributions=param_grid,
             scheduler=scheduler,
             n_jobs=5,
             refit=True,
             early_stopping=True,
             iters=10)
 tune_search.fit(x_train, y_train)
+
+pred = tune_search.predict(X_test)
 ```
 
 Use tune-sklearn TuneGridSearchCV to tune sklearn model
