@@ -21,8 +21,8 @@ install:
 
 script:
   - python setup.py install
-  - python -m unittest test_randomizedsearch.py
-  - python -m unittest test_gridsearch.py
+  - python -m unittest tests/test_randomizedsearch.py
+  - python -m unittest tests/test_gridsearch.py
 
 cache:
   directories:
