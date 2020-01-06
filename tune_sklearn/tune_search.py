@@ -14,7 +14,7 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import cross_validate, check_cv, \
     ParameterGrid, ParameterSampler
 from sklearn.model_selection._search import _check_param_grid
-from sklearn.metrics.scorer import check_scoring
+from sklearn.metrics import check_scoring
 from sklearn.base import is_classifier
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.base import clone
@@ -244,7 +244,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.estimator = estimator
         self.scheduler = scheduler
         self.cv = cv
-        self.scoring = check_scoring(estimator, scoring)
+        self.scoring = scoring
         self.n_jobs = n_jobs
         self.refit = refit
         self.verbose = verbose
@@ -327,7 +327,7 @@ class TuneBaseSearchCV(BaseEstimator):
             self.best_estimator_.fit(X, y, **fit_params)
 
             df = analysis.dataframe(metric="average_test_score", mode="max")
-            self.best_score = df["average_test_score"]
+            self.best_score = df["average_test_score"].iloc[df["average_test_score"].idxmax()]
 
         return self
 

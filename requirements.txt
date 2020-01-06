@@ -1,4 +1,4 @@
 numpy
 ray
-sklearn>=0.22
+scikit-learn>=0.22
 parameterized

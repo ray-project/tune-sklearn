@@ -127,10 +127,10 @@ class GridSearchTest(unittest.TestCase):
 
         # giving no scoring function raises an error
         grid_search_no_score = tcv.TuneGridSearchCV(clf_no_score, {"C": Cs})
-        with pytest.raises(TypeError) as exc:
+        with self.assertRaises(TypeError) as exc:
             grid_search_no_score.fit([[1]])
 
-        self.assertTrue("no scoring" in str(exc.value))
+        self.assertTrue("no scoring" in str(exc.exception))
 
     @parameterized.expand([
         ("grid", tcv.TuneGridSearchCV, {}),
@@ -606,8 +606,8 @@ class GridSearchTest(unittest.TestCase):
             scoring=custom_scoring,
         )
         search.fit(X)
-        self.assertEquals(search.best_params_["bandwidth"], 0.1)
-        self.assertEquals(search.best_score_, 42)
+        self.assertEqual(search.best_params_["bandwidth"], 0.1)
+        self.assertEqual(search.best_score_, 42)
 
 
 
