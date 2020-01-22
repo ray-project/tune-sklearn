@@ -18,8 +18,10 @@ from sklearn.metrics import check_scoring
 from sklearn.base import is_classifier
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.base import clone
+from sklearn.exceptions import NotFittedError
 from ray import tune
 from ray.tune import Trainable
+from ray.exceptions import RayTaskError
 from ray.tune.schedulers import PopulationBasedTraining, MedianStoppingRule
 import numpy as np
 import os
@@ -67,7 +69,7 @@ class _Trainable(Trainable):
           for a particular fold. 
         - Otherwise, run the full cross-validation procedure.
         In both cases, the average test accuracy is returned over all folds, 
-        and is returned as a singleton dictionary with "average_test_score" as the key.
+        as well as the individual folds' accuracies as a dictionary.
         """
         if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
@@ -83,14 +85,26 @@ class _Trainable(Trainable):
                 if self.return_train_score:
                     self.fold_train_scores[i] = self.scoring(self.estimator[i], X_train, y_train)
                 self.fold_scores[i] = self.scoring(self.estimator[i], X_test, y_test)
-
-            self.mean_scores = sum(self.fold_scores) / len(self.fold_scores)
+            
+            ret = {}
+            total = 0
+            for i, score in enumerate(self.fold_scores):
+                total += score
+                key_str = f"split{i}_test_score"
+                ret[key_str] = score
+            self.mean_score = total / len(self.fold_scores)
+            ret["average_test_score"] = self.mean_score
 
             if self.return_train_score:
-                self.mean_train_scores = sum(self.fold_train_scores) / len(self.fold_train_scores)
-                return {"average_test_score": self.mean_scores, "average_train_score": self.mean_train_scores}
+                total = 0
+                for i, score in enumerate(self.fold_train_scores):
+                    total += score
+                    key_str = f"split{i}_train_score"
+                    ret[key_str] = score
+                self.mean_train_score = total / len(self.fold_train_scores)
+                ret["average_train_score"] = self.mean_train_score
 
-            return {"average_test_score": self.mean_scores}
+            return ret
         else:
             scores = cross_validate(
                 self.estimator,
@@ -101,11 +115,22 @@ class _Trainable(Trainable):
                 groups=self.groups,
                 scoring=self.scoring
             )
+
+            ret = {}
+            for i, score in enumerate(scores["test_score"]):
+                key_str = f"split{i}_test_score"
+                ret[key_str] = score
             self.test_accuracy = sum(scores["test_score"]) / len(scores["test_score"])
+            ret["average_test_score"] = self.test_accuracy
+
             if self.return_train_score:
+                for i, score in enumerate(scores["train_score"]):
+                    key_str = f"split{i}_train_score"
+                    ret[key_str] = score
                 self.train_accuracy = sum(scores["train_score"]) / len(scores["train_score"])
-                return {"average_test_score": self.test_accuracy, "average_train_score": self.train_accuracy}
-            return {"average_test_score": self.test_accuracy}
+                ret["average_train_score"] = self.train_accuracy
+
+            return ret
 
     def _save(self, checkpoint_dir):
         """Creates a checkpoint in ``checkpoint_dir``, creating a pickle file."""
@@ -153,6 +178,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
     @property
     def classes_(self):
+        self._check_is_fitted("classes_")
         return self.best_estimator_.classes_
 
     @property
@@ -162,7 +188,7 @@ class TuneBaseSearchCV(BaseEstimator):
         Only available if ``refit=True`` and the underlying estimator supports
         ``decision_function``.
         """
-        #check_is_fitted(self)
+        self._check_is_fitted("decision_function")
         return self.best_estimator_.decision_function
 
     @property
@@ -172,7 +198,7 @@ class TuneBaseSearchCV(BaseEstimator):
         Only available if the underlying estimator implements
         ``inverse_transform`` and ``refit=True``.
         """
-        #check_is_fitted(self)
+        self._check_is_fitted("inverse_transform")
         return self.best_estimator_.inverse_transform
 
     @property
@@ -182,7 +208,7 @@ class TuneBaseSearchCV(BaseEstimator):
         Only available if ``refit=True`` and the underlying estimator supports
         ``predict``.
         """
-        #check_is_fitted(self)
+        self._check_is_fitted("predict")
         return self.best_estimator_.predict
 
     @property
@@ -192,7 +218,7 @@ class TuneBaseSearchCV(BaseEstimator):
         Only available if ``refit=True`` and the underlying estimator supports
         ``predict_log_proba``.
         """
-        #check_is_fitted(self)
+        self._check_is_fitted("predict_log_proba")
         return self.best_estimator_.predict_log_proba
 
     @property
@@ -202,7 +228,7 @@ class TuneBaseSearchCV(BaseEstimator):
         Only available if ``refit=True`` and the underlying estimator supports
         ``predict_proba``.
         """
-        #check_is_fitted(self)
+        self._check_is_fitted("predict_proba")
         return self.best_estimator_.predict_proba
 
     @property
@@ -212,7 +238,7 @@ class TuneBaseSearchCV(BaseEstimator):
         Only available if the underlying estimator supports ``transform`` and
         ``refit=True``.
         """
-        #check_is_fitted(self)
+        self._check_is_fitted("transform")
         return self.best_estimator_.transform
 
     def _check_params(self):
@@ -227,6 +253,17 @@ class TuneBaseSearchCV(BaseEstimator):
             raise AttributeError(
                 "'{}' is not a valid attribute with " "'refit=False'.".format(attr)
             )
+    
+    def _check_is_fitted(self, method_name):
+        if not self.refit:
+            msg = (
+                "This {0} instance was initialized with refit=False. {1} "
+                "is available only after refitting on the best "
+                "parameters."
+            ).format(type(self).__name__, method_name)
+            raise NotFittedError(msg)
+        else:
+            check_is_fitted(self)
 
     def __init__(self,
                  estimator,
@@ -302,14 +339,13 @@ class TuneBaseSearchCV(BaseEstimator):
         config['iters'] = self.iters
         config['return_train_score'] = self.return_train_score
 
-        #candidate_params = list(self._get_param_iterator())
-        #n_samples = n_splits * len(candidate_params)
+        candidate_params = list(self._get_param_iterator())
+        n_samples = n_splits * len(candidate_params)
 
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)
 
-
-        #self.cv_results_ = self._format_results(candidate_params, n_splits, analysis)
+        self.cv_results_ = self._format_results(candidate_params, n_splits, analysis)
 
         if self.refit:
             best_config = analysis.get_best_config(metric="average_test_score", mode="max")
@@ -357,15 +393,13 @@ class TuneBaseSearchCV(BaseEstimator):
 
     def _format_results(self, candidate_params, n_splits, out):
         """Helper to generate the ``cv_results_`` dictionary."""
-        dfs = out.trial_dataframes
+        dfs = list(out.fetch_trial_dataframes().values())
+        finished = [df[df["done"] == True] for df in dfs]
+        test_scores = [df[[col for col in dfs[0].columns if "split" in col and "test_score" in col]].to_numpy() for df in finished]
         if self.return_train_score:
-            arrays = [zip(*(df[df["done"] == True][["average_test_score", "average_train_score", "time_total_s"]].to_numpy()))
-                      for df in dfs.values()]
-            test_scores, train_scores, fit_times = zip(*arrays)
+            train_scores = [df[[col for col in dfs[0].columns if "split" in col and "train_score" in col]].to_numpy() for df in finished]
         else:
-            arrays = [zip(*(df[df["done"] == True][["average_test_score", "time_total_s"]].to_numpy())) for df in dfs.values()]
-            test_scores, fit_times = zip(*arrays)
-        print(n_splits, test_scores)
+            train_scores = None
 
         results = {"params": candidate_params}
         n_candidates = len(candidate_params)
@@ -400,10 +434,12 @@ class TuneBaseSearchCV(BaseEstimator):
                     rankdata(-array_means, method="min"), dtype=np.int32
                 )
 
-        _store(results, 'fit_time', fit_times, n_splits, n_candidates)
         _store(results, "test_score", test_scores, n_splits, n_candidates, splits=True, rank=True)
         if self.return_train_score:
             _store(results, "train_score", train_scores, n_splits, n_candidates, splits=True, rank=True)
+        
+        results["time_total_s"] = np.array([df["time_total_s"].to_numpy() for df in finished]).T
+
         return results
 
 
@@ -536,7 +572,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
     
     iters : int, default=1
         Indicates the number of iterations to run for each hyperparameter 
-        configuration sampled (specified by ``num_samples``). 
+        configuration sampled (specified by ``n_iter``). 
     """
 
     def __init__(self,
@@ -584,7 +620,11 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         by ``rvs``.
         """
         for key, distribution in self.param_distributions.items():
-            config[key] = tune.sample_from(lambda spec: distribution.rvs(1)[0])
+            if isinstance(distribution, list):
+                import random
+                config[key] = tune.sample_from(lambda spec: distribution[random.randint(0, len(distribution) - 1)])
+            else:
+                config[key] = tune.sample_from(lambda spec: distribution.rvs(1)[0])
 
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
@@ -738,7 +778,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
     
     iters : int, default=1
         Indicates the number of iterations to run for each hyperparameter 
-        configuration sampled (specified by ``num_samples``). 
+        configuration sampled. For GridSearch, this parameter is ignored and is
+        always set to 1. 
     """
     def __init__(self,
                  estimator,
@@ -764,7 +805,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             early_stopping=early_stopping,
-            iters=iters,
+            iters=1,
         )
 
         _check_param_grid(param_grid)

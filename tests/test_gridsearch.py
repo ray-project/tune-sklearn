@@ -38,6 +38,7 @@ from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KernelDensity
 from ray.tune.schedulers import MedianStoppingRule
+from ray.tune.error import TuneError # TODO: Revert TuneErrors to ValueErrors when error propagation is done
 import unittest
 from test_utils import (
     MockClassifier,
@@ -82,7 +83,7 @@ class GridSearchTest(unittest.TestCase):
     def test_grid_search(self):
         # Test that the best estimator contains the right value for foo_param
         clf = MockClassifier()
-        grid_search = tcv.TuneGridSearchCV(clf, {"foo_param": [1, 2, 3]})
+        grid_search = tcv.TuneGridSearchCV(clf, {"foo_param": [1, 2, 3]}, cv=3)
         # make sure it selects the smallest parameter in case of ties
         grid_search.fit(X, y)
         self.assertEqual(grid_search.best_estimator_.foo_param, 2)
@@ -97,7 +98,7 @@ class GridSearchTest(unittest.TestCase):
 
         # Test exception handling on scoring
         grid_search.scoring = "sklearn"
-        with pytest.raises(ValueError):
+        with self.assertRaises(TuneError):
             grid_search.fit(X, y)
 
     def test_grid_search_no_score(self):
@@ -145,9 +146,9 @@ class GridSearchTest(unittest.TestCase):
 
         # The CheckingClassifer generates an assertion error if
         # a parameter is missing or has length != len(X).
-        with pytest.raises(AssertionError) as exc:
+        with self.assertRaises(AssertionError) as exc:
             searcher.fit(X, y, clf__spam=np.ones(10))
-        self.assertTrue("Expected fit parameter(s) ['eggs'] not seen." in str(exc.value))
+        self.assertTrue("Expected fit parameter(s) ['eggs'] not seen." in str(exc.exception))
 
         searcher.fit(X, y, clf__spam=np.ones(10), clf__eggs=np.zeros(10))
         ''' NOT YET SUPPORTED
@@ -204,9 +205,9 @@ class GridSearchTest(unittest.TestCase):
         for cv in group_cvs:
             gs = tcv.TuneGridSearchCV(clf, grid, cv=cv)
 
-            with pytest.raises(ValueError) as exc:
-                assert gs.fit(X, y)
-            self.assertTrue("parameter should not be None" in str(exc.value))
+            with self.assertRaises(TuneError) as exc:
+                gs.fit(X, y)
+            self.assertTrue("parameter should not be None" in str(exc.exception))
 
             gs.fit(X, y, groups=groups)
 
@@ -215,55 +216,6 @@ class GridSearchTest(unittest.TestCase):
             gs = tcv.TuneGridSearchCV(clf, grid, cv=cv)
             # Should not raise an error
             gs.fit(X, y)
-
-    '''
-    @pytest.mark.xfail(reason="flaky test", strict=False)
-    def test_return_train_score_warn(self):
-        # Test that warnings are raised. Will be removed in sklearn 0.21
-        X = np.arange(100).reshape(10, 10)
-        y = np.array([0] * 5 + [1] * 5)
-        X = (X - X.mean(0)) / X.std(0)  # help convergence
-        grid = {"C": [0.1, 0.5]}
-
-        for val in [True, False]:
-            est = dcv.GridSearchCV(
-                LinearSVC(random_state=0, tol=0.5), grid, return_train_score=val
-            )
-            with pytest.warns(None) as warns:
-                results = est.fit(X, y).cv_results_
-            assert not warns
-            assert type(results) is dict
-
-        est = dcv.GridSearchCV(LinearSVC(random_state=0), grid)
-        with pytest.warns(None) as warns:
-            results = est.fit(X, y).cv_results_
-        assert not warns
-
-        train_keys = {
-            "split0_train_score",
-            "split1_train_score",
-            "split2_train_score",
-            "mean_train_score",
-            "std_train_score",
-        }
-
-        include_train_score = SK_VERSION <= packaging.version.parse("0.21.dev0")
-
-        if include_train_score:
-            assert all(x in results for x in train_keys)
-        else:
-            result = train_keys & set(results)
-            assert result == {}
-
-        for key in results:
-            if key in train_keys:
-                with pytest.warns(FutureWarning):
-                    results[key]
-            else:
-                with pytest.warns(None) as warns:
-                    results[key]
-                assert not warns
-    '''
 
     @pytest.mark.filterwarnings("ignore::sklearn.exceptions.ConvergenceWarning")
     def test_classes__property(self):
@@ -294,25 +246,25 @@ class GridSearchTest(unittest.TestCase):
         # Test search over a "grid" with only one point.
         # Non-regression test: grid_scores_ wouldn't be set by dcv.GridSearchCV.
         clf = MockClassifier()
-        grid_search = tcv.TuneGridSearchCV(clf, {"foo_param": [1]})
+        grid_search = tcv.TuneGridSearchCV(clf, {"foo_param": [1]}, cv=3)
         grid_search.fit(X, y)
         self.assertTrue(hasattr(grid_search, "cv_results_"))
 
-        random_search = tcv.TuneRandomizedSearchCV(clf, {"foo_param": [0]}, iters=1)
+        random_search = tcv.TuneRandomizedSearchCV(clf, {"foo_param": [0]}, iters=1, cv=3)
         random_search.fit(X, y)
         self.assertTrue(hasattr(grid_search, "cv_results_"))
 
     def test_no_refit(self):
         # Test that GSCV can be used for model selection alone without refitting
         clf = MockClassifier()
-        grid_search = tcv.TuneGridSearchCV(clf, {"foo_param": [1, 2, 3]}, refit=False)
+        grid_search = tcv.TuneGridSearchCV(clf, {"foo_param": [1, 2, 3]}, refit=False, cv=3)
         grid_search.fit(X, y)
         self.assertFalse(hasattr(grid_search, "best_estimator_"))
         self.assertFalse(hasattr(grid_search, "best_index_"))
         self.assertFalse(hasattr(grid_search, "best_score_"))
         self.assertFalse(hasattr(grid_search, "best_params_"))
 
-        # Make sure the predict/transform etc fns raise meaningfull error msg
+        # Make sure the predict/transform etc fns raise meaningful error msg
         for fn_name in (
             "predict",
             "predict_proba",
@@ -320,13 +272,13 @@ class GridSearchTest(unittest.TestCase):
             "transform",
             "inverse_transform",
         ):
-            with pytest.raises(NotFittedError) as exc:
+            with self.assertRaises(NotFittedError) as exc:
                 getattr(grid_search, fn_name)(X)
             self.assertTrue(
             (
                 "refit=False. %s is available only after refitting on the "
                 "best parameters" % fn_name
-            ) in str(exc.value))
+            ) in str(exc.exception))
     '''NOT YET SUPPORTED
     def test_no_refit_multiple_metrics():
         clf = DecisionTreeClassifier()
@@ -354,7 +306,7 @@ class GridSearchTest(unittest.TestCase):
 
         clf = LinearSVC()
         cv = tcv.TuneGridSearchCV(clf, {"C": [0.1, 1.0]})
-        with pytest.raises(ValueError):
+        with self.assertRaises(TuneError):
             cv.fit(X_[:180], y_)
 
     def test_grid_search_one_grid_point(self):
@@ -374,38 +326,38 @@ class GridSearchTest(unittest.TestCase):
         param_dict = {"C": 1.0}
         clf = SVC()
 
-        with pytest.raises(ValueError) as exc:
+        with self.assertRaises(ValueError) as exc:
             tcv.TuneGridSearchCV(clf, param_dict)
         self.assertTrue(
         (
             "Parameter values for parameter (C) need to be a sequence"
             "(but not a string) or np.ndarray."
-        ) in str(exc.value))
+        ) in str(exc.exception))
 
         param_dict = {"C": []}
         clf = SVC()
 
-        with pytest.raises(ValueError) as exc:
+        with self.assertRaises(ValueError) as exc:
             tcv.TuneGridSearchCV(clf, param_dict)
         self.assertTrue(
         (
             "Parameter values for parameter (C) need to be a non-empty " "sequence."
-        ) in str(exc.value))
+        ) in str(exc.exception))
 
         param_dict = {"C": "1,2,3"}
         clf = SVC()
 
-        with pytest.raises(ValueError) as exc:
+        with self.assertRaises(ValueError) as exc:
             tcv.TuneGridSearchCV(clf, param_dict)
         self.assertTrue(
         (
             "Parameter values for parameter (C) need to be a sequence"
             "(but not a string) or np.ndarray."
-        ) in str(exc.value))
+        ) in str(exc.exception))
 
         param_dict = {"C": np.ones(6).reshape(3, 2)}
         clf = SVC()
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             tcv.TuneGridSearchCV(clf, param_dict)
 
     def test_grid_search_sparse(self):
@@ -488,7 +440,7 @@ class GridSearchTest(unittest.TestCase):
 
         # test error is raised when the precomputed kernel is not array-like
         # or sparse
-        with pytest.raises(ValueError):
+        with self.assertRaises(TuneError):
             cv.fit(K_train.tolist(), y_train)
 
     def test_grid_search_precomputed_kernel_error_nonsquare(self):
@@ -498,7 +450,7 @@ class GridSearchTest(unittest.TestCase):
         y_train = np.ones((10,))
         clf = SVC(kernel="precomputed")
         cv = tcv.TuneGridSearchCV(clf, {"C": [0.1, 1.0]})
-        with pytest.raises(ValueError):
+        with self.assertRaises(TuneError):
             cv.fit(K_train, y_train)
 
 
@@ -523,7 +475,7 @@ class GridSearchTest(unittest.TestCase):
             check_X=lambda x: x.shape[1:] == (5, 3, 2),
             check_y=lambda x: x.shape[1:] == (7, 11),
         )
-        grid_search = tcv.TuneGridSearchCV(clf, {"foo_param": [1, 2, 3]})
+        grid_search = tcv.TuneGridSearchCV(clf, {"foo_param": [1, 2, 3]}, cv=3)
         grid_search.fit(X_4d, y_3d).score(X, y)
         self.assertTrue(hasattr(grid_search, "cv_results_"))
 

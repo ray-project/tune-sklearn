@@ -6,7 +6,7 @@ Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and s
 ## Quick Start
 Use tune-sklearn TuneGridSearchCV to tune sklearn model
 ```python
-from tune_sklearn import TuneGridSearchCV
+from tune_sklearn.tune_search import TuneGridSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
@@ -33,11 +33,17 @@ tuned_parameters = {'kernel': ['rbf'],
 
 tune_search = TuneGridSearchCV(SVC(),
                                tuned_parameters,
-                               scheduler=MedianStoppingRule(),
-                               iters=20)
+                               scheduler=MedianStoppingRule())
 tune_search.fit(X_train, y_train)
 
 pred = tune_search.predict(X_test)
+
+correct = 0
+for i in range(len(pred)):
+    if pred[i] == y_test[i]:
+        correct += 1
+print(correct / len(pred))
+print(tune_search.cv_results_)
 ```
 
 Use tune-sklearn TuneRandomizedSearchCV to tune sklearn model
