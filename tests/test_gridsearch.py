@@ -98,7 +98,7 @@ class GridSearchTest(unittest.TestCase):
 
         # Test exception handling on scoring
         grid_search.scoring = "sklearn"
-        with self.assertRaises(TuneError):
+        with self.assertRaises(ValueError):
             grid_search.fit(X, y)
 
     def test_grid_search_no_score(self):
@@ -151,12 +151,6 @@ class GridSearchTest(unittest.TestCase):
         self.assertTrue("Expected fit parameter(s) ['eggs'] not seen." in str(exc.exception))
 
         searcher.fit(X, y, clf__spam=np.ones(10), clf__eggs=np.zeros(10))
-        ''' NOT YET SUPPORTED
-        # Test with dask objects as parameters
-        searcher.fit(
-            X, y, clf__spam=da.ones(10, chunks=2), clf__eggs=dask.delayed(np.zeros(10))
-        )
-        '''
 
     def test_grid_search_score_method(self):
         X, y = make_classification(n_samples=100, n_classes=2, flip_y=0.2, random_state=0)
@@ -205,9 +199,10 @@ class GridSearchTest(unittest.TestCase):
         for cv in group_cvs:
             gs = tcv.TuneGridSearchCV(clf, grid, cv=cv)
 
-            with self.assertRaises(TuneError) as exc:
+            with self.assertRaises((ValueError, TuneError)) as exc:
                 gs.fit(X, y)
-            self.assertTrue("parameter should not be None" in str(exc.exception))
+            if isinstance(exc, ValueError):
+                self.assertTrue("parameter should not be None" in str(exc.exception))
 
             gs.fit(X, y, groups=groups)
 
@@ -252,7 +247,7 @@ class GridSearchTest(unittest.TestCase):
 
         random_search = tcv.TuneRandomizedSearchCV(clf, {"foo_param": [0]}, iters=1, cv=3)
         random_search.fit(X, y)
-        self.assertTrue(hasattr(grid_search, "cv_results_"))
+        self.assertTrue(hasattr(random_search, "cv_results_"))
 
     def test_no_refit(self):
         # Test that GSCV can be used for model selection alone without refitting

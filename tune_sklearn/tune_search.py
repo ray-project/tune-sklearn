@@ -8,6 +8,7 @@
     -- Anthony Yu and Michael Chau
 """
 
+from collections import defaultdict
 from scipy.stats import _distn_infrastructure, rankdata
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
@@ -24,8 +25,9 @@ from ray.tune import Trainable
 from ray.exceptions import RayTaskError
 from ray.tune.schedulers import PopulationBasedTraining, MedianStoppingRule
 import numpy as np
+from numpy.ma import MaskedArray
 import os
-import pickle
+import cloudpickle as pickle
 
 # Helper class to train models
 class _Trainable(Trainable):
@@ -340,7 +342,6 @@ class TuneBaseSearchCV(BaseEstimator):
         config['return_train_score'] = self.return_train_score
 
         candidate_params = list(self._get_param_iterator())
-        n_samples = n_splits * len(candidate_params)
 
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)
@@ -439,6 +440,18 @@ class TuneBaseSearchCV(BaseEstimator):
             _store(results, "train_score", train_scores, n_splits, n_candidates, splits=True, rank=True)
         
         results["time_total_s"] = np.array([df["time_total_s"].to_numpy() for df in finished]).T
+
+        # Use one MaskedArray and mask all the places where the param is not
+        # applicable for that candidate. Use defaultdict as each candidate may
+        # not contain all the params
+        param_results = defaultdict(
+            lambda: MaskedArray(np.empty(n_candidates), mask=True, dtype=object)
+        )
+        for cand_i, params in enumerate(candidate_params):
+            for name, value in params.items():
+                param_results["param_%s" % name][cand_i] = value
+
+        results.update(param_results)
 
         return results
 
@@ -619,12 +632,18 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         present to extract the single value out of a list, which is returned
         by ``rvs``.
         """
+        samples = 1
+        all_lists = True
         for key, distribution in self.param_distributions.items():
             if isinstance(distribution, list):
                 import random
                 config[key] = tune.sample_from(lambda spec: distribution[random.randint(0, len(distribution) - 1)])
+                samples *= len(distribution)
             else:
+                all_lists = False
                 config[key] = tune.sample_from(lambda spec: distribution.rvs(1)[0])
+        if all_lists:
+            self.num_samples = min(self.num_samples, samples)
 
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
