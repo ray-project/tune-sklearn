@@ -1,4 +1,4 @@
-from tune_sklearn import TuneRandomizedSearchCV, TuneGridSearchCV
+from tune_sklearn import tune_search as tcv
 from scipy.stats import randint, uniform
 from sklearn.model_selection import GridSearchCV
 from ray import tune
@@ -27,48 +27,6 @@ import unittest
 # TODO: Either convert to individual examples or to python unittests
 
 class RandomizedSearchTest(unittest.TestCase):
-    '''
-    def test_random_forest(self):
-        iris = datasets.load_iris()
-        x = iris.data
-        y = iris.target
-        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.5)
-
-        clf = RandomForestClassifier()
-        param_grid = {
-            'n_estimators': randint(20,80)
-        }
-
-
-        tune_search = TuneRandomizedSearchCV(clf, param_grid, scheduler=MedianStoppingRule(), iters=20)
-        tune_search.fit(x_train, y_train)
-
-        pred = tune_search.predict(x_test)
-        print(pred)
-        accuracy = np.count_nonzero(np.array(pred) == np.array(y_test))/len(pred)
-        print(accuracy)
-
-    def test_check_cv_results_array_types(self, cv_results, param_keys, score_keys):
-        # Check if the search `cv_results`'s array are of correct types
-        self.assertTrue(all(isinstance(cv_results[param], np.ma.MaskedArray) for param in param_keys))
-        self.assertTrue(all(cv_results[key].dtype == object for key in param_keys))
-        self.assertFalse(any(isinstance(cv_results[key], np.ma.MaskedArray) for key in score_keys))
-        self.assertTrue(
-        all(
-            cv_results[key].dtype == np.float64
-            for key in score_keys
-            if not key.startswith("rank")
-        )
-        )
-        self.assertEquals(cv_results["rank_test_score"].dtype, np.int32)
-
-    def test_check_cv_results_keys(self, cv_results, param_keys, score_keys, n_cand):
-        # Test the search.cv_results_ contains all the required results
-        assert_array_equal(
-            sorted(cv_results.keys()), sorted(param_keys + score_keys + ("params",))
-        )
-        self.assertTrue(all(cv_results[key].shape == (n_cand,) for key in param_keys + score_keys))
-
     def test_random_search_cv_results(self):
         # Make a dataset with a lot of noise to get various kind of prediction
         # errors across CV folds and parameter settings
@@ -82,30 +40,21 @@ class RandomizedSearchTest(unittest.TestCase):
         n_splits = 3
         n_search_iter = 30
         params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
-        random_search = TuneRandomizedSearchCV(
+        random_search = tcv.TuneRandomizedSearchCV(
             SVC(),
-            iters=n_search_iter,
+            n_iter=n_search_iter,
             cv=n_splits,
-            #iid=False, #not yet supported
             param_distributions=params,
             return_train_score=True,
         )
         random_search.fit(X, y)
-        random_search_iid = TuneRandomizedSearchCV(
-            SVC(),
-            iters=n_search_iter,
-            cv=n_splits,
-            #iid=True, #not yet supported
-            param_distributions=params,
-            return_train_score=True,
-        )
-        random_search_iid.fit(X, y)
 
         param_keys = ("param_C", "param_gamma")
         score_keys = (
             "mean_test_score",
             "mean_train_score",
             "rank_test_score",
+            "rank_train_score",
             "split0_test_score",
             "split1_test_score",
             "split2_test_score",
@@ -114,28 +63,41 @@ class RandomizedSearchTest(unittest.TestCase):
             "split2_train_score",
             "std_test_score",
             "std_train_score",
-            "mean_fit_time",
-            "std_fit_time",
-            "mean_score_time",
-            "std_score_time",
+            "time_total_s",
         )
         n_cand = n_search_iter
 
-        for search, iid in zip((random_search, random_search_iid), (False, True)):
-            self.assertTrue(iid, search.iid)
-            cv_results = search.cv_results_
-            # Check results structure
-            self.test_check_cv_results_array_types(cv_results, param_keys, score_keys)
-            self.test_check_cv_results_keys(cv_results, param_keys, score_keys, n_cand)
-            # For random_search, all the param array vals should be unmasked
-            self.assertFalse(
-            (
-                any(cv_results["param_C"].mask) or any(cv_results["param_gamma"].mask)
+        def test_check_cv_results_array_types(cv_results, param_keys, score_keys):
+            # Check if the search `cv_results`'s array are of correct types
+            self.assertTrue(all(isinstance(cv_results[param], np.ma.MaskedArray) for param in param_keys))
+            self.assertTrue(all(cv_results[key].dtype == object for key in param_keys))
+            self.assertFalse(any(isinstance(cv_results[key], np.ma.MaskedArray) for key in score_keys))
+            self.assertTrue(
+            all(
+                cv_results[key].dtype == np.float64
+                for key in score_keys
+                if not key.startswith("rank")
             )
             )
+            self.assertEquals(cv_results["rank_test_score"].dtype, np.int32)
+
+        def test_check_cv_results_keys(cv_results, param_keys, score_keys, n_cand):
+            # Test the search.cv_results_ contains all the required results
+            assert_array_equal(
+                sorted(cv_results.keys()), sorted(param_keys + score_keys + ("params",))
+            )
+            self.assertTrue(all(cv_results[key].shape == (n_cand,) for key in param_keys + score_keys))
+
+        cv_results = random_search.cv_results_
+        # Check results structure
+        test_check_cv_results_array_types(cv_results, param_keys, score_keys)
+        test_check_cv_results_keys(cv_results, param_keys, score_keys, n_cand)
+        # For random_search, all the param array vals should be unmasked
+        self.assertFalse(any(cv_results["param_C"].mask) or 
+                         any(cv_results["param_gamma"].mask))
 
 
-            '''
+'''
     def test_pbt(self):
         iris = datasets.load_iris()
         x = iris.data
@@ -157,7 +119,7 @@ class RandomizedSearchTest(unittest.TestCase):
                         "alpha" : lambda: np.random.choice([1e-4, 1e-3, 1e-2, 1e-1])
                     })
 
-        tune_search = TuneRandomizedSearchCV(clf,
+        tune_search = tcv.TuneRandomizedSearchCV(clf,
                     param_distributions,
                     scheduler=scheduler,
                     early_stopping=True,
@@ -172,7 +134,7 @@ class RandomizedSearchTest(unittest.TestCase):
         accuracy = np.count_nonzero(np.array(pred) == np.array(y_test))/len(pred)
         print(accuracy)
         print(tune_search.best_params_)
-'''
+
     def test_linear_iris(self):
         iris = datasets.load_iris()
         X = iris.data
@@ -189,47 +151,35 @@ class RandomizedSearchTest(unittest.TestCase):
         # Create hyperparameter options
         hyperparameters = dict(C=C, penalty=penalty)
 
-        clf = TuneRandomizedSearchCV(logistic, hyperparameters, scheduler=MedianStoppingRule())
+        clf = tcv.TuneRandomizedSearchCV(logistic, hyperparameters, scheduler=MedianStoppingRule())
         clf.fit(X,y)
 
         pred = clf.predict(X)
         print(pred)
         accuracy = np.count_nonzero(np.array(pred) == np.array(y))/len(pred)
         print(accuracy)
+        
+    def test_random_forest(self):
+        iris = datasets.load_iris()
+        x = iris.data
+        y = iris.target
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.5)
 
+        clf = RandomForestClassifier()
+        param_grid = {
+            'n_estimators': randint(20,80)
+        }
+
+
+        tune_search = tcv.TuneRandomizedSearchCV(clf, param_grid, scheduler=MedianStoppingRule(), iters=20)
+        tune_search.fit(x_train, y_train)
+
+        pred = tune_search.predict(x_test)
+        print(pred)
+        accuracy = np.count_nonzero(np.array(pred) == np.array(y_test))/len(pred)
+        print(accuracy)
 '''
 
 if __name__ == '__main__':
     unittest.main()
-
-# TODO: Edit these tests from sklearn once we have properties/all signatures finished in tune_sklearn
-
-'''
-def test_grid_search():
-    pass
-
-def test_grid_search_with_fit_params():
-    pass
-
-def test_random_search_with_fit_params():
-    pass
-
-def test_grid_search_no_score():
-    pass
-
-def test_grid_search_score_method():
-    pass
-
-def test_grid_search_groups():
-    pass
-
-def test_no_refit():
-    pass
-
-def test_grid_search_error():
-    pass
-
-def test_grid_search_one_grid_point():
-    pass
-'''
 

@@ -115,7 +115,8 @@ class _Trainable(Trainable):
                 cv=self.cv,
                 fit_params=self.fit_params,
                 groups=self.groups,
-                scoring=self.scoring
+                scoring=self.scoring,
+                return_train_score=self.return_train_score,
             )
 
             ret = {}
@@ -439,7 +440,7 @@ class TuneBaseSearchCV(BaseEstimator):
         if self.return_train_score:
             _store(results, "train_score", train_scores, n_splits, n_candidates, splits=True, rank=True)
         
-        results["time_total_s"] = np.array([df["time_total_s"].to_numpy() for df in finished]).T
+        results["time_total_s"] = np.array([df["time_total_s"].to_numpy() for df in finished]).flatten()
 
         # Use one MaskedArray and mask all the places where the param is not
         # applicable for that candidate. Use defaultdict as each candidate may
