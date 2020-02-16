@@ -418,7 +418,7 @@ class TuneBaseSearchCV(BaseEstimator):
         ):
             """A small helper to store the scores/times to the cv_results_"""
             # When iterated first by n_splits and then by parameters
-            array = np.array(array, dtype=np.float64).reshape(n_splits, n_candidates).T
+            array = np.array(array, dtype=np.float64).reshape((n_candidates, n_splits))
             if splits:
                 for split_i in range(n_splits):
                     results["split%d_%s" % (split_i, key_name)] = array[:, split_i]

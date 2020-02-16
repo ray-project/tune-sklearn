@@ -49,7 +49,7 @@ print(tune_search.cv_results_)
 Use tune-sklearn TuneRandomizedSearchCV to tune sklearn model
 
 ```python
-from tune_sklearn import TuneRandomizedSearchCV
+from tune_sklearn.tune_search import TuneRandomizedSearchCV
 import scipy
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
