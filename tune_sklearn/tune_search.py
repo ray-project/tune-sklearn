@@ -279,7 +279,7 @@ class TuneBaseSearchCV(BaseEstimator):
                  error_score='raise',
                  return_train_score=False,
                  early_stopping=False,
-                 iters=1,
+                 iters=5,
     ):
         self.estimator = estimator
         self.scheduler = scheduler
