@@ -284,7 +284,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.estimator = estimator
         self.scheduler = scheduler
         self.cv = cv
-        self.scoring = scoring
+        self.scoring = check_scoring(self.estimator, scoring=self.scoring)
         self.n_jobs = n_jobs
         self.refit = refit
         self.verbose = verbose
@@ -328,7 +328,7 @@ class TuneBaseSearchCV(BaseEstimator):
         classifier = is_classifier(self.estimator)
         cv = check_cv(self.cv, y, classifier)
         n_splits = cv.get_n_splits(X, y, groups)
-        self.scorer_ = check_scoring(self.estimator, scoring=self.scoring)
+        #self.scorer_ = check_scoring(self.estimator, scoring=self.scoring)
         resources_per_trial = None
         if self.n_jobs:
             resources_per_trial = {'cpu': self.n_jobs, 'gpu': 0}
@@ -378,7 +378,7 @@ class TuneBaseSearchCV(BaseEstimator):
         Will return a single float if is_multimetric is False and a dict of floats,
         if is_multimetric is True
         """
-        return self.scorer_(self.best_estimator_, X, y)
+        return self.scorering(self.best_estimator_, X, y)
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
