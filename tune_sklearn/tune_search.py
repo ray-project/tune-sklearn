@@ -31,8 +31,8 @@ import cloudpickle as pickle
 
 # Helper class to train models
 class _Trainable(Trainable):
-    """Helper Trainable class to be directly passed in as the first argument 
-    of tune.run to train models. Overrides Ray Tune's Trainable class to specify 
+    """Helper Trainable class to be directly passed in as the first argument
+    of tune.run to train models. Overrides Ray Tune's Trainable class to specify
     the setup, train, save, and restore routines.
     """
 
@@ -64,13 +64,13 @@ class _Trainable(Trainable):
     def _train(self):
         """Trains one iteration of the model called when ``tune.run`` is called.
 
-        Different routines are run depending on if the ``early_stopping`` attribute 
-        is True or not. 
-        - If ``self.early_stopping`` is True, each fold is fit with `partial_fit`, 
-          which stops training the model if the validation score is not improving 
-          for a particular fold. 
+        Different routines are run depending on if the ``early_stopping`` attribute
+        is True or not.
+        - If ``self.early_stopping`` is True, each fold is fit with `partial_fit`,
+          which stops training the model if the validation score is not improving
+          for a particular fold.
         - Otherwise, run the full cross-validation procedure.
-        In both cases, the average test accuracy is returned over all folds, 
+        In both cases, the average test accuracy is returned over all folds,
         as well as the individual folds' accuracies as a dictionary.
         """
         if self.early_stopping:
@@ -87,7 +87,7 @@ class _Trainable(Trainable):
                 if self.return_train_score:
                     self.fold_train_scores[i] = self.scoring(self.estimator[i], X_train, y_train)
                 self.fold_scores[i] = self.scoring(self.estimator[i], X_test, y_test)
-            
+
             ret = {}
             total = 0
             for i, score in enumerate(self.fold_scores):
@@ -162,7 +162,7 @@ class TuneBaseSearchCV(BaseEstimator):
     @property
     def best_params_(self):
         """Parameter setting that gave the best results on the hold out data.
-        
+
         For multi-metric evaluation, this is present only if ``refit`` is specified.
         """
         self._check_if_refit("best_params_")
@@ -256,7 +256,7 @@ class TuneBaseSearchCV(BaseEstimator):
             raise AttributeError(
                 "'{}' is not a valid attribute with " "'refit=False'.".format(attr)
             )
-    
+
     def _check_is_fitted(self, method_name):
         if not self.refit:
             msg = (
@@ -279,7 +279,7 @@ class TuneBaseSearchCV(BaseEstimator):
                  error_score='raise',
                  return_train_score=False,
                  early_stopping=False,
-                 iters=1,
+                 iters=5,
     ):
         self.estimator = estimator
         self.scheduler = scheduler
@@ -291,7 +291,10 @@ class TuneBaseSearchCV(BaseEstimator):
         self.error_score = error_score
         self.return_train_score = return_train_score
         self.early_stopping = early_stopping
-        self.iters = iters
+        if self.early_stopping:
+            self.iters = iters
+        else:
+            self.iters = 1
 
     def _get_param_iterator(self):
         """Get a parameter iterator to be passed in to _format_results to generate
@@ -303,7 +306,7 @@ class TuneBaseSearchCV(BaseEstimator):
         raise NotImplementedError("Implement in a child class.")
 
     def fit(self, X, y=None, groups=None, **fit_params):
-        """Run fit with all sets of parameters. ``tune.run`` is used to perform the 
+        """Run fit with all sets of parameters. ``tune.run`` is used to perform the
         fit procedure, which is put in a helper function ``_tune_run``.
 
         Parameters
@@ -325,7 +328,7 @@ class TuneBaseSearchCV(BaseEstimator):
         classifier = is_classifier(self.estimator)
         cv = check_cv(self.cv, y, classifier)
         n_splits = cv.get_n_splits(X, y, groups)
-        self.scorer_ = check_scoring(self.estimator, scoring=self.scoring)
+        self.scoring = check_scoring(self.estimator, scoring=self.scoring)
         resources_per_trial = None
         if self.n_jobs:
             resources_per_trial = {'cpu': self.n_jobs, 'gpu': 0}
@@ -351,7 +354,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         if self.refit:
             best_config = analysis.get_best_config(metric="average_test_score", mode="max")
-            for key in ['estimator', 'scheduler', 'X', 'y', 'groups', 'cv', 'fit_params', 
+            for key in ['estimator', 'scheduler', 'X', 'y', 'groups', 'cv', 'fit_params',
                 'scoring', 'early_stopping', 'iters', 'return_train_score']:
                 best_config.pop(key)
             self.best_params = best_config
@@ -375,7 +378,7 @@ class TuneBaseSearchCV(BaseEstimator):
         Will return a single float if is_multimetric is False and a dict of floats,
         if is_multimetric is True
         """
-        return self.scorer_(self.best_estimator_, X, y)
+        return self.scoring(self.best_estimator_, X, y)
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -439,7 +442,7 @@ class TuneBaseSearchCV(BaseEstimator):
         _store(results, "test_score", test_scores, n_splits, n_candidates, splits=True, rank=True)
         if self.return_train_score:
             _store(results, "train_score", train_scores, n_splits, n_candidates, splits=True, rank=True)
-        
+
         results["time_total_s"] = np.array([df["time_total_s"].to_numpy() for df in finished]).flatten()
 
         # Use one MaskedArray and mask all the places where the param is not
@@ -482,13 +485,13 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
 
     param_distributions : dict
         Dictionary with parameters names (string) as keys and distributions or
-        lists of parameter settings to try. 
-        
-        Distributions must provide a rvs  method for sampling (such as those 
-        from scipy.stats.distributions). 
-        
-        If a list is given, it is sampled uniformly. If a list of dicts is given, 
-        first a dict is sampled uniformly, and then a parameter is sampled 
+        lists of parameter settings to try.
+
+        Distributions must provide a rvs  method for sampling (such as those
+        from scipy.stats.distributions).
+
+        If a list is given, it is sampled uniformly. If a list of dicts is given,
+        first a dict is sampled uniformly, and then a parameter is sampled
         using that dict as above.
 
     scheduler : TrialScheduler, default=None
@@ -535,7 +538,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
 
         See ``scoring`` parameter to know more about multiple metric
         evaluation.
-    
+
     cv : int, cross-validation generator or an iterable, default=None
         Determines the cross-validation splitting strategy.
 
@@ -549,16 +552,16 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         other cases, :class:`KFold` is used.
 
     verbose : integer, default=0
-        Controls the verbosity: 0 = silent, 1 = only status updates, 
+        Controls the verbosity: 0 = silent, 1 = only status updates,
         2 = status and trial results.
-        
+
     random_state : int or RandomState instance, default=None
-        Pseudo random number generator state used for random uniform sampling 
-        from lists of possible values instead of scipy.stats distributions. 
-        
-        If int, random_state is the seed used by the random number generator; 
-        If RandomState instance, random_state is the random number generator; 
-        If None, the random number generator is the RandomState instance used 
+        Pseudo random number generator state used for random uniform sampling
+        from lists of possible values instead of scipy.stats distributions.
+
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
         by np.random.
 
     error_score : 'raise' or numeric, default=np.nan
@@ -577,16 +580,16 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         However computing the scores on the training set can be computationally
         expensive and is not strictly required to select the parameters that
         yield the best generalization performance.
-    
+
     early_stopping : boolean, default=False
         Specifies whether or not to stop training the model if the validation score
-        is not improving when fitting the model. 
+        is not improving when fitting the model.
 
         If ``True``, each fold is fit with ``partial_fit`` instead.
-    
+
     iters : int, default=1
-        Indicates the number of iterations to run for each hyperparameter 
-        configuration sampled (specified by ``n_iter``). 
+        Indicates the number of iterations to run for each hyperparameter
+        configuration sampled (specified by ``n_iter``).
     """
 
     def __init__(self,
@@ -629,7 +632,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         """Fill in the ``config`` dictionary with the hyperparameters.
 
         Each distribution in ``self.param_distributions`` must implement
-        the ``rvs`` method to generate a random variable. The [0] is 
+        the ``rvs`` method to generate a random variable. The [0] is
         present to extract the single value out of a list, which is returned
         by ``rvs``.
         """
@@ -655,9 +658,9 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         ----------
         config : dict
             Configurations such as hyperparameters to run ``tune.run`` on.
-        
+
         resources_per_trial : dict
-            Resource to use per trial within Ray. Accepted keys are `cpu`, `gpu` 
+            Resource to use per trial within Ray. Accepted keys are `cpu`, `gpu`
             and custom resources, and values are integers specifying the number of
             each resource to use.
         """
@@ -696,8 +699,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
     Important members are fit, predict.
 
-    GridSearchCV implements a "fit" and a "score" method. It also implements 
-    "predict", "predict_proba", "decision_function", "transform" and 
+    GridSearchCV implements a "fit" and a "score" method. It also implements
+    "predict", "predict_proba", "decision_function", "transform" and
     "inverse_transform" if they are implemented in the estimator used.
 
     The parameters of the estimator used to apply these methods are optimized
@@ -711,9 +714,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         or ``scoring`` must be passed.
 
     param_grid : dict or list of dicts
-        Dictionary with parameters names (string) as keys and lists of parameter 
-        settings to try as values, or a list of such dictionaries, in which case 
-        the grids spanned by each dictionary in the list are explored. This 
+        Dictionary with parameters names (string) as keys and lists of parameter
+        settings to try as values, or a list of such dictionaries, in which case
+        the grids spanned by each dictionary in the list are explored. This
         enables searching over any sequence of parameter settings.
 
     scheduler : TrialScheduler, default=None
@@ -736,7 +739,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
     n_jobs : int, default=None
         Number of jobs to run in parallel. None means 1 unless in a j
         oblib.parallel_backend context. -1 means using all processors.
-    
+
     cv : int, cross-validation generator or an iterable, default=None
         Determines the cross-validation splitting strategy.
 
@@ -770,7 +773,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         evaluation.
 
     verbose : integer, default=0
-        Controls the verbosity: 0 = silent, 1 = only status updates, 
+        Controls the verbosity: 0 = silent, 1 = only status updates,
         2 = status and trial results.
 
     error_score : 'raise' or numeric, default=np.nan
@@ -789,17 +792,17 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         However computing the scores on the training set can be computationally
         expensive and is not strictly required to select the parameters that
         yield the best generalization performance.
-    
+
     early_stopping : boolean, default=False
         Specifies whether or not to stop training the model if the validation score
-        is not improving when fitting the model. 
+        is not improving when fitting the model.
 
         If ``True``, each fold is fit with ``partial_fit`` instead.
-    
+
     iters : int, default=1
-        Indicates the number of iterations to run for each hyperparameter 
+        Indicates the number of iterations to run for each hyperparameter
         configuration sampled. For GridSearch, this parameter is ignored and is
-        always set to 1. 
+        always set to 1.
     """
     def __init__(self,
                  estimator,
@@ -825,7 +828,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             early_stopping=early_stopping,
-            iters=1,
+            iters=iters,
         )
 
         _check_param_grid(param_grid)
@@ -837,7 +840,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
 
-        Each distribution is converted to a list, then returns a 
+        Each distribution is converted to a list, then returns a
         dictionary showing the values of the hyperparameters that
         have been grid searched over.
         """
@@ -853,9 +856,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         ----------
         config : dict
             Configurations such as hyperparameters to run ``tune.run`` on.
-        
+
         resources_per_trial : dict
-            Resource to use per trial within Ray. Accepted keys are `cpu`, `gpu` 
+            Resource to use per trial within Ray. Accepted keys are `cpu`, `gpu`
             and custom resources, and values are integers specifying the number of
             each resource to use.
         """
