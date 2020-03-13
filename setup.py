@@ -10,6 +10,7 @@ setup(
     author='Michael Chau/Anthony Yu',
     description='An experimental scikit-learn API on Tune',
     long_description=long_description,
+    long_description_content_type="text/markdown",
     url='https://github.com/ray-project/tune-sklearn',
     install_requires=['scikit-learn>=0.22', 'scipy', 'ray', 'numpy>=1.16', 'pandas', 'tabulate', 'parameterized']
 )
