@@ -374,6 +374,8 @@ class TuneBaseSearchCV(BaseEstimator):
             df = analysis.dataframe(metric="average_test_score", mode="max")
             self.best_score = df["average_test_score"].iloc[df["average_test_score"].idxmax()]
 
+        ray.shutdown()
+
         return self
 
     def score(self, X, y=None):
