@@ -316,7 +316,11 @@ class TuneBaseSearchCV(BaseEstimator):
         Parameters
         ----------
         X : array-like, shape = [n_samples, n_features]
+            Training vector, where n_samples is the number of samples and
+            n_features is the number of features.
         y : array-like, shape = [n_samples] or [n_samples, n_output], optional
+            Target relative to X for classification or regression;
+            None for unsupervised learning.
         groups : array-like, with shape (n_samples,), optional
             Group labels for the samples used while splitting the dataset into
             train/test set. Only used in conjunction with a "Group" `cv`
