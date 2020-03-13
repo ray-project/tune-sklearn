@@ -20,6 +20,7 @@ from sklearn.base import is_classifier
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
+import ray
 from ray import tune
 from ray.tune import Trainable
 from ray.exceptions import RayTaskError
@@ -40,8 +41,16 @@ class _Trainable(Trainable):
         """Sets up Trainable attributes during initialization."""
         self.estimator = clone(config.pop('estimator'))
         self.scheduler = config.pop('scheduler')
-        self.X = config.pop('X')
-        self.y = config.pop('y')
+        data = config.pop('data')
+        if isinstance(data, ray.ObjectID):
+            self.X = ray.get(data)
+        else:
+            self.X = data
+        y = config.pop('y')
+        if isinstance(y, ray.ObjectID):
+            self.y = ray.get(y)
+        else:
+            self.y = y
         self.groups = config.pop('groups')
         self.fit_params = config.pop('fit_params')
         self.scoring = config.pop('scoring')
@@ -311,10 +320,15 @@ class TuneBaseSearchCV(BaseEstimator):
 
         Parameters
         ----------
-        X : array-like, shape = [n_samples, n_features]
+        X : float of Ray object_id, pointing to
+            array-like, shape = [n_samples, n_features], or
+            array-like, shape = [n_samples, n_features] (the vector itself)
             Training vector, where n_samples is the number of samples and
             n_features is the number of features.
-        y : array-like, shape = [n_samples] or [n_samples, n_output], optional
+        y : float of Ray object_id, pointing to
+            array-like, shape = [n_samples] or [n_samples, n_output], or
+            array-like, shape = [n_samples] or [n_samples, n_output]
+            (the vector itself), optional
             Target relative to X for classification or regression;
             None for unsupervised learning.
         groups : array-like, with shape (n_samples,), optional
@@ -326,8 +340,17 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         self._check_params()
         classifier = is_classifier(self.estimator)
-        cv = check_cv(self.cv, y, classifier)
-        n_splits = cv.get_n_splits(X, y, groups)
+        if isinstance(X, ray.ObjectID):
+            X_data = ray.get(X)
+        else:
+            X_data = X
+        y_data = None
+        if isinstance(y, ray.ObjectID):
+            y_data = ray.get(y)
+        else:
+            y_data = y
+        cv = check_cv(self.cv, y_data, classifier)
+        self.n_splits = cv.get_n_splits(X_data, y_data, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
         resources_per_trial = None
         if self.n_jobs:
@@ -335,7 +358,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         config = {}
         config['scheduler'] = self.scheduler
-        config['X'] = X
+        config['data'] = X
         config['y'] = y
         config['groups'] = groups
         config['cv'] = cv
@@ -350,11 +373,11 @@ class TuneBaseSearchCV(BaseEstimator):
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)
 
-        self.cv_results_ = self._format_results(candidate_params, n_splits, analysis)
+        self.cv_results_ = self._format_results(candidate_params, self.n_splits, analysis)
 
         if self.refit:
             best_config = analysis.get_best_config(metric="average_test_score", mode="max")
-            for key in ['estimator', 'scheduler', 'X', 'y', 'groups', 'cv', 'fit_params',
+            for key in ['estimator', 'scheduler', 'data', 'y', 'groups', 'cv', 'fit_params',
                 'scoring', 'early_stopping', 'iters', 'return_train_score']:
                 best_config.pop(key)
             self.best_params = best_config
@@ -365,7 +388,7 @@ class TuneBaseSearchCV(BaseEstimator):
             '''
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params)
-            self.best_estimator_.fit(X, y, **fit_params)
+            self.best_estimator_.fit(X_data, y_data, **fit_params)
 
             df = analysis.dataframe(metric="average_test_score", mode="max")
             self.best_score = df["average_test_score"].iloc[df["average_test_score"].idxmax()]
@@ -665,7 +688,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             each resource to use.
         """
         if self.early_stopping:
-            config['estimator'] = [clone(self.estimator) for _ in range(config['cv'].get_n_splits(config['X'], config['y']))]
+            config['estimator'] = [clone(self.estimator) for _ in range(self.n_splits)]
             analysis = tune.run(
                     _Trainable,
                     scheduler=self.scheduler,
@@ -863,7 +886,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             each resource to use.
         """
         if self.early_stopping:
-            config['estimator'] = [clone(self.estimator) for _ in range(config['cv'].get_n_splits(config['X'], config['y']))]
+            config['estimator'] = [clone(self.estimator) for _ in range(self.n_splits)]
             analysis = tune.run(
                     _Trainable,
                     scheduler=self.scheduler,
