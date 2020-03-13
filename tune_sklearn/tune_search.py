@@ -41,16 +41,11 @@ class _Trainable(Trainable):
         """Sets up Trainable attributes during initialization."""
         self.estimator = clone(config.pop('estimator'))
         self.scheduler = config.pop('scheduler')
-        data = config.pop('data')
-        if isinstance(data, ray.ObjectID):
-            self.X = ray.get(data)
-        else:
-            self.X = data
-        y = config.pop('y')
-        if isinstance(y, ray.ObjectID):
-            self.y = ray.get(y)
-        else:
-            self.y = y
+        X_id = config.pop('X_id')
+        self.X = ray.get(X_id)
+
+        y_id= config.pop('y_id')
+        self.y = ray.get(y_id)
         self.groups = config.pop('groups')
         self.fit_params = config.pop('fit_params')
         self.scoring = config.pop('scoring')
@@ -320,17 +315,8 @@ class TuneBaseSearchCV(BaseEstimator):
 
         Parameters
         ----------
-        X : float of Ray object_id, pointing to
-            array-like, shape = [n_samples, n_features], or
-            array-like, shape = [n_samples, n_features] (the vector itself)
-            Training vector, where n_samples is the number of samples and
-            n_features is the number of features.
-        y : float of Ray object_id, pointing to
-            array-like, shape = [n_samples] or [n_samples, n_output], or
-            array-like, shape = [n_samples] or [n_samples, n_output]
-            (the vector itself), optional
-            Target relative to X for classification or regression;
-            None for unsupervised learning.
+        X : array-like, shape = [n_samples, n_features]
+        y : array-like, shape = [n_samples] or [n_samples, n_output], optional
         groups : array-like, with shape (n_samples,), optional
             Group labels for the samples used while splitting the dataset into
             train/test set. Only used in conjunction with a "Group" `cv`
@@ -340,26 +326,20 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         self._check_params()
         classifier = is_classifier(self.estimator)
-        if isinstance(X, ray.ObjectID):
-            X_data = ray.get(X)
-        else:
-            X_data = X
-        y_data = None
-        if isinstance(y, ray.ObjectID):
-            y_data = ray.get(y)
-        else:
-            y_data = y
-        cv = check_cv(self.cv, y_data, classifier)
-        self.n_splits = cv.get_n_splits(X_data, y_data, groups)
+        cv = check_cv(self.cv, y, classifier)
+        self.n_splits = cv.get_n_splits(X, y, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
         resources_per_trial = None
         if self.n_jobs:
             resources_per_trial = {'cpu': self.n_jobs, 'gpu': 0}
 
+        X_id = ray.put(X)
+        y_id = ray.put(y)
+
         config = {}
         config['scheduler'] = self.scheduler
-        config['data'] = X
-        config['y'] = y
+        config['X_id'] = X_id
+        config['y_id'] = y_id
         config['groups'] = groups
         config['cv'] = cv
         config['fit_params'] = fit_params
@@ -377,7 +357,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         if self.refit:
             best_config = analysis.get_best_config(metric="average_test_score", mode="max")
-            for key in ['estimator', 'scheduler', 'data', 'y', 'groups', 'cv', 'fit_params',
+            for key in ['estimator', 'scheduler', 'X_id', 'y_id', 'groups', 'cv', 'fit_params',
                 'scoring', 'early_stopping', 'iters', 'return_train_score']:
                 best_config.pop(key)
             self.best_params = best_config
@@ -388,7 +368,7 @@ class TuneBaseSearchCV(BaseEstimator):
             '''
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params)
-            self.best_estimator_.fit(X_data, y_data, **fit_params)
+            self.best_estimator_.fit(X, y, **fit_params)
 
             df = analysis.dataframe(metric="average_test_score", mode="max")
             self.best_score = df["average_test_score"].iloc[df["average_test_score"].idxmax()]
