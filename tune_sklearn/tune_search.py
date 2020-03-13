@@ -285,7 +285,7 @@ class TuneBaseSearchCV(BaseEstimator):
                  early_stopping=False,
                  iters=5,
     ):
-        ray.init()
+        ray.init(ignore_reinit_error=True)
         self.estimator = estimator
         self.scheduler = scheduler
         self.cv = cv
