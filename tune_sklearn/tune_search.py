@@ -285,7 +285,6 @@ class TuneBaseSearchCV(BaseEstimator):
                  early_stopping=False,
                  iters=5,
     ):
-        ray.init(ignore_reinit_error=True)
         self.estimator = estimator
         self.scheduler = scheduler
         self.cv = cv
@@ -325,6 +324,8 @@ class TuneBaseSearchCV(BaseEstimator):
         **fit_params : dict of string -> object
             Parameters passed to the ``fit`` method of the estimator.
         """
+        ray.init(ignore_reinit_error=True)
+
         self._check_params()
         classifier = is_classifier(self.estimator)
         cv = check_cv(self.cv, y, classifier)
