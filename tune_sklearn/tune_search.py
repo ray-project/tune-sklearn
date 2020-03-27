@@ -159,7 +159,7 @@ class _Trainable(Trainable):
             self.estimator = pickle.load(f)
 
     def reset_config(self, new_config):
-        return True
+        return False
 
 
 class TuneBaseSearchCV(BaseEstimator):
