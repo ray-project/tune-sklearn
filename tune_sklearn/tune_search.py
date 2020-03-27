@@ -81,12 +81,15 @@ class _Trainable(Trainable):
         """
         if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
-                X_train, y_train = _safe_split(self.estimator, self.X, self.y,
-                                               train)
+                X_train, y_train = _safe_split(self.estimator[i], self.X, self.y, train)
                 X_test, y_test = _safe_split(
-                    self.estimator, self.X, self.y, test, train_indices=train)
-                self.estimator[i].partial_fit(X_train, y_train,
-                                              np.unique(self.y))
+                    self.estimator[i],
+                    self.X,
+                    self.y,
+                    test,
+                    train_indices=train
+                )
+                self.estimator[i].partial_fit(X_train, y_train, np.unique(self.y))
                 if self.return_train_score:
                     self.fold_train_scores[i] = self.scoring(
                         self.estimator[i], X_train, y_train)
@@ -562,8 +565,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         If None, the estimator's score method is used.
 
     n_jobs : int, default=None
-        Number of jobs to run in parallel. None means 1 unless in a j
-        oblib.parallel_backend context. -1 means using all processors.
+        Number of jobs to run in parallel. None or -1 means using all processors.
 
     refit : boolean, string, or callable, default=True
         Refit an estimator using the best found parameters on the whole
@@ -633,27 +635,27 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
 
         If ``True``, each fold is fit with ``partial_fit`` instead.
 
-    iters : int, default=1
+    iters : int, default=10
         Indicates the number of iterations to run for each hyperparameter
-        configuration sampled (specified by ``n_iter``).
+        configuration sampled (specified by ``n_iter``). This parameter is 
+        used for early stopping.
     """
 
-    def __init__(
-            self,
-            estimator,
-            param_distributions,
-            scheduler=None,
-            n_iter=10,
-            scoring=None,
-            n_jobs=None,
-            refit=True,
-            cv=None,
-            verbose=0,
-            random_state=None,
-            error_score=np.nan,
-            return_train_score=False,
-            early_stopping=False,
-            iters=1,
+    def __init__(self,
+                 estimator,
+                 param_distributions,
+                 scheduler=None,
+                 n_iter=10,
+                 scoring=None,
+                 n_jobs=None,
+                 refit=True,
+                 cv=None,
+                 verbose=0,
+                 random_state=None,
+                 error_score=np.nan,
+                 return_train_score=False,
+                 early_stopping=False,
+                 iters=10,
     ):
         super(TuneRandomizedSearchCV, self).__init__(
             estimator=estimator,
@@ -792,8 +794,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         If None, the estimator's score method is used.
 
     n_jobs : int, default=None
-        Number of jobs to run in parallel. None means 1 unless in a j
-        oblib.parallel_backend context. -1 means using all processors.
+        Number of jobs to run in parallel. None or -1 means using all processors.
 
     cv : int, cross-validation generator or an iterable, default=None
         Determines the cross-validation splitting strategy.
@@ -854,26 +855,23 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         If ``True``, each fold is fit with ``partial_fit`` instead.
 
-    iters : int, default=1
+    iters : int, default=10
         Indicates the number of iterations to run for each hyperparameter
-        configuration sampled. For GridSearch, this parameter is ignored and is
-        always set to 1.
+        configuration passed in. This parameter is used for early stopping.
     """
-
-    def __init__(
-            self,
-            estimator,
-            param_grid,
-            scheduler=None,
-            scoring=None,
-            n_jobs=None,
-            cv=5,
-            refit=True,
-            verbose=0,
-            error_score="raise",
-            return_train_score=False,
-            early_stopping=False,
-            iters=1,
+    def __init__(self,
+                 estimator,
+                 param_grid,
+                 scheduler=None,
+                 scoring=None,
+                 n_jobs=None,
+                 cv=5,
+                 refit=True,
+                 verbose=0,
+                 error_score='raise',
+                 return_train_score=False,
+                 early_stopping=False,
+                 iters=10,
     ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
