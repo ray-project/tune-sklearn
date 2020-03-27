@@ -1,3 +1,8 @@
+"""
+An example training a RandomForestClassifier, performing
+randomized search using TuneRandomizedSearchCV. 
+"""
+
 from tune_sklearn.tune_search import TuneRandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import datasets
@@ -6,10 +11,10 @@ from scipy.stats import randint
 from ray.tune.schedulers import MedianStoppingRule
 import numpy as np
 
-iris = datasets.load_iris()
-x = iris.data
-y = iris.target
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.5)
+digits = datasets.load_digits()
+x = digits.data
+y = digits.target
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.2)
 
 clf = RandomForestClassifier()
 param_distributions = {
