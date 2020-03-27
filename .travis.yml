@@ -19,11 +19,12 @@ install:
   - conda activate
   - pip install -r requirements.txt
   - python setup.py -q install
-  - pip install pytest>=3.6 flake8==3.7.7 pytest-cov
+  - pip install pytest>=3.6 flake8==3.7.7 pytest-cov yapf==0.23.0
   - pip install codecov
   - conda init
 
 script:
+  - bash tests/format.sh
   - bash build_tools/travis/test_script.sh
 
 after_script:
