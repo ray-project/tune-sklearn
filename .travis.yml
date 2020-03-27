@@ -24,6 +24,11 @@ script:
   - cd tests
   - python -m unittest test_randomizedsearch.py
   - python -m unittest test_gridsearch.py
+  - cd ../examples
+  - python random_forest.py
+  - python sgd.py
+  # Fix when torch issue is resolved.
+  # - python torch_nn.py
 
 cache:
   directories:
