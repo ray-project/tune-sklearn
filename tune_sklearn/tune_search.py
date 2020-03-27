@@ -81,15 +81,16 @@ class _Trainable(Trainable):
         """
         if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
-                X_train, y_train = _safe_split(self.estimator[i], self.X, self.y, train)
+                X_train, y_train = _safe_split(self.estimator[i], self.X,
+                                               self.y, train)
                 X_test, y_test = _safe_split(
                     self.estimator[i],
                     self.X,
                     self.y,
                     test,
-                    train_indices=train
-                )
-                self.estimator[i].partial_fit(X_train, y_train, np.unique(self.y))
+                    train_indices=train)
+                self.estimator[i].partial_fit(X_train, y_train,
+                                              np.unique(self.y))
                 if self.return_train_score:
                     self.fold_train_scores[i] = self.scoring(
                         self.estimator[i], X_train, y_train)
@@ -612,7 +613,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         If None, the random number generator is the RandomState instance used
         by np.random.
 
-    error_score : 'raise' or numeric, default=np.nan
+    error_score : "raise" or numeric, default=np.nan
         Value to assign to the score if an error occurs in estimator fitting.
         If set to 'raise', the error is raised. If a numeric value is given,
         FitFailedWarning is raised. This parameter does not affect the refit
@@ -637,25 +638,26 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
 
     iters : int, default=10
         Indicates the number of iterations to run for each hyperparameter
-        configuration sampled (specified by ``n_iter``). This parameter is 
+        configuration sampled (specified by ``n_iter``). This parameter is
         used for early stopping.
     """
 
-    def __init__(self,
-                 estimator,
-                 param_distributions,
-                 scheduler=None,
-                 n_iter=10,
-                 scoring=None,
-                 n_jobs=None,
-                 refit=True,
-                 cv=None,
-                 verbose=0,
-                 random_state=None,
-                 error_score=np.nan,
-                 return_train_score=False,
-                 early_stopping=False,
-                 iters=10,
+    def __init__(
+            self,
+            estimator,
+            param_distributions,
+            scheduler=None,
+            n_iter=10,
+            scoring=None,
+            n_jobs=None,
+            refit=True,
+            cv=None,
+            verbose=0,
+            random_state=None,
+            error_score=np.nan,
+            return_train_score=False,
+            early_stopping=False,
+            iters=10,
     ):
         super(TuneRandomizedSearchCV, self).__init__(
             estimator=estimator,
@@ -735,7 +737,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
                 resources_per_trial=resources_per_trial,
             )
         else:
-            config['estimator'] = self.estimator
+            config["estimator"] = self.estimator
             analysis = tune.run(
                 _Trainable,
                 scheduler=self.scheduler,
@@ -859,19 +861,21 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         Indicates the number of iterations to run for each hyperparameter
         configuration passed in. This parameter is used for early stopping.
     """
-    def __init__(self,
-                 estimator,
-                 param_grid,
-                 scheduler=None,
-                 scoring=None,
-                 n_jobs=None,
-                 cv=5,
-                 refit=True,
-                 verbose=0,
-                 error_score='raise',
-                 return_train_score=False,
-                 early_stopping=False,
-                 iters=10,
+
+    def __init__(
+            self,
+            estimator,
+            param_grid,
+            scheduler=None,
+            scoring=None,
+            n_jobs=None,
+            cv=5,
+            refit=True,
+            verbose=0,
+            error_score="raise",
+            return_train_score=False,
+            early_stopping=False,
+            iters=10,
     ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
