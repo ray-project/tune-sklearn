@@ -4,3 +4,4 @@ ray
 tabulate
 scikit-learn
 parameterized
+cloudpickle
