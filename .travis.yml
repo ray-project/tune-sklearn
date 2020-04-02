@@ -8,7 +8,7 @@ matrix:
       env: PYTHON=3.6
     - os: osx
       osx_image: xcode9.4
-      language: shell
+      language: python
       python: 3.6
       env: PYTHON=3.6 PYTHONWARNINGS=ignore
     - os: linux
@@ -16,7 +16,7 @@ matrix:
       env: PYTHON=3.7
     - os: osx
       osx_image: xcode10.2
-      language: shell
+      language: python
       python: 3.7
       env: PYTHON=3.7 PYTHONWARNINGS=ignore
     - os: linux
