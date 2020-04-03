@@ -65,7 +65,7 @@ class _Trainable(Trainable):
         self.fit_params = config.pop("fit_params")
         self.scoring = config.pop("scoring")
         self.early_stopping = config.pop("early_stopping")
-        self.iters = config.pop("iters")
+        self.max_epochs = config.pop("max_epochs")
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
 
@@ -465,7 +465,7 @@ class TuneBaseSearchCV(BaseEstimator):
                     "fit_params",
                     "scoring",
                     "early_stopping",
-                    "iters",
+                    "max_epochs",
                     "return_train_score",
             ]:
                 best_config.pop(key)
@@ -547,7 +547,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
         dfs = list(out.fetch_trial_dataframes().values())
-        finished = [df[df["done"] is True] for df in dfs]
+        finished = [df[df["done"]] for df in dfs]
         test_scores = [
             df[[
                 col for col in dfs[0].columns
@@ -627,9 +627,11 @@ class TuneBaseSearchCV(BaseEstimator):
         # applicable for that candidate. Use defaultdict as each candidate may
         # not contain all the params
         param_results = defaultdict(
-            lambda: MaskedArray(np.empty(n_candidates),
-                                mask=True,
-                                dtype=object)
+            lambda: MaskedArray(
+                np.empty(n_candidates),
+                mask=True,
+                dtype=object,
+            )
         )
         for cand_i, params in enumerate(candidate_params):
             for name, value in params.items():
