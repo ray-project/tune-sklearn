@@ -426,7 +426,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.n_splits = cv.get_n_splits(X, y, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
         resources_per_trial = None
-        if self.n_jobs:
+        if self.n_jobs and self.n_jobs != -1:
             resources_per_trial = {"cpu": self.n_jobs, "gpu": 0}
 
         X_id = ray.put(X)
