@@ -5,6 +5,19 @@ Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and s
 
 To take full advantage of this package, specifying a scheduler **with an estimator that supports early stopping** is essential. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). If the estimator does not support `early_stopping` and it is set to `True` when declaring `TuneGridSearchCV`/`TuneRandomizedSearchCV`, an error will return saying the estimator does not support `partial_fit` due to no `early_stopping` available from the estimator. To safeguard against this, the current default for `early_stopping=False`, which simply runs the grid search cross-validation on Ray's parallel back-end and ignores the scheduler. We are currently experimenting with ways to support early stopping for estimators that do not directly expose an `early_stopping` interface in their estimators -- stay tuned!
 
+### Installation
+
+#### Dependencies
+- numpy (>=1.16)
+- pandas
+- ray
+- scikit-learn (>=0.22)
+- cloudpickle
+
+#### User Installatioin
+
+`pip install tune-sklearn==0.0.0`
+
 ## Quick Start
 #### TuneGridSearchCV
 `TuneGridSearchCV` example. The dataset used in the example (MNIST) can be found [here](https://drive.google.com/file/d/1XUkN4a6NcvB9Naq9Gy8wVlqfTKHqAVd5/view?usp=sharing). We use this dataset to exemplify the speedup factor of `TuneGridSearchCV`.
