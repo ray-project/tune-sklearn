@@ -673,9 +673,11 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
 
-        scheduler (:obj:`TrialScheduler`, optional):
+        scheduler (str, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
-            options.
+            options. The scheduler will be used if ``early_stopping`` is set
+            to True to stop fitting to a hyperparameter configuration if it
+            performs poorly.
 
             If None, the FIFO scheduler will be used. Defaults to None.
 
@@ -939,9 +941,11 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             in the list are explored. This enables searching over any sequence
             of parameter settings.
 
-        scheduler (:obj:`TrialScheduler`, optional):
+        scheduler (str, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
-            options.
+            options. The scheduler will be used if ``early_stopping`` is set
+            to True to stop fitting to a hyperparameter configuration if it
+            performs poorly.
 
             If None, the FIFO scheduler will be used. Defaults to None.
 

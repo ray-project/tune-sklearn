@@ -26,14 +26,11 @@ parameter_grid = {
     'epsilon':[0.01, 0.1]
 }
 
-scheduler = MedianStoppingRule(metric='average_test_score',
-                               grace_period=10.0)
-
 tune_search = TuneGridSearchCV(clf,
             parameter_grid,
-            scheduler=scheduler,
+            scheduler="MedianStoppingRule",
             early_stopping=True,
-            iters=10
+            max_epochs=10
             )
 tune_search.fit(x_train, y_train)
 

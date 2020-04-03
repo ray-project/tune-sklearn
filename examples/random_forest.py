@@ -25,7 +25,7 @@ param_distributions = {
 tune_search = TuneRandomizedSearchCV(clf,
             param_distributions,
             n_iter=3,
-            iters=10,
+            max_epochs=10,
             )
 
 tune_search.fit(x_train, y_train)
