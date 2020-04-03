@@ -35,11 +35,14 @@ size = 20000 # To save time
 X_subset = X_train[:size]
 y_subset = y_train[:size]
 
-tune_search = TuneGridSearchCV(SGDClassifier(),
-                               parameters,
-                               early_stopping=True,
-                               scheduler="MedianStoppingRule",
-                               max_epochs=10)
+tune_search = TuneGridSearchCV(
+    SGDClassifier(),
+    parameters,
+    early_stopping=True,
+    scheduler=MedianStoppingRule(grace_period=10.0),
+    max_epochs=10
+)
+
 import time # Just to compare fit times
 start = time.time()
 tune_search.fit(X_subset, y_subset)
@@ -94,17 +97,21 @@ X_subset = X_train[:size]
 y_subset = y_train[:size]
 
 tune_search = TuneRandomizedSearchCV(SGDClassifier(),
-            param_distributions=param_dists,
-            n_iter=2,
-            refit=True,
-            early_stopping=True,
-            scheduler="MedianStoppingRule",
-            max_epochs=10)
+    param_distributions=param_dists,
+    n_iter=2,
+    refit=True,
+    early_stopping=True,
+    scheduler=MedianStoppingRule(grace_period=10.0),
+    max_epochs=10
+)
+
 tune_search.fit(X_subset, y_subset)
 ```
 
 ## Schedulers
 
+## In Progress
+We are currently finding better ways to parallelize the entire grid search cross-validation process. We do not see a significant speedup thus far when we have `early_stopping=False`. We are also working to integrate more familiar interfaces to make it compatible with our grid search and randomized search interface, such as PyTorch neural nets or XGBoost classifiers/regressors. We will continue to add more examples in the [examples folder](https://github.com/ray-project/tune-sklearn/tree/master/examples) as we continue to add support for other interfaces!
 
 ## More information
 [Ray Tune](https://ray.readthedocs.io/en/latest/tune.html)

@@ -675,7 +675,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
 
-        scheduler (str, optional):
+        scheduler (:obj:`TrialScheduler`, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
             options. The scheduler will be used if ``early_stopping`` is set
             to True to stop fitting to a hyperparameter configuration if it
@@ -931,7 +931,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
     by cross-validated grid-search over a parameter grid.
 
     Args:
-        estimator (:obj:estimator): This is assumed to implement the
+        estimator (:obj:`estimator`): This is assumed to implement the
                 scikit-learn estimator interface.
                 Either estimator needs to provide a ``score`` function,
                 or ``scoring`` must be passed.
@@ -943,7 +943,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             in the list are explored. This enables searching over any sequence
             of parameter settings.
 
-        scheduler (str, optional):
+        scheduler (:obj:`TrialScheduler`, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
             options. The scheduler will be used if ``early_stopping`` is set
             to True to stop fitting to a hyperparameter configuration if it
