@@ -1,10 +1,11 @@
-"""
-    A GridSearchCV interface built with a Ray Tune back-end.
-    Implementation derived from referencing the equivalent
-    GridSearchCV interfaces from Dask and Optuna.
-    https://ray.readthedocs.io/en/latest/tune.html
-    https://dask.org
-    https://optuna.org
+"""A GridSearchCV interface built with a Ray Tune back-end.
+
+Implementation derived from referencing the equivalent
+GridSearchCV interfaces from Dask and Optuna.
+
+https://ray.readthedocs.io/en/latest/tune.html
+https://dask.org
+https://optuna.org
     -- Anthony Yu and Michael Chau
 """
 
@@ -30,6 +31,7 @@ from numpy.ma import MaskedArray
 import os
 import cloudpickle as pickle
 
+
 # Helper class to train models
 class _Trainable(Trainable):
     """Helper Trainable class to be directly passed in as the first argument
@@ -39,20 +41,20 @@ class _Trainable(Trainable):
 
     def _setup(self, config):
         """Sets up Trainable attributes during initialization."""
-        self.estimator = clone(config.pop('estimator'))
-        self.scheduler = config.pop('scheduler')
-        X_id = config.pop('X_id')
+        self.estimator = clone(config.pop("estimator"))
+        self.scheduler = config.pop("scheduler")
+        X_id = config.pop("X_id")
         self.X = ray.get(X_id)
 
-        y_id= config.pop('y_id')
+        y_id = config.pop("y_id")
         self.y = ray.get(y_id)
-        self.groups = config.pop('groups')
-        self.fit_params = config.pop('fit_params')
-        self.scoring = config.pop('scoring')
-        self.early_stopping = config.pop('early_stopping')
-        self.iters = config.pop('iters')
-        self.cv = config.pop('cv')
-        self.return_train_score = config.pop('return_train_score')
+        self.groups = config.pop("groups")
+        self.fit_params = config.pop("fit_params")
+        self.scoring = config.pop("scoring")
+        self.early_stopping = config.pop("early_stopping")
+        self.iters = config.pop("iters")
+        self.cv = config.pop("cv")
+        self.return_train_score = config.pop("return_train_score")
 
         self.estimator_config = config
 
@@ -75,22 +77,25 @@ class _Trainable(Trainable):
           for a particular fold.
         - Otherwise, run the full cross-validation procedure.
         In both cases, the average test accuracy is returned over all folds,
-        as well as the individual folds' accuracies as a dictionary.
+        as well as the individual folds" accuracies as a dictionary.
         """
         if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
-                X_train, y_train = _safe_split(self.estimator[i], self.X, self.y, train)
+                X_train, y_train = _safe_split(self.estimator[i], self.X,
+                                               self.y, train)
                 X_test, y_test = _safe_split(
                     self.estimator[i],
                     self.X,
                     self.y,
                     test,
-                    train_indices=train
-                )
-                self.estimator[i].partial_fit(X_train, y_train, np.unique(self.y))
+                    train_indices=train)
+                self.estimator[i].partial_fit(X_train, y_train,
+                                              np.unique(self.y))
                 if self.return_train_score:
-                    self.fold_train_scores[i] = self.scoring(self.estimator[i], X_train, y_train)
-                self.fold_scores[i] = self.scoring(self.estimator[i], X_test, y_test)
+                    self.fold_train_scores[i] = self.scoring(
+                        self.estimator[i], X_train, y_train)
+                self.fold_scores[i] = self.scoring(self.estimator[i], X_test,
+                                                   y_test)
 
             ret = {}
             total = 0
@@ -127,14 +132,16 @@ class _Trainable(Trainable):
             for i, score in enumerate(scores["test_score"]):
                 key_str = f"split{i}_test_score"
                 ret[key_str] = score
-            self.test_accuracy = sum(scores["test_score"]) / len(scores["test_score"])
+            self.test_accuracy = sum(scores["test_score"]) / len(
+                scores["test_score"])
             ret["average_test_score"] = self.test_accuracy
 
             if self.return_train_score:
                 for i, score in enumerate(scores["train_score"]):
                     key_str = f"split{i}_train_score"
                     ret[key_str] = score
-                self.train_accuracy = sum(scores["train_score"]) / len(scores["train_score"])
+                self.train_accuracy = sum(scores["train_score"]) / len(
+                    scores["train_score"])
                 ret["average_train_score"] = self.train_accuracy
 
             return ret
@@ -142,17 +149,17 @@ class _Trainable(Trainable):
     def _save(self, checkpoint_dir):
         """Creates a checkpoint in ``checkpoint_dir``, creating a pickle file."""
         path = os.path.join(checkpoint_dir, "checkpoint")
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             pickle.dump(self.estimator, f)
         return path
 
     def _restore(self, checkpoint):
         """Loads a checkpoint created from `_save`."""
-        with open(checkpoint, 'rb') as f:
+        with open(checkpoint, "rb") as f:
             self.estimator = pickle.load(f)
 
     def reset_config(self, new_config):
-        return True
+        return False
 
 
 class TuneBaseSearchCV(BaseEstimator):
@@ -249,41 +256,39 @@ class TuneBaseSearchCV(BaseEstimator):
         return self.best_estimator_.transform
 
     def _check_params(self):
-        if not hasattr(self.estimator, 'fit'):
-            raise ValueError('estimator must be a scikit-learn estimator.')
+        if not hasattr(self.estimator, "fit"):
+            raise ValueError("estimator must be a scikit-learn estimator.")
 
-        if self.early_stopping and not hasattr(self.estimator, 'partial_fit'):
-            raise ValueError('estimator must support partial_fit.')
+        if self.early_stopping and not hasattr(self.estimator, "partial_fit"):
+            raise ValueError("estimator must support partial_fit.")
 
     def _check_if_refit(self, attr):
         if not self.refit:
-            raise AttributeError(
-                "'{}' is not a valid attribute with " "'refit=False'.".format(attr)
-            )
+            raise AttributeError("'{}' is not a valid attribute with "
+                                 "'refit=False'.".format(attr))
 
     def _check_is_fitted(self, method_name):
         if not self.refit:
-            msg = (
-                "This {0} instance was initialized with refit=False. {1} "
-                "is available only after refitting on the best "
-                "parameters."
-            ).format(type(self).__name__, method_name)
+            msg = ("This {0} instance was initialized with refit=False. {1} "
+                   "is available only after refitting on the best "
+                   "parameters.").format(type(self).__name__, method_name)
             raise NotFittedError(msg)
         else:
             check_is_fitted(self)
 
-    def __init__(self,
-                 estimator,
-                 scheduler=None,
-                 scoring=None,
-                 n_jobs=None,
-                 cv=5,
-                 refit=True,
-                 verbose=0,
-                 error_score='raise',
-                 return_train_score=False,
-                 early_stopping=False,
-                 iters=5,
+    def __init__(
+            self,
+            estimator,
+            scheduler=None,
+            scoring=None,
+            n_jobs=None,
+            cv=5,
+            refit=True,
+            verbose=0,
+            error_score="raise",
+            return_train_score=False,
+            early_stopping=False,
+            iters=5,
     ):
         self.estimator = estimator
         self.scheduler = scheduler
@@ -337,47 +342,53 @@ class TuneBaseSearchCV(BaseEstimator):
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
         resources_per_trial = None
         if self.n_jobs:
-            resources_per_trial = {'cpu': self.n_jobs, 'gpu': 0}
+            resources_per_trial = {"cpu": self.n_jobs, "gpu": 0}
 
         X_id = ray.put(X)
         y_id = ray.put(y)
 
         config = {}
-        config['scheduler'] = self.scheduler
-        config['X_id'] = X_id
-        config['y_id'] = y_id
-        config['groups'] = groups
-        config['cv'] = cv
-        config['fit_params'] = fit_params
-        config['scoring'] = self.scoring
-        config['early_stopping'] = self.early_stopping
-        config['iters'] = self.iters
-        config['return_train_score'] = self.return_train_score
+        config["scheduler"] = self.scheduler
+        config["X_id"] = X_id
+        config["y_id"] = y_id
+        config["groups"] = groups
+        config["cv"] = cv
+        config["fit_params"] = fit_params
+        config["scoring"] = self.scoring
+        config["early_stopping"] = self.early_stopping
+        config["iters"] = self.iters
+        config["return_train_score"] = self.return_train_score
 
         candidate_params = list(self._get_param_iterator())
 
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)
 
-        self.cv_results_ = self._format_results(candidate_params, self.n_splits, analysis)
+        self.cv_results_ = self._format_results(candidate_params,
+                                                self.n_splits, analysis)
 
         if self.refit:
-            best_config = analysis.get_best_config(metric="average_test_score", mode="max")
-            for key in ['estimator', 'scheduler', 'X_id', 'y_id', 'groups', 'cv', 'fit_params',
-                'scoring', 'early_stopping', 'iters', 'return_train_score']:
+            best_config = analysis.get_best_config(
+                metric="average_test_score", mode="max")
+            for key in [
+                    "estimator", "scheduler", "X_id", "y_id", "groups", "cv",
+                    "fit_params", "scoring", "early_stopping", "iters",
+                    "return_train_score"
+            ]:
                 best_config.pop(key)
             self.best_params = best_config
-            '''
-            self.best_index_ = np.flatnonzero(
-                self.cv_results_["rank_test_score"] == 1
-            )[0]
-            '''
+            #
+            # self.best_index_ = np.flatnonzero(
+            #     self.cv_results_["rank_test_score"] == 1
+            # )[0]
+            #
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
 
             df = analysis.dataframe(metric="average_test_score", mode="max")
-            self.best_score = df["average_test_score"].iloc[df["average_test_score"].idxmax()]
+            self.best_score = df["average_test_score"].iloc[df[
+                "average_test_score"].idxmax()]
 
         ray.shutdown()
 
@@ -411,9 +422,19 @@ class TuneBaseSearchCV(BaseEstimator):
         """Helper to generate the ``cv_results_`` dictionary."""
         dfs = list(out.fetch_trial_dataframes().values())
         finished = [df[df["done"] == True] for df in dfs]
-        test_scores = [df[[col for col in dfs[0].columns if "split" in col and "test_score" in col]].to_numpy() for df in finished]
+        test_scores = [
+            df[[
+                col for col in dfs[0].columns
+                if "split" in col and "test_score" in col
+            ]].to_numpy() for df in finished
+        ]
         if self.return_train_score:
-            train_scores = [df[[col for col in dfs[0].columns if "split" in col and "train_score" in col]].to_numpy() for df in finished]
+            train_scores = [
+                df[[
+                    col for col in dfs[0].columns
+                    if "split" in col and "train_score" in col
+                ]].to_numpy() for df in finished
+            ]
         else:
             train_scores = None
 
@@ -421,40 +442,58 @@ class TuneBaseSearchCV(BaseEstimator):
         n_candidates = len(candidate_params)
 
         def _store(
-            results,
-            key_name,
-            array,
-            n_splits,
-            n_candidates,
-            weights=None,
-            splits=False,
-            rank=False,
+                results,
+                key_name,
+                array,
+                n_splits,
+                n_candidates,
+                weights=None,
+                splits=False,
+                rank=False,
         ):
             """A small helper to store the scores/times to the cv_results_"""
             # When iterated first by n_splits and then by parameters
-            array = np.array(array, dtype=np.float64).reshape((n_candidates, n_splits))
+            array = np.array(
+                array, dtype=np.float64).reshape((n_candidates, n_splits))
             if splits:
                 for split_i in range(n_splits):
-                    results["split%d_%s" % (split_i, key_name)] = array[:, split_i]
+                    results["split%d_%s" % (split_i,
+                                            key_name)] = array[:, split_i]
 
             array_means = np.average(array, axis=1, weights=weights)
             results["mean_%s" % key_name] = array_means
             # Weighted std is not directly available in numpy
             array_stds = np.sqrt(
-                np.average((array - array_means[:, np.newaxis]) ** 2, axis=1, weights=weights)
-            )
+                np.average(
+                    (array - array_means[:, np.newaxis])**2,
+                    axis=1,
+                    weights=weights))
             results["std_%s" % key_name] = array_stds
 
             if rank:
                 results["rank_%s" % key_name] = np.asarray(
-                    rankdata(-array_means, method="min"), dtype=np.int32
-                )
+                    rankdata(-array_means, method="min"), dtype=np.int32)
 
-        _store(results, "test_score", test_scores, n_splits, n_candidates, splits=True, rank=True)
+        _store(
+            results,
+            "test_score",
+            test_scores,
+            n_splits,
+            n_candidates,
+            splits=True,
+            rank=True)
         if self.return_train_score:
-            _store(results, "train_score", train_scores, n_splits, n_candidates, splits=True, rank=True)
+            _store(
+                results,
+                "train_score",
+                train_scores,
+                n_splits,
+                n_candidates,
+                splits=True,
+                rank=True)
 
-        results["time_total_s"] = np.array([df["time_total_s"].to_numpy() for df in finished]).flatten()
+        results["time_total_s"] = np.array(
+            [df["time_total_s"].to_numpy() for df in finished]).flatten()
 
         # Use one MaskedArray and mask all the places where the param is not
         # applicable for that candidate. Use defaultdict as each candidate may
@@ -574,7 +613,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         If None, the random number generator is the RandomState instance used
         by np.random.
 
-    error_score : 'raise' or numeric, default=np.nan
+    error_score : "raise" or numeric, default=np.nan
         Value to assign to the score if an error occurs in estimator fitting.
         If set to 'raise', the error is raised. If a numeric value is given,
         FitFailedWarning is raised. This parameter does not affect the refit
@@ -599,25 +638,26 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
 
     iters : int, default=10
         Indicates the number of iterations to run for each hyperparameter
-        configuration sampled (specified by ``n_iter``). This parameter is 
+        configuration sampled (specified by ``n_iter``). This parameter is
         used for early stopping.
     """
 
-    def __init__(self,
-                 estimator,
-                 param_distributions,
-                 scheduler=None,
-                 n_iter=10,
-                 scoring=None,
-                 n_jobs=None,
-                 refit=True,
-                 cv=None,
-                 verbose=0,
-                 random_state=None,
-                 error_score=np.nan,
-                 return_train_score=False,
-                 early_stopping=False,
-                 iters=10,
+    def __init__(
+            self,
+            estimator,
+            param_distributions,
+            scheduler=None,
+            n_iter=10,
+            scoring=None,
+            n_jobs=None,
+            refit=True,
+            cv=None,
+            verbose=0,
+            random_state=None,
+            error_score=np.nan,
+            return_train_score=False,
+            early_stopping=False,
+            iters=10,
     ):
         super(TuneRandomizedSearchCV, self).__init__(
             estimator=estimator,
@@ -637,7 +677,10 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         self.random_state = random_state
 
     def _get_param_iterator(self):
-        return ParameterSampler(self.param_distributions, self.num_samples, random_state=self.random_state)
+        return ParameterSampler(
+            self.param_distributions,
+            self.num_samples,
+            random_state=self.random_state)
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -652,11 +695,14 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         for key, distribution in self.param_distributions.items():
             if isinstance(distribution, list):
                 import random
-                config[key] = tune.sample_from(lambda spec: distribution[random.randint(0, len(distribution) - 1)])
+                config[key] = tune.sample_from(
+                    lambda spec: distribution[random.randint(
+                        0, len(distribution) - 1)])
                 samples *= len(distribution)
             else:
                 all_lists = False
-                config[key] = tune.sample_from(lambda spec: distribution.rvs(1)[0])
+                config[key] = tune.sample_from(
+                    lambda spec: distribution.rvs(1)[0])
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
@@ -676,31 +722,33 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             each resource to use.
         """
         if self.early_stopping:
-            config['estimator'] = [clone(self.estimator) for _ in range(self.n_splits)]
+            config["estimator"] = [
+                clone(self.estimator) for _ in range(self.n_splits)
+            ]
             analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.scheduler,
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop={"training_iteration":self.iters},
-                    num_samples=self.num_samples,
-                    config=config,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    )
+                _Trainable,
+                scheduler=self.scheduler,
+                reuse_actors=True,
+                verbose=self.verbose,
+                stop={"training_iteration": self.iters},
+                num_samples=self.num_samples,
+                config=config,
+                checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial,
+            )
         else:
-            config['estimator'] = self.estimator
+            config["estimator"] = self.estimator
             analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.scheduler,
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop={"training_iteration":self.iters},
-                    num_samples=self.num_samples,
-                    config=config,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    )
+                _Trainable,
+                scheduler=self.scheduler,
+                reuse_actors=True,
+                verbose=self.verbose,
+                stop={"training_iteration": self.iters},
+                num_samples=self.num_samples,
+                config=config,
+                checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial,
+            )
 
         return analysis
 
@@ -813,19 +861,21 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         Indicates the number of iterations to run for each hyperparameter
         configuration passed in. This parameter is used for early stopping.
     """
-    def __init__(self,
-                 estimator,
-                 param_grid,
-                 scheduler=None,
-                 scoring=None,
-                 n_jobs=None,
-                 cv=5,
-                 refit=True,
-                 verbose=0,
-                 error_score='raise',
-                 return_train_score=False,
-                 early_stopping=False,
-                 iters=10,
+
+    def __init__(
+            self,
+            estimator,
+            param_grid,
+            scheduler=None,
+            scoring=None,
+            n_jobs=None,
+            cv=5,
+            refit=True,
+            verbose=0,
+            error_score="raise",
+            return_train_score=False,
+            early_stopping=False,
+            iters=10,
     ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
@@ -872,28 +922,30 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             each resource to use.
         """
         if self.early_stopping:
-            config['estimator'] = [clone(self.estimator) for _ in range(self.n_splits)]
+            config["estimator"] = [
+                clone(self.estimator) for _ in range(self.n_splits)
+            ]
             analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.scheduler,
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop={"training_iteration":self.iters},
-                    config=config,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    )
+                _Trainable,
+                scheduler=self.scheduler,
+                reuse_actors=True,
+                verbose=self.verbose,
+                stop={"training_iteration": self.iters},
+                config=config,
+                checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial,
+            )
         else:
-            config['estimator'] = self.estimator
+            config["estimator"] = self.estimator
             analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.scheduler,
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop={"training_iteration":self.iters},
-                    config=config,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    )
+                _Trainable,
+                scheduler=self.scheduler,
+                reuse_actors=True,
+                verbose=self.verbose,
+                stop={"training_iteration": self.iters},
+                config=config,
+                checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial,
+            )
 
         return analysis
