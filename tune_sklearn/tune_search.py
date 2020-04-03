@@ -368,7 +368,7 @@ class TuneBaseSearchCV(BaseEstimator):
             error_score="raise",
             return_train_score=False,
             early_stopping=False,
-            iters=10,
+            max_epochs=10,
     ):
         self.estimator = estimator
         self.scheduler = scheduler
@@ -381,9 +381,9 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.early_stopping = early_stopping
         if self.early_stopping:
-            self.iters = iters
+            self.max_epochs = max_epochs
         else:
-            self.iters = 1
+            self.max_epochs = 1
 
     def _get_param_iterator(self):
         """Get a parameter iterator to be passed in to _format_results to
@@ -441,7 +441,7 @@ class TuneBaseSearchCV(BaseEstimator):
         config["fit_params"] = fit_params
         config["scoring"] = self.scoring
         config["early_stopping"] = self.early_stopping
-        config["iters"] = self.iters
+        config["max_epochs"] = self.max_epochs
         config["return_train_score"] = self.return_train_score
 
         candidate_params = list(self._get_param_iterator())
@@ -800,7 +800,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             error_score=np.nan,
             return_train_score=False,
             early_stopping=False,
-            iters=10,
+            max_epochs=10,
     ):
         super(TuneRandomizedSearchCV, self).__init__(
             estimator=estimator,
@@ -808,11 +808,12 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             scoring=scoring,
             n_jobs=n_jobs,
             cv=cv,
+            verbose=verbose,
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
             early_stopping=early_stopping,
-            iters=iters,
+            max_epochs=max_epochs,
         )
 
         self.param_distributions = param_distributions
@@ -890,7 +891,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.iters},
+                stop={"training_iteration": self.max_epochs},
                 num_samples=self.num_samples,
                 config=config,
                 checkpoint_at_end=True,
@@ -903,7 +904,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.iters},
+                stop={"training_iteration": self.max_epochs},
                 num_samples=self.num_samples,
                 config=config,
                 checkpoint_at_end=True,
@@ -1027,7 +1028,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             ``estimator`` must implement ``partial_fit`` in order to allow
             ``early_stopping``. Defaults to False.
 
-        iters (int):
+        max_epochs (int):
             Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
@@ -1047,7 +1048,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score="raise",
             return_train_score=False,
             early_stopping=False,
-            iters=10,
+            max_epochs=10,
     ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
@@ -1059,7 +1060,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             early_stopping=early_stopping,
-            iters=iters,
+            max_epochs=max_epochs,
         )
 
         _check_param_grid(param_grid)
@@ -1116,7 +1117,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.iters},
+                stop={"training_iteration": self.max_epochs},
                 config=config,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
@@ -1128,7 +1129,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.iters},
+                stop={"training_iteration": self.max_epochs},
                 config=config,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,

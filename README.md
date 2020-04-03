@@ -18,14 +18,12 @@ data = io.loadmat("mnist_data.mat")
 
 # Other imports
 from sklearn.model_selection import train_test_split
-from ray.tune.schedulers import MedianStoppingRule
 from sklearn.linear_model import SGDClassifier
 
 # Set training and validation sets
 X = data["training_data"]
 y = data["training_labels"].ravel()
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.1, random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
 
 # Example parameters to tune from SGDClassifier
 parameters = {
@@ -37,12 +35,10 @@ size = 20000 # To save time
 X_subset = X_train[:size]
 y_subset = y_train[:size]
 
-scheduler = MedianStoppingRule(metric='average_test_score',
-                        grace_period=10.0)
 tune_search = TuneGridSearchCV(SGDClassifier(),
                                parameters,
                                early_stopping=True,
-                               scheduler=scheduler,
+                               scheduler="MedianStoppingRule",
                                max_epochs=10)
 import time # Just to compare fit times
 start = time.time()
@@ -72,29 +68,39 @@ print(“Sklearn Fit Time:”, end - start)
 
 ```python
 from tune_sklearn.tune_search import TuneRandomizedSearchCV
+
+# Load in data
+from scipy import io
+data = io.loadmat("mnist_data.mat")
+
+# Other imports
 import scipy
-from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import SGDClassifier
 
-iris = datasets.load_iris()
-x = iris.data
-y = iris.target
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.5)
+# Set training and validation sets
+X = data["training_data"]
+y = data["training_labels"].ravel()
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
 
-clf = SGDClassifier()
-param_grid = {
-    'alpha': scipy.stats.uniform(1e-4, 1e-1)
+# Example parameter distributions to tune from SGDClassifier
+param_dists = {
+    'alpha': scipy.stats.uniform(1e-4, 1e-1),
+    'epsilon': scipy.stats.uniform(1e-2, 1e-1)
 }
 
-tune_search = TuneRandomizedSearchCV(clf,
-            param_distributions=param_grid,
+size = 20000 # To save time
+X_subset = X_train[:size]
+y_subset = y_train[:size]
+
+tune_search = TuneRandomizedSearchCV(SGDClassifier(),
+            param_distributions=param_dists,
+            n_iter=2,
             refit=True,
             early_stopping=True,
-            iters=10)
-tune_search.fit(x_train, y_train)
-
-pred = tune_search.predict(x_test)
+            scheduler="MedianStoppingRule",
+            max_epochs=10)
+tune_search.fit(X_subset, y_subset)
 ```
 
 ## Schedulers
