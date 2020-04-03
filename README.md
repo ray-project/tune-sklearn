@@ -32,6 +32,7 @@ data = io.loadmat("mnist_data.mat")
 # Other imports
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import SGDClassifier
+from ray.tune.schedulers import MedianStoppingRule
 
 # Set training and validation sets
 X = data["training_data"]
@@ -93,6 +94,7 @@ data = io.loadmat("mnist_data.mat")
 import scipy
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import SGDClassifier
+from ray.tune.schedulers import MedianStoppingRule
 
 # Set training and validation sets
 X = data["training_data"]

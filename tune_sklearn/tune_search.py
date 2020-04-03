@@ -383,6 +383,9 @@ class TuneBaseSearchCV(BaseEstimator):
         if self.early_stopping:
             self.max_epochs = max_epochs
         else:
+            import warnings
+            warnings.warn(
+                "`max_epochs` is ignored when `early_stopping=False`")
             self.max_epochs = 1
 
     def _get_param_iterator(self):
