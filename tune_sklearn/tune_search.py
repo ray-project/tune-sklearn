@@ -372,6 +372,8 @@ class TuneBaseSearchCV(BaseEstimator):
     ):
         self.estimator = estimator
         self.scheduler = scheduler
+        if self.scheduler is not None:
+            self.scheduler.metric = "average_test_score"
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
