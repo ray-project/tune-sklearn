@@ -2,5 +2,7 @@ numpy>=1.16
 pandas
 ray
 tabulate
-scikit-learn>=0.22
+scikit-learn
 parameterized
+cloudpickle
+pytest

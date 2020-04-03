@@ -1,10 +1,14 @@
 # tune-sklearn
 [![Build Status](https://travis-ci.com/ray-project/tune-sklearn.svg?branch=master)](https://travis-ci.com/ray-project/tune-sklearn)
 
-Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and scikit-learn's models, allowing users to optimize hyerparameter searching for sklearn using Tune's schedulers. Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions, such as distributions to sample from.
+Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and scikit-learn's models, allowing users to optimize hyerparameter searching for sklearn using Tune's schedulers (more details in the [Schedulers Section](## Tune Schedulers)). Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions, such as distributions to sample from.
+
+To take full advantage of this package, specifying a scheduler **with an estimator that supports early stopping** is essential. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). If the estimator does not support `early_stopping` and it is set to `True` when declaring `TuneGridSearchCV`/`TuneRandomizedSearchCV`, an error will return saying the estimator does not support `partial_fit` due to no `early_stopping` available from the estimator. To safeguard against this, the current default for `early_stopping=False`, which simply runs the grid search cross-validation on Ray's parallel back-end and ignores the scheduler. We are currently experimenting with ways to support early stopping for estimators that do not directly expose an `early_stopping` interface in their estimators -- stay tuned!
 
 ## Quick Start
+#### TuneGridSearchCV
 `TuneGridSearchCV` example. The dataset used in the example (MNIST) can be found [here](https://drive.google.com/file/d/1XUkN4a6NcvB9Naq9Gy8wVlqfTKHqAVd5/view?usp=sharing). We use this dataset to exemplify the speedup factor of `TuneGridSearchCV`.
+
 ```python
 from tune_sklearn.tune_search import TuneGridSearchCV
 
@@ -39,7 +43,7 @@ tune_search = TuneGridSearchCV(SGDClassifier(),
                                parameters,
                                early_stopping=True,
                                scheduler=scheduler,
-                               iters=10)
+                               max_epochs=10)
 import time # Just to compare fit times
 start = time.time()
 tune_search.fit(X_subset, y_subset)
@@ -48,12 +52,15 @@ print(“Tune Fit Time:”, end - start)
 ```
 
 If you'd like to compare fit times with sklearn's `GridSearchCV`, run the following block of code:
+
 ```python
 # Use same X_subset, y_subset as above
 
 from sklearn.model_selection import GridSearchCV
 # n_jobs=-1 enables use of all cores like Tune does
-sklearn_search = GridSearchCV(SGDClassifier(), parameters, n_jobs=-1)
+sklearn_search = GridSearchCV(SGDClassifier(),
+									parameters, 
+									n_jobs=-1)
 
 start = time.time()
 sklearn_search.fit(X_subset, y_subset)
@@ -61,8 +68,8 @@ end = time.time()
 print(“Sklearn Fit Time:”, end - start)
 ```
 
+#### TuneRandomizedSearchCV
 
-Or, you could also try the randomized search interface `TuneRandomizedSearchCV`:
 ```python
 from tune_sklearn.tune_search import TuneRandomizedSearchCV
 import scipy
@@ -89,6 +96,9 @@ tune_search.fit(x_train, y_train)
 
 pred = tune_search.predict(x_test)
 ```
+
+## Schedulers
+
 
 ## More information
 [Ray Tune](https://ray.readthedocs.io/en/latest/tune.html)
