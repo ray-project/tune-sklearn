@@ -14,9 +14,9 @@ To take full advantage of this package, specifying a scheduler **with an estimat
 - scikit-learn (>=0.22)
 - cloudpickle
 
-#### User Installatioin
+#### User Installation
 
-`pip install tune-sklearn==0.0.0`
+`pip install tune-sklearn`
 
 ## Quick Start
 #### TuneGridSearchCV
@@ -71,9 +71,11 @@ If you'd like to compare fit times with sklearn's `GridSearchCV`, run the follow
 
 from sklearn.model_selection import GridSearchCV
 # n_jobs=-1 enables use of all cores like Tune does
-sklearn_search = GridSearchCV(SGDClassifier(),
-									parameters, 
-									n_jobs=-1)
+sklearn_search = GridSearchCV(
+    SGDClassifier(),
+    parameters, 
+    n_jobs=-1
+)
 
 start = time.time()
 sklearn_search.fit(X_subset, y_subset)
@@ -114,7 +116,6 @@ y_subset = y_train[:size]
 tune_search = TuneRandomizedSearchCV(SGDClassifier(),
     param_distributions=param_dists,
     n_iter=2,
-    refit=True,
     early_stopping=True,
     scheduler=MedianStoppingRule(grace_period=10.0),
     max_epochs=10
@@ -122,8 +123,6 @@ tune_search = TuneRandomizedSearchCV(SGDClassifier(),
 
 tune_search.fit(X_subset, y_subset)
 ```
-
-## Schedulers
 
 ## In Progress
 We are currently finding better ways to parallelize the entire grid search cross-validation process. We do not see a significant speedup thus far when we have `early_stopping=False`. We are also working to integrate more familiar interfaces to make it compatible with our grid search and randomized search interface, such as PyTorch neural nets or XGBoost classifiers/regressors. We will continue to add more examples in the [examples folder](https://github.com/ray-project/tune-sklearn/tree/master/examples) as we continue to add support for other interfaces!
