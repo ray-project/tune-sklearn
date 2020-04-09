@@ -41,7 +41,7 @@ script:
   - cd ../examples
   - python3 random_forest.py
   - python3 sgd.py
-  - python torch_nn.py
+  - python3 torch_nn.py
 
 cache:
   directories:
