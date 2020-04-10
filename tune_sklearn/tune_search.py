@@ -412,11 +412,11 @@ class TuneBaseSearchCV(BaseEstimator):
                     raise ValueError("{} is not a defined scheduler. "
                                      "Check the list of available schedulers."
                                      .format(scheduler))
-            elif isinstance(scheduler, TrialScheduler):
+            elif isinstance(scheduler, TrialScheduler) or scheduler is None:
                 self.scheduler = scheduler
                 if self.scheduler is not None:
                     self.scheduler.metric = "average_test_score"
-            elif scheduler is not None:
+            else:
                 raise TypeError("Scheduler must be a str or tune scheduler")
         else:
             warnings.warn("Unable to do early stopping because "
