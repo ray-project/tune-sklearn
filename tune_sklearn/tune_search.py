@@ -395,7 +395,7 @@ class TuneBaseSearchCV(BaseEstimator):
     ):
         self.estimator = estimator
         if isinstance(scheduler, str):
-            if scheduler in defined_schedulers:
+            if scheduler in TuneBaseSearchCV.defined_schedulers:
                 if scheduler == "PopulationBasedTraining":
                     self.scheduler = PopulationBasedTraining(metric="average_test_score")
                 elif scheduler == "AsyncHyperBandScheduler":
@@ -723,9 +723,9 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
             options. If a string is given, a scheduler will be created with
             default parameters. To specify parameters of the scheduler, pass in
-            a scheduler object instead of a string. The scheduler will be used if
-            ``early_stopping`` is set to True to stop fitting to a hyperparameter
-            configuration if it performs poorly.
+            a scheduler object instead of a string. The scheduler will be
+            used if ``early_stopping`` is set to True to stop fitting to a
+            hyperparameter configuration if it performs poorly.
 
             If None, the FIFO scheduler will be used. Defaults to None.
 
@@ -993,9 +993,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
             options. If a string is given, a scheduler will be created with
             default parameters. To specify parameters of the scheduler, pass in
-            a scheduler object instead of a string. The scheduler will be used if
-            ``early_stopping`` is set to True to stop fitting to a hyperparameter
-            configuration if it performs poorly.
+            a scheduler object instead of a string. The scheduler will be
+            used if ``early_stopping`` is set to True to stop fitting to a
+            hyperparameter configuration if it performs poorly.
 
             If None, the FIFO scheduler will be used. Defaults to None.
 
