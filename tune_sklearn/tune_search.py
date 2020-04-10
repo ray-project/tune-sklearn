@@ -28,9 +28,9 @@ from sklearn.exceptions import NotFittedError
 import ray
 from ray import tune
 from ray.tune import Trainable
-from ray.tune.schedulers import (PopulationBasedTraining, AsyncHyperBandScheduler,
-                                 HyperBandScheduler, HyperBandForBOHB,
-                                 MedianStoppingRule, TrialScheduler)
+from ray.tune.schedulers import (
+    PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
+    HyperBandForBOHB, MedianStoppingRule, TrialScheduler)
 import numpy as np
 from numpy.ma import MaskedArray
 import os
