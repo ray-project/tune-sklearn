@@ -28,8 +28,9 @@ from sklearn.exceptions import NotFittedError
 import ray
 from ray import tune
 from ray.tune import Trainable
-from ray.tune.schedulers import (PopulationBasedTraining, AsyncHyperBandScheduler,
-                                 HyperBandScheduler, HyperBandForBOHB, MedianStoppingRule)
+from ray.tune.schedulers import (PopulationBasedTraining,
+                                 AsyncHyperBandScheduler, HyperBandScheduler,
+                                 HyperBandForBOHB, MedianStoppingRule)
 import numpy as np
 from numpy.ma import MaskedArray
 import os
@@ -215,12 +216,9 @@ class TuneBaseSearchCV(BaseEstimator):
     """Abstract base class for TuneGridSearchCV and TuneRandomizedSearchCV"""
 
     defined_schedulers = [
-            "PopulationBasedTraining",
-            "AsyncHyperBandScheduler",
-            "HyperBandScheduler",
-            "HyperBandForBOHB",
-            "MedianStoppingRule"
-            ]
+        "PopulationBasedTraining", "AsyncHyperBandScheduler",
+        "HyperBandScheduler", "HyperBandForBOHB", "MedianStoppingRule"
+    ]
 
     @property
     def _estimator_type(self):
@@ -396,15 +394,20 @@ class TuneBaseSearchCV(BaseEstimator):
             if isinstance(scheduler, str):
                 if scheduler in TuneBaseSearchCV.defined_schedulers:
                     if scheduler == "PopulationBasedTraining":
-                        self.scheduler = PopulationBasedTraining(metric="average_test_score")
+                        self.scheduler = PopulationBasedTraining(
+                            metric="average_test_score")
                     elif scheduler == "AsyncHyperBandScheduler":
-                        self.scheduler = AsyncHyperBandScheduler(metric="average_test_score")
+                        self.scheduler = AsyncHyperBandScheduler(
+                            metric="average_test_score")
                     elif scheduler == "HyperBandScheduler":
-                        self.scheduler = HyperBandScheduler(metric="average_test_score")
+                        self.scheduler = HyperBandScheduler(
+                            metric="average_test_score")
                     elif scheduler == "HyperBandForBOHB":
-                        self.scheduler = HyperBandForBOHB(metric="average_test_score")
+                        self.scheduler = HyperBandForBOHB(
+                            metric="average_test_score")
                     elif scheduler == "MedianStoppingRule":
-                        self.scheduler = MedianStoppingRule(metric="average_test_score")
+                        self.scheduler = MedianStoppingRule(
+                            metric="average_test_score")
                 else:
                     raise ValueError("{} is not a defined scheduler. "
                                      "Check the list of available schedulers."
@@ -547,10 +550,8 @@ class TuneBaseSearchCV(BaseEstimator):
         Only sklearn estimators with partial_fit can be early stopped.
 
         """
-        return (hasattr(self.estimator, 'partial_fit')
-        and callable(getattr(self.estimator, 'partial_fit', None)))
-
-
+        return (hasattr(self.estimator, "partial_fit")
+                and callable(getattr(self.estimator, "partial_fit", None)))
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.

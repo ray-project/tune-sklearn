@@ -1,38 +1,20 @@
 from tune_sklearn import tune_search as tcv
-from scipy.stats import randint, uniform
-from sklearn.model_selection import GridSearchCV
-from ray import tune
 import numpy as np
-from numpy.testing import (
-    assert_almost_equal,
-    assert_array_almost_equal,
-    assert_array_equal,
-)
-from sklearn.datasets import (
-    make_blobs,
-    make_classification,
-    make_multilabel_classification,
-)
+from numpy.testing import assert_array_equal
+from sklearn.datasets import make_classification
 from scipy.stats import expon
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
-from sklearn.svm import LinearSVC, SVC
-from sklearn import linear_model
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import SGDClassifier
-from ray.tune.schedulers import PopulationBasedTraining, MedianStoppingRule
-import random
+from sklearn.svm import SVC
 import unittest
 
 # TODO: Either convert to individual examples or to python unittests
+
 
 class RandomizedSearchTest(unittest.TestCase):
     def test_random_search_cv_results(self):
         # Make a dataset with a lot of noise to get various kind of prediction
         # errors across CV folds and parameter settings
         X, y = make_classification(
-            n_samples=200, n_features=100, n_informative=3, random_state=0
-        )
+            n_samples=200, n_features=100, n_informative=3, random_state=0)
 
         # scipy.stats dists now supports `seed` but we still support scipy 0.12
         # which doesn't support the seed. Hence the assertions in the test for
@@ -67,118 +49,43 @@ class RandomizedSearchTest(unittest.TestCase):
         )
         n_cand = n_search_iter
 
-        def test_check_cv_results_array_types(cv_results, param_keys, score_keys):
+        def test_check_cv_results_array_types(cv_results, param_keys,
+                                              score_keys):
             # Check if the search `cv_results`'s array are of correct types
-            self.assertTrue(all(isinstance(cv_results[param], np.ma.MaskedArray) for param in param_keys))
-            self.assertTrue(all(cv_results[key].dtype == object for key in param_keys))
-            self.assertFalse(any(isinstance(cv_results[key], np.ma.MaskedArray) for key in score_keys))
             self.assertTrue(
-            all(
-                cv_results[key].dtype == np.float64
-                for key in score_keys
-                if not key.startswith("rank")
-            )
-            )
+                all(
+                    isinstance(cv_results[param], np.ma.MaskedArray)
+                    for param in param_keys))
+            self.assertTrue(
+                all(cv_results[key].dtype == object for key in param_keys))
+            self.assertFalse(
+                any(
+                    isinstance(cv_results[key], np.ma.MaskedArray)
+                    for key in score_keys))
+            self.assertTrue(
+                all(cv_results[key].dtype == np.float64 for key in score_keys
+                    if not key.startswith("rank")))
             self.assertEquals(cv_results["rank_test_score"].dtype, np.int32)
 
-        def test_check_cv_results_keys(cv_results, param_keys, score_keys, n_cand):
+        def test_check_cv_results_keys(cv_results, param_keys, score_keys,
+                                       n_cand):
             # Test the search.cv_results_ contains all the required results
             assert_array_equal(
-                sorted(cv_results.keys()), sorted(param_keys + score_keys + ("params",))
-            )
-            self.assertTrue(all(cv_results[key].shape == (n_cand,) for key in param_keys + score_keys))
+                sorted(cv_results.keys()),
+                sorted(param_keys + score_keys + ("params", )))
+            self.assertTrue(
+                all(cv_results[key].shape == (n_cand, )
+                    for key in param_keys + score_keys))
 
         cv_results = random_search.cv_results_
         # Check results structure
         test_check_cv_results_array_types(cv_results, param_keys, score_keys)
         test_check_cv_results_keys(cv_results, param_keys, score_keys, n_cand)
         # For random_search, all the param array vals should be unmasked
-        self.assertFalse(any(cv_results["param_C"].mask) or
-                         any(cv_results["param_gamma"].mask))
+        self.assertFalse(
+            any(cv_results["param_C"].mask)
+            or any(cv_results["param_gamma"].mask))
 
 
-'''
-    def test_pbt(self):
-        iris = datasets.load_iris()
-        x = iris.data
-        y = iris.target
-        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.5)
-
-        clf = SGDClassifier()
-        param_distributions = {
-            'alpha': uniform(1e-4, 1e-1)
-        }
-
-        scheduler = PopulationBasedTraining(
-                    time_attr="training_iteration",
-                    metric="average_test_score",
-                    mode="max",
-                    perturbation_interval=5,
-                    resample_probability=1.0,
-                    hyperparam_mutations = {
-                        "alpha" : lambda: np.random.choice([1e-4, 1e-3, 1e-2, 1e-1])
-                    })
-
-        tune_search = tcv.TuneRandomizedSearchCV(clf,
-                    param_distributions,
-                    scheduler=scheduler,
-                    iters=10,
-                    verbose=1,
-                    num_samples=3,
-                    )
-        tune_search.fit(x_train, y_train)
-
-        pred = tune_search.predict(x_test)
-        print(pred)
-        accuracy = np.count_nonzero(np.array(pred) == np.array(y_test))/len(pred)
-        print(accuracy)
-        print(tune_search.best_params_)
-
-    def test_linear_iris(self):
-        iris = datasets.load_iris()
-        X = iris.data
-        y = iris.target
-
-        logistic = linear_model.LogisticRegression()
-
-        # Create regularization penalty space
-        penalty = ['l1', 'l2']
-
-        # Create regularization hyperparameter space
-        C = np.logspace(0, 4, 5)
-
-        # Create hyperparameter options
-        hyperparameters = dict(C=C, penalty=penalty)
-
-        clf = tcv.TuneRandomizedSearchCV(logistic, hyperparameters, scheduler=MedianStoppingRule())
-        clf.fit(X,y)
-
-        pred = clf.predict(X)
-        print(pred)
-        accuracy = np.count_nonzero(np.array(pred) == np.array(y))/len(pred)
-        print(accuracy)
-
-    def test_random_forest(self):
-        iris = datasets.load_iris()
-        x = iris.data
-        y = iris.target
-        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.5)
-
-        clf = RandomForestClassifier()
-        param_grid = {
-            'n_estimators': randint(20,80)
-        }
-
-
-        tune_search = tcv.TuneRandomizedSearchCV(clf, param_grid, scheduler=MedianStoppingRule(), iters=20)
-        tune_search.fit(x_train, y_train)
-
-        pred = tune_search.predict(x_test)
-        print(pred)
-        accuracy = np.count_nonzero(np.array(pred) == np.array(y_test))/len(pred)
-        print(accuracy)
-'''
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
-
