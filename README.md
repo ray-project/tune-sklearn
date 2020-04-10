@@ -3,7 +3,7 @@
 
 Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and scikit-learn's models, allowing users to do optimized hyperparameter searching for sklearn models using Tune's schedulers (more details in the [Schedulers Section](## Tune Schedulers)). Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions, such as distributions to sample from.
 
-To take full advantage of this package, specifying a scheduler **with an estimator that supports early stopping** is essential. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). If the estimator does not support `early_stopping` and it is set to `True` when declaring `TuneGridSearchCV`/`TuneRandomizedSearchCV`, an error will return saying the estimator does not support `partial_fit` due to no `early_stopping` available from the estimator. To safeguard against this, the current default for `early_stopping=False`, which simply runs the grid search cross-validation on Ray's parallel back-end and ignores the scheduler. We are currently experimenting with ways to support early stopping for estimators that do not directly expose an `early_stopping` interface in their estimators -- stay tuned!
+To take full advantage of this package, specifying a scheduler **with an estimator that supports early stopping (see scikit=learn partial_fit)** is essential. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). If the estimator does not support `early_stopping`, `TuneGridSearchCV`/`TuneRandomizedSearchCV` will ignore any scheduler passed in and will not attempt to early stop bad hyperparameters; it simply runs the grid search cross-validation on Ray's parallel back-end and ignores the scheduler. We are currently experimenting with ways to support early stopping for estimators that do not directly expose an `early_stopping` interface in their estimators -- stay tuned!
 
 ### Installation
 
@@ -52,7 +52,6 @@ y_subset = y_train[:size]
 tune_search = TuneGridSearchCV(
     SGDClassifier(),
     parameters,
-    early_stopping=True,
     scheduler=MedianStoppingRule(grace_period=10.0),
     early_stopping_max_epochs=10
 )
@@ -116,7 +115,6 @@ y_subset = y_train[:size]
 tune_search = TuneRandomizedSearchCV(SGDClassifier(),
     param_distributions=param_dists,
     n_iter=2,
-    early_stopping=True,
     scheduler=MedianStoppingRule(grace_period=10.0),
     early_stopping_max_epochs=10
 )
@@ -125,7 +123,7 @@ tune_search.fit(X_subset, y_subset)
 ```
 
 ## In Progress
-We are currently finding better ways to parallelize the entire grid search cross-validation process. We do not see a significant speedup thus far when we have `early_stopping=False`. We are also working to integrate more familiar interfaces to make it compatible with our grid search and randomized search interface, such as PyTorch neural nets or XGBoost classifiers/regressors. We will continue to add more examples in the [examples folder](https://github.com/ray-project/tune-sklearn/tree/master/examples) as we continue to add support for other interfaces!
+We are currently finding better ways to parallelize the entire grid search cross-validation process. We do not see a significant speedup thus far when we are not able to early stop. We are also working to integrate more familiar interfaces to make it compatible with our grid search and randomized search interface, such as PyTorch neural nets or XGBoost classifiers/regressors. We will continue to add more examples in the [examples folder](https://github.com/ray-project/tune-sklearn/tree/master/examples) as we continue to add support for other interfaces!
 
 ## More information
 [Ray Tune](https://ray.readthedocs.io/en/latest/tune.html)

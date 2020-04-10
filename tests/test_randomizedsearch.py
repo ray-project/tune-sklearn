@@ -93,7 +93,7 @@ class RandomizedSearchTest(unittest.TestCase):
         test_check_cv_results_array_types(cv_results, param_keys, score_keys)
         test_check_cv_results_keys(cv_results, param_keys, score_keys, n_cand)
         # For random_search, all the param array vals should be unmasked
-        self.assertFalse(any(cv_results["param_C"].mask) or 
+        self.assertFalse(any(cv_results["param_C"].mask) or
                          any(cv_results["param_gamma"].mask))
 
 
@@ -122,7 +122,6 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search = tcv.TuneRandomizedSearchCV(clf,
                     param_distributions,
                     scheduler=scheduler,
-                    early_stopping=True,
                     iters=10,
                     verbose=1,
                     num_samples=3,
@@ -158,7 +157,7 @@ class RandomizedSearchTest(unittest.TestCase):
         print(pred)
         accuracy = np.count_nonzero(np.array(pred) == np.array(y))/len(pred)
         print(accuracy)
-        
+
     def test_random_forest(self):
         iris = datasets.load_iris()
         x = iris.data

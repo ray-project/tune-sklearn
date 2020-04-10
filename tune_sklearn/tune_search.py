@@ -341,9 +341,6 @@ class TuneBaseSearchCV(BaseEstimator):
         if not hasattr(self.estimator, "fit"):
             raise ValueError("estimator must be a scikit-learn estimator.")
 
-        if self.early_stopping and not hasattr(self.estimator, "partial_fit"):
-            raise ValueError("estimator must support partial_fit.")
-
     def _check_if_refit(self, attr):
         """Helper method to see if the requested property is available based
         on the `refit` argument.
@@ -390,30 +387,37 @@ class TuneBaseSearchCV(BaseEstimator):
             verbose=0,
             error_score="raise",
             return_train_score=False,
-            early_stopping=False,
             early_stopping_max_epochs=10,
     ):
         self.estimator = estimator
-        if isinstance(scheduler, str):
-            if scheduler in TuneBaseSearchCV.defined_schedulers:
-                if scheduler == "PopulationBasedTraining":
-                    self.scheduler = PopulationBasedTraining(metric="average_test_score")
-                elif scheduler == "AsyncHyperBandScheduler":
-                    self.scheduler = AsyncHyperBandScheduler(metric="average_test_score")
-                elif scheduler == "HyperBandScheduler":
-                    self.scheduler = HyperBandScheduler(metric="average_test_score")
-                elif scheduler == "HyperBandForBOHB":
-                    self.scheduler = HyperBandForBOHB(metric="average_test_score")
-                elif scheduler == "MedianStoppingRule":
-                    self.scheduler = MedianStoppingRule(metric="average_test_score")
+        self.early_stopping = self._can_early_stop()
+        if self.early_stopping:
+            self.early_stopping_max_epochs = early_stopping_max_epochs
+            if isinstance(scheduler, str):
+                if scheduler in TuneBaseSearchCV.defined_schedulers:
+                    if scheduler == "PopulationBasedTraining":
+                        self.scheduler = PopulationBasedTraining(metric="average_test_score")
+                    elif scheduler == "AsyncHyperBandScheduler":
+                        self.scheduler = AsyncHyperBandScheduler(metric="average_test_score")
+                    elif scheduler == "HyperBandScheduler":
+                        self.scheduler = HyperBandScheduler(metric="average_test_score")
+                    elif scheduler == "HyperBandForBOHB":
+                        self.scheduler = HyperBandForBOHB(metric="average_test_score")
+                    elif scheduler == "MedianStoppingRule":
+                        self.scheduler = MedianStoppingRule(metric="average_test_score")
+                else:
+                    raise ValueError("{} is not a defined scheduler. "
+                                     "Check the list of available schedulers."
+                                     .format(scheduler))
             else:
-                raise ValueError("{} is not a defined scheduler. "
-                                 "Check the list of available schedulers."
-                                 .format(scheduler))
+                self.scheduler = scheduler
+                if self.scheduler is not None:
+                    self.scheduler.metric = "average_test_score"
         else:
-            self.scheduler = scheduler
-            if self.scheduler is not None:
-                self.scheduler.metric = "average_test_score"
+            warnings.warn("Unable to do early stopping because "
+                          "estimator does not have `partial_fit`")
+            self.early_stopping_max_epochs = 1
+            self.scheduler = None
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
@@ -421,13 +425,6 @@ class TuneBaseSearchCV(BaseEstimator):
         self.verbose = verbose
         self.error_score = error_score
         self.return_train_score = return_train_score
-        self.early_stopping = early_stopping
-        if self.early_stopping:
-            self.early_stopping_max_epochs = early_stopping_max_epochs
-        else:
-            warnings.warn("`early_stopping_max_epochs` is ignored when "
-                          "`early_stopping=False`")
-            self.early_stopping_max_epochs = 1
 
     def _get_param_iterator(self):
         """Get a parameter iterator to be passed in to _format_results to
@@ -543,6 +540,17 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
         return self.scoring(self.best_estimator_, X, y)
+
+    def _can_early_stop(self):
+        """Helper method to determine if it is possible to do early stopping.
+
+        Only sklearn estimators with partial_fit can be early stopped.
+
+        """
+        return hasattr(self.estimator, 'partial_fit')
+            and callable(getattr(self.estimator, 'partial_fit', None)):
+
+
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -724,7 +732,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             options. If a string is given, a scheduler will be created with
             default parameters. To specify parameters of the scheduler, pass in
             a scheduler object instead of a string. The scheduler will be
-            used if ``early_stopping`` is set to True to stop fitting to a
+            used if the estimator supports partial fitting to stop fitting to a
             hyperparameter configuration if it performs poorly.
 
             If None, the FIFO scheduler will be used. Defaults to None.
@@ -820,14 +828,6 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
 
-        early_stopping (bool):
-            Specifies whether or not to stop training the model if the
-            validation score is not improving when fitting the model.
-
-            If ``True``, each fold is fit with ``partial_fit`` instead. The
-            ``estimator`` must implement ``partial_fit`` in order to allow
-            ``early_stopping``. Defaults to False.
-
         early_stopping_max_epochs (int):
             Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
@@ -849,7 +849,6 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             random_state=None,
             error_score=np.nan,
             return_train_score=False,
-            early_stopping=False,
             early_stopping_max_epochs=10,
     ):
         super(TuneRandomizedSearchCV, self).__init__(
@@ -862,7 +861,6 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
-            early_stopping=early_stopping,
             early_stopping_max_epochs=early_stopping_max_epochs,
         )
 
@@ -916,8 +914,8 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
 
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
-        ``self.early_stopping`` is True, whereas a single estimator is
-        generated when ``self.early_stopping`` is False.
+        early stopping is possible, whereas a single estimator is
+        generated when  early stopping is not possible.
 
         Args:
             config (dict): Configurations such as hyperparameters to run
@@ -994,7 +992,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             options. If a string is given, a scheduler will be created with
             default parameters. To specify parameters of the scheduler, pass in
             a scheduler object instead of a string. The scheduler will be
-            used if ``early_stopping`` is set to True to stop fitting to a
+            used if the estimator supports partial fitting to stop fitting to a
             hyperparameter configuration if it performs poorly.
 
             If None, the FIFO scheduler will be used. Defaults to None.
@@ -1074,14 +1072,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
 
-        early_stopping (bool):
-            Specifies whether or not to stop training the model if the
-            validation score is not improving when fitting the model.
-
-            If ``True``, each fold is fit with ``partial_fit`` instead. The
-            ``estimator`` must implement ``partial_fit`` in order to allow
-            ``early_stopping``. Defaults to False.
-
         early_stopping_max_epochs (int):
             Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
@@ -1101,7 +1091,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             verbose=0,
             error_score="raise",
             return_train_score=False,
-            early_stopping=False,
             early_stopping_max_epochs=10,
     ):
         super(TuneGridSearchCV, self).__init__(
@@ -1113,7 +1102,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
-            early_stopping=early_stopping,
             early_stopping_max_epochs=early_stopping_max_epochs,
         )
 
@@ -1146,8 +1134,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
-        ``self.early_stopping`` is True, whereas a single estimator is
-        generated when ``self.early_stopping`` is False.
+        early stopping is possible, whereas a single estimator is
+        generated when  early stopping is not possible.
 
         Args:
             config (dict): Configurations such as hyperparameters to run
