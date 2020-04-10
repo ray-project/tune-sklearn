@@ -6,3 +6,4 @@ scikit-learn
 parameterized
 cloudpickle
 pytest
+xgboost

@@ -43,6 +43,7 @@ script:
   - python3 sgd.py
   # Fix when torch issue is resolved.
   # - python torch_nn.py
+  - python3 xgbclassifier.py
 
 cache:
   directories:
