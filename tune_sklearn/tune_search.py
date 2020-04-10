@@ -28,6 +28,8 @@ from sklearn.exceptions import NotFittedError
 import ray
 from ray import tune
 from ray.tune import Trainable
+from ray.tune.schedulers import (PopulationBasedTraining, AsyncHyperBandScheduler,
+                                 HyperBandScheduler, HyperBandForBOHB, MedianStoppingRule)
 import numpy as np
 from numpy.ma import MaskedArray
 import os
@@ -212,6 +214,14 @@ class _Trainable(Trainable):
 class TuneBaseSearchCV(BaseEstimator):
     """Abstract base class for TuneGridSearchCV and TuneRandomizedSearchCV"""
 
+    defined_schedulers = [
+            "PopulationBasedTraining",
+            "AsyncHyperBandScheduler",
+            "HyperBandScheduler",
+            "HyperBandForBOHB",
+            "MedianStoppingRule"
+            ]
+
     @property
     def _estimator_type(self):
         """str: Returns the estimator's estimator type, such as 'classifier'
@@ -384,9 +394,26 @@ class TuneBaseSearchCV(BaseEstimator):
             early_stopping_max_epochs=10,
     ):
         self.estimator = estimator
-        self.scheduler = scheduler
-        if self.scheduler is not None:
-            self.scheduler.metric = "average_test_score"
+        if isinstance(scheduler, str):
+            if scheduler in defined_schedulers:
+                if scheduler == "PopulationBasedTraining":
+                    self.scheduler = PopulationBasedTraining(metric="average_test_score")
+                elif scheduler == "AsyncHyperBandScheduler":
+                    self.scheduler = AsyncHyperBandScheduler(metric="average_test_score")
+                elif scheduler == "HyperBandScheduler":
+                    self.scheduler = HyperBandScheduler(metric="average_test_score")
+                elif scheduler == "HyperBandForBOHB":
+                    self.scheduler = HyperBandForBOHB(metric="average_test_score")
+                elif scheduler == "MedianStoppingRule":
+                    self.scheduler = MedianStoppingRule(metric="average_test_score")
+            else:
+                raise ValueError("{} is not a defined scheduler. "
+                                 "Check the list of available schedulers."
+                                 .format(scheduler)
+        else:
+            self.scheduler = scheduler
+            if self.scheduler is not None:
+                self.scheduler.metric = "average_test_score"
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
@@ -692,11 +719,13 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
 
-        scheduler (:obj:`TrialScheduler`, optional):
+        scheduler (str or :obj:`TrialScheduler`, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
-            options. The scheduler will be used if ``early_stopping`` is set
-            to True to stop fitting to a hyperparameter configuration if it
-            performs poorly.
+            options. If a string is given, a scheduler will be created with
+            default parameters. To specify parameters of the scheduler, pass in
+            a scheduler object instead of a string. The scheduler will be used if
+            ``early_stopping`` is set to True to stop fitting to a hyperparameter
+            configuration if it performs poorly.
 
             If None, the FIFO scheduler will be used. Defaults to None.
 
@@ -960,11 +989,13 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             in the list are explored. This enables searching over any sequence
             of parameter settings.
 
-        scheduler (:obj:`TrialScheduler`, optional):
+        scheduler (str or :obj:`TrialScheduler`, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
-            options. The scheduler will be used if ``early_stopping`` is set
-            to True to stop fitting to a hyperparameter configuration if it
-            performs poorly.
+            options. If a string is given, a scheduler will be created with
+            default parameters. To specify parameters of the scheduler, pass in
+            a scheduler object instead of a string. The scheduler will be used if
+            ``early_stopping`` is set to True to stop fitting to a hyperparameter
+            configuration if it performs poorly.
 
             If None, the FIFO scheduler will be used. Defaults to None.
 
