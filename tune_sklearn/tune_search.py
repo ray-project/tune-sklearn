@@ -435,7 +435,7 @@ class TuneBaseSearchCV(BaseEstimator):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
-        ray.init(ignore_reinit_error=True)
+        ray.init(ignore_reinit_error=True, configure_logging=False)
 
         self._check_params()
         classifier = is_classifier(self.estimator)
@@ -1122,9 +1122,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             config (dict): Configurations such as hyperparameters to run
                 ``tune.run`` on.
 
-        resources_per_trial (dict): Resources to use per trial within Ray.
-            Accepted keys are `cpu`, `gpu` and custom resources, and values
-            are integers specifying the number of each resource to use.
+            resources_per_trial (dict): Resources to use per trial within Ray.
+                Accepted keys are `cpu`, `gpu` and custom resources, and values
+                are integers specifying the number of each resource to use.
 
         Returns:
             analysis (:obj:`ExperimentAnalysis`): Object returned by
