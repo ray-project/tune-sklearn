@@ -409,7 +409,7 @@ class TuneBaseSearchCV(BaseEstimator):
             else:
                 raise ValueError("{} is not a defined scheduler. "
                                  "Check the list of available schedulers."
-                                 .format(scheduler)
+                                 .format(scheduler))
         else:
             self.scheduler = scheduler
             if self.scheduler is not None:
