@@ -547,8 +547,8 @@ class TuneBaseSearchCV(BaseEstimator):
         Only sklearn estimators with partial_fit can be early stopped.
 
         """
-        return hasattr(self.estimator, 'partial_fit')
-            and callable(getattr(self.estimator, 'partial_fit', None)):
+        return (hasattr(self.estimator, 'partial_fit')
+        and callable(getattr(self.estimator, 'partial_fit', None)))
 
 
 
