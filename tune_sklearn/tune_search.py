@@ -29,7 +29,8 @@ import ray
 from ray import tune
 from ray.tune import Trainable
 from ray.tune.schedulers import (PopulationBasedTraining, AsyncHyperBandScheduler,
-                                 HyperBandScheduler, HyperBandForBOHB, MedianStoppingRule)
+                                 HyperBandScheduler, HyperBandForBOHB, MedianStoppingRule,
+                                 TrialScheduler)
 import numpy as np
 from numpy.ma import MaskedArray
 import os
@@ -409,10 +410,12 @@ class TuneBaseSearchCV(BaseEstimator):
                     raise ValueError("{} is not a defined scheduler. "
                                      "Check the list of available schedulers."
                                      .format(scheduler))
-            else:
+            elif isinstance(scheduler, TrialScheduler):
                 self.scheduler = scheduler
                 if self.scheduler is not None:
                     self.scheduler.metric = "average_test_score"
+            else:
+                raise TypeError("Scheduler must be a str or tune scheduler")
         else:
             warnings.warn("Unable to do early stopping because "
                           "estimator does not have `partial_fit`")
