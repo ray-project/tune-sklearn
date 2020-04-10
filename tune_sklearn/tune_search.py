@@ -31,7 +31,9 @@ from ray.tune import Trainable
 import numpy as np
 from numpy.ma import MaskedArray
 import os
-import cloudpickle as pickle
+from pickle import PicklingError
+import cloudpickle as cpickle
+import warnings
 
 
 # Helper class to train models
@@ -65,7 +67,8 @@ class _Trainable(Trainable):
         self.fit_params = config.pop("fit_params")
         self.scoring = config.pop("scoring")
         self.early_stopping = config.pop("early_stopping")
-        self.max_epochs = config.pop("max_epochs")
+        self.early_stopping_max_epochs = config.pop(
+            "early_stopping_max_epochs")
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
 
@@ -179,7 +182,14 @@ class _Trainable(Trainable):
         """
         path = os.path.join(checkpoint_dir, "checkpoint")
         with open(path, "wb") as f:
-            pickle.dump(self.estimator, f)
+            try:
+                cpickle.dump(self.estimator, f)
+                self.pickled = True
+            except PicklingError:
+                self.pickled = False
+                warnings.warn("{} could not be pickled. "
+                              "Restoring estimators may run into issues."
+                              .format(self.estimator))
         return path
 
     def _restore(self, checkpoint):
@@ -189,8 +199,11 @@ class _Trainable(Trainable):
             checkpoint (str): file path to pickled checkpoint file.
 
         """
-        with open(checkpoint, "rb") as f:
-            self.estimator = pickle.load(f)
+        if self.pickled:
+            with open(checkpoint, "rb") as f:
+                self.estimator = cpickle.load(f)
+        else:
+            warnings.warn("No estimator restored")
 
     def reset_config(self, new_config):
         return False
@@ -368,7 +381,7 @@ class TuneBaseSearchCV(BaseEstimator):
             error_score="raise",
             return_train_score=False,
             early_stopping=False,
-            max_epochs=10,
+            early_stopping_max_epochs=10,
     ):
         self.estimator = estimator
         self.scheduler = scheduler
@@ -383,12 +396,11 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.early_stopping = early_stopping
         if self.early_stopping:
-            self.max_epochs = max_epochs
+            self.early_stopping_max_epochs = early_stopping_max_epochs
         else:
-            import warnings
-            warnings.warn(
-                "`max_epochs` is ignored when `early_stopping=False`")
-            self.max_epochs = 1
+            warnings.warn("`early_stopping_max_epochs` is ignored when "
+                          "`early_stopping=False`")
+            self.early_stopping_max_epochs = 1
 
     def _get_param_iterator(self):
         """Get a parameter iterator to be passed in to _format_results to
@@ -446,7 +458,7 @@ class TuneBaseSearchCV(BaseEstimator):
         config["fit_params"] = fit_params
         config["scoring"] = self.scoring
         config["early_stopping"] = self.early_stopping
-        config["max_epochs"] = self.max_epochs
+        config["early_stopping_max_epochs"] = self.early_stopping_max_epochs
         config["return_train_score"] = self.return_train_score
 
         candidate_params = list(self._get_param_iterator())
@@ -470,7 +482,7 @@ class TuneBaseSearchCV(BaseEstimator):
                     "fit_params",
                     "scoring",
                     "early_stopping",
-                    "max_epochs",
+                    "early_stopping_max_epochs",
                     "return_train_score",
             ]:
                 best_config.pop(key)
@@ -787,7 +799,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             ``estimator`` must implement ``partial_fit`` in order to allow
             ``early_stopping``. Defaults to False.
 
-        max_epochs (int):
+        early_stopping_max_epochs (int):
             Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
@@ -809,7 +821,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             error_score=np.nan,
             return_train_score=False,
             early_stopping=False,
-            max_epochs=10,
+            early_stopping_max_epochs=10,
     ):
         super(TuneRandomizedSearchCV, self).__init__(
             estimator=estimator,
@@ -822,7 +834,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             early_stopping=early_stopping,
-            max_epochs=max_epochs,
+            early_stopping_max_epochs=early_stopping_max_epochs,
         )
 
         self.param_distributions = param_distributions
@@ -900,7 +912,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.max_epochs},
+                stop={"training_iteration": self.early_stopping_max_epochs},
                 num_samples=self.num_samples,
                 config=config,
                 checkpoint_at_end=True,
@@ -913,7 +925,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.max_epochs},
+                stop={"training_iteration": self.early_stopping_max_epochs},
                 num_samples=self.num_samples,
                 config=config,
                 checkpoint_at_end=True,
@@ -1039,7 +1051,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             ``estimator`` must implement ``partial_fit`` in order to allow
             ``early_stopping``. Defaults to False.
 
-        max_epochs (int):
+        early_stopping_max_epochs (int):
             Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
@@ -1059,7 +1071,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score="raise",
             return_train_score=False,
             early_stopping=False,
-            max_epochs=10,
+            early_stopping_max_epochs=10,
     ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
@@ -1071,7 +1083,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             early_stopping=early_stopping,
-            max_epochs=max_epochs,
+            early_stopping_max_epochs=early_stopping_max_epochs,
         )
 
         _check_param_grid(param_grid)
@@ -1128,7 +1140,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.max_epochs},
+                stop={"training_iteration": self.early_stopping_max_epochs},
                 config=config,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
@@ -1140,7 +1152,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.max_epochs},
+                stop={"training_iteration": self.early_stopping_max_epochs},
                 config=config,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,

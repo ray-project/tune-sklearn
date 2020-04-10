@@ -6,3 +6,6 @@ scikit-learn
 parameterized
 cloudpickle
 pytest
+torch
+torchvision
+skorch
