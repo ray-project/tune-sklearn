@@ -6,9 +6,6 @@ from scipy.stats import expon
 from sklearn.svm import SVC
 import unittest
 
-# TODO: Either convert to individual examples or to python unittests
-
-
 class RandomizedSearchTest(unittest.TestCase):
     def test_random_search_cv_results(self):
         # Make a dataset with a lot of noise to get various kind of prediction

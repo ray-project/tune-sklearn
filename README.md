@@ -3,13 +3,12 @@
 
 Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and scikit-learn's models, allowing users to do optimized hyperparameter searching for sklearn models using Tune's schedulers (more details in the [Schedulers Section](## Tune Schedulers)). Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions, such as distributions to sample from.
 
-To take full advantage of this package, specifying a scheduler **with an estimator that supports early stopping (see scikit=learn partial_fit)** is essential. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). If the estimator does not support `early_stopping`, `TuneGridSearchCV`/`TuneRandomizedSearchCV` will ignore any scheduler passed in and will not attempt to early stop bad hyperparameters; it simply runs the grid search cross-validation on Ray's parallel back-end and ignores the scheduler. We are currently experimenting with ways to support early stopping for estimators that do not directly expose an `early_stopping` interface in their estimators -- stay tuned!
+To take full advantage of this package, specifying a scheduler **with an estimator that supports early stopping (see scikit=learn partial_fit)** is essential. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). If the estimator does not support `early_stopping`, `TuneGridSearchCV`/`TuneRandomizedSearchCV` will ignore any scheduler passed in and will not attempt to early stop bad hyperparameters; it simply runs the grid search cross-validation on Ray's parallel back-end. We are currently experimenting with ways to support early stopping for estimators that do not directly expose an `early_stopping` interface in their estimators -- stay tuned!
 
 ### Installation
 
 #### Dependencies
 - numpy (>=1.16)
-- pandas
 - ray
 - scikit-learn (>=0.22)
 - cloudpickle
