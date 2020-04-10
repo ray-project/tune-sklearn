@@ -416,7 +416,7 @@ class TuneBaseSearchCV(BaseEstimator):
                 self.scheduler = scheduler
                 if self.scheduler is not None:
                     self.scheduler.metric = "average_test_score"
-            else:
+            elif scheduler is not None:
                 raise TypeError("Scheduler must be a str or tune scheduler")
         else:
             warnings.warn("Unable to do early stopping because "
