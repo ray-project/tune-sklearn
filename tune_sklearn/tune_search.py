@@ -894,9 +894,9 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             config (dict): Configurations such as hyperparameters to run
             ``tune.run`` on.
 
-        resources_per_trial (dict): Resources to use per trial within Ray.
-            Accepted keys are `cpu`, `gpu` and custom resources, and values
-            are integers specifying the number of each resource to use.
+            resources_per_trial (dict): Resources to use per trial within Ray.
+                Accepted keys are `cpu`, `gpu` and custom resources, and values
+                are integers specifying the number of each resource to use.
 
         Returns:
             analysis (:obj:`ExperimentAnalysis`): Object returned by
