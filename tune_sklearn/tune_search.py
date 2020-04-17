@@ -585,8 +585,9 @@ class TuneBaseSearchCV(BaseEstimator):
                 "early_stopping",
                 "early_stopping_max_epochs",
                 "return_train_score",
+                "is_pipeline",
         ]:
-            config.pop(key)
+            config.pop(key, None)
         return config
 
     def _format_results(self, n_splits, out):
