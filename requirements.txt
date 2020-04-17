@@ -1,6 +1,5 @@
 numpy>=1.16
 pandas
-ray
 tabulate
 scikit-learn
 parameterized
