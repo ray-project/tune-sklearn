@@ -519,14 +519,14 @@ class TuneBaseSearchCV(BaseEstimator):
 
     def _clean_config_dict(self, config):
         """Helper to remove keys from the ``config`` dictionary returned from
-        ``tune.run``. 
+        ``tune.run``.
 
         Args:
             config (:obj:`dict`): Dictionary of all hyperparameter
                 configurations and extra output from ``tune.run``., Keys for
                 hyperparameters are the hyperparameter variable names
                 and the values are the numeric values set to those variables.
-        
+
         Returns:
             config (:obj:`dict`): Dictionary of all hyperparameter
                 configurations without the output from ``tune.run``., Keys for
@@ -545,8 +545,8 @@ class TuneBaseSearchCV(BaseEstimator):
                 "early_stopping",
                 "early_stopping_max_epochs",
                 "return_train_score",
-            ]:
-                config.pop(key)
+        ]:
+            config.pop(key)
         return config
 
     def _format_results(self, n_splits, out):
@@ -581,8 +581,10 @@ class TuneBaseSearchCV(BaseEstimator):
             train_scores = None
 
         configs = out.get_all_configs()
-        candidate_params = [self._clean_config_dict(configs[config_key])
-            for config_key in configs]
+        candidate_params = [
+            self._clean_config_dict(configs[config_key])
+            for config_key in configs
+        ]
 
         results = {"params": candidate_params}
         n_candidates = len(candidate_params)
@@ -863,12 +865,14 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             if isinstance(distribution, list):
                 import random
                 config[key] = tune.sample_from((lambda d: lambda spec:
-                    d[random.randint(0, len(d) - 1)])(distribution))
+                                                d[random.randint(
+                                                    0, len(d) - 1)])
+                                               (distribution))
                 samples *= len(distribution)
             else:
                 all_lists = False
-                config[key] = tune.sample_from((lambda d: lambda spec:
-                    d.rvs(1)[0])(distribution))
+                config[key] = tune.sample_from(
+                    (lambda d: lambda spec: d.rvs(1)[0])(distribution))
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 

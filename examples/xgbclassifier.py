@@ -22,7 +22,7 @@ params = {
     "gamma": [0.5, 1, 1.5, 2, 5],
     "subsample": [0.6, 0.8, 1.0],
     "colsample_bytree": [0.6, 0.8, 1.0],
-    'max_depth': [3, 4, 5],
+    "max_depth": [3, 4, 5],
 }
 
 xgb = XGBClassifier(
