@@ -16,8 +16,6 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import (
     cross_validate,
     check_cv,
-    ParameterGrid,
-    ParameterSampler,
 )
 from sklearn.model_selection._search import _check_param_grid
 from sklearn.metrics import check_scoring
@@ -73,7 +71,6 @@ class _Trainable(Trainable):
         self.return_train_score = config.pop("return_train_score")
 
         self.estimator_config = config
-        print("estimator_config", self.estimator_config)
 
         if self.early_stopping:
             n_splits = self.cv.get_n_splits(self.X, self.y)
@@ -403,16 +400,6 @@ class TuneBaseSearchCV(BaseEstimator):
                           "`early_stopping=False`")
             self.early_stopping_max_epochs = 1
 
-    def _get_param_iterator(self):
-        """Get a parameter iterator to be passed in to _format_results to
-        generate the cv_results_ dictionary.
-
-        Method should be overridden in a child class to generate different
-        iterators depending on whether it is randomized or grid search.
-
-        """
-        raise NotImplementedError("Implement in a child class.")
-
     def fit(self, X, y=None, groups=None, **fit_params):
         """Run fit with all sets of parameters. ``tune.run`` is used to perform
         the fit procedure, which is put in a helper function ``_tune_run``.
@@ -594,7 +581,6 @@ class TuneBaseSearchCV(BaseEstimator):
             train_scores = None
 
         configs = out.get_all_configs()
-        print(configs)
         candidate_params = [self._clean_config_dict(configs[config_key])
             for config_key in configs]
 
@@ -858,19 +844,6 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         self.num_samples = n_iter
         self.random_state = random_state
 
-    def _get_param_iterator(self):
-        """Gets a ParameterSampler instance based on the hyperparameter
-        distributions.
-
-        Returns:
-            :obj:`ParameterSampler` instance.
-
-        """
-        return ParameterSampler(
-            self.param_distributions,
-            self.num_samples,
-            random_state=self.random_state)
-
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
 
@@ -889,14 +862,13 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         for key, distribution in self.param_distributions.items():
             if isinstance(distribution, list):
                 import random
-                sampled_value = distribution[random.randint(
-                        0, len(distribution) - 1)]
-                config[key] = tune.grid_search([sampled_value])
+                config[key] = tune.sample_from((lambda d: lambda spec:
+                    d[random.randint(0, len(d) - 1)])(distribution))
                 samples *= len(distribution)
             else:
                 all_lists = False
-                sampled_value = distribution.rvs(1)[0]
-                config[key] = tune.grid_search([sampled_value])
+                config[key] = tune.sample_from((lambda d: lambda spec:
+                    d.rvs(1)[0])(distribution))
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
@@ -1103,15 +1075,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         _check_param_grid(param_grid)
         self.param_grid = param_grid
-
-    def _get_param_iterator(self):
-        """Gets the hyperparameter grid.
-
-        Returns:
-            :obj:`ParameterGrid` instance.
-
-        """
-        return ParameterGrid(self.param_grid)
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
