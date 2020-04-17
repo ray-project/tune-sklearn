@@ -585,7 +585,7 @@ class GridSearchTest(unittest.TestCase):
         tune_search = tcv.TuneGridSearchCV(
             SVC(),
             tuned_parameters,
-            scheduler=MedianStoppingRule(),
+            scheduler="MedianStoppingRule",
             early_stopping_max_epochs=20)
         tune_search.fit(X_train, y_train)
 
@@ -609,7 +609,7 @@ class GridSearchTest(unittest.TestCase):
         model = linear_model.Ridge()
 
         tune_search = tcv.TuneGridSearchCV(model, param_grid,
-                                           MedianStoppingRule())
+                                           "MedianStoppingRule")
         tune_search.fit(X_train, y_train)
 
         pred = tune_search.predict(X_test)

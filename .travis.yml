@@ -43,6 +43,7 @@ script:
   - python3 sgd.py
   - python3 torch_nn.py
   - python3 lgbm.py
+  - python3 xgbclassifier.py
 
 cache:
   directories:
