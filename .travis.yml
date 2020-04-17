@@ -44,6 +44,7 @@ script:
   - python3 torch_nn.py
   - python3 lgbm.py
   - python3 xgbclassifier.py
+  - python3 keras_example.py
 
 cache:
   directories:
