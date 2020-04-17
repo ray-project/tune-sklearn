@@ -893,7 +893,6 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         """
         samples = 1
         all_lists = True
-<<<<<<< HEAD
         if config["is_pipeline"]:
              for idx in range(len(self.estimator.steps)):
                 for key, distribution in self.param_distributions[idx].items():
@@ -922,20 +921,6 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
                     all_lists = False
                     config[key] = tune.sample_from(
                         (lambda d: lambda spec: d.rvs(1)[0])(distribution))
-=======
-        for key, distribution in self.param_distributions.items():
-            if isinstance(distribution, list):
-                import random
-                config[key] = tune.sample_from((lambda d: lambda spec:
-                                                d[random.randint(
-                                                    0, len(d) - 1)])
-                                               (distribution))
-                samples *= len(distribution)
-            else:
-                all_lists = False
-                config[key] = tune.sample_from(
-                    (lambda d: lambda spec: d.rvs(1)[0])(distribution))
->>>>>>> 264f99a0bc3480e737f9002cf063351a27ee98b8
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
