@@ -1,9 +1,12 @@
 # tune-sklearn
 [![Build Status](https://travis-ci.com/ray-project/tune-sklearn.svg?branch=master)](https://travis-ci.com/ray-project/tune-sklearn)
 
-Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and scikit-learn's models, allowing users to do optimized hyperparameter searching for sklearn models using Tune's schedulers (more details in the [Schedulers Section](## Tune Schedulers)). Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions, such as distributions to sample from.
+Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and scikit-learn's models, allowing users to optimize hyerparameter searching for sklearn using Tune's schedulers (more details in the [Tune Documentation](http://tune.io/)). 
+Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions, such as distributions to sample from.
 
-To take full advantage of this package, specifying a scheduler **with an estimator that supports early stopping (see scikit=learn partial_fit)** is essential. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). If the estimator does not support `early_stopping`, `TuneGridSearchCV`/`TuneRandomizedSearchCV` will ignore any scheduler passed in and will not attempt to early stop bad hyperparameters; it simply runs the grid search cross-validation on Ray's parallel back-end. We are currently experimenting with ways to support early stopping for estimators that do not directly expose an `early_stopping` interface in their estimators -- stay tuned!
+Tune-sklearn provides additional benefits if specifying a scheduler **with an estimator that supports early stopping**. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). 
+
+If the estimator does not support `partial_fit`, a warning will be shown saying early stopping cannot be done and it will simply run the cross-validation on Ray's parallel back-end. We are currently experimenting with ways to support early stopping for estimators that do not directly expose a `partial_fit` interface in their estimators -- stay tuned!
 
 ### Installation
 
@@ -122,7 +125,7 @@ tune_search.fit(X_subset, y_subset)
 ```
 
 ## In Progress
-We are currently finding better ways to parallelize the entire grid search cross-validation process. We do not see a significant speedup thus far when we are not able to early stop. We are also working to integrate more familiar interfaces to make it compatible with our grid search and randomized search interface, such as PyTorch neural nets or XGBoost classifiers/regressors. We will continue to add more examples in the [examples folder](https://github.com/ray-project/tune-sklearn/tree/master/examples) as we continue to add support for other interfaces!
+We are currently finding better ways to parallelize the entire grid search cross-validation process. We do not see a significant speedup thus far when we are not able to early stop. We are also working to integrate more familiar interfaces to make it compatible with our grid search and randomized search interface. We will continue to add more examples in the [examples folder](https://github.com/ray-project/tune-sklearn/tree/master/examples) as we continue to add support for other interfaces!
 
 ## More information
 [Ray Tune](https://ray.readthedocs.io/en/latest/tune.html)
