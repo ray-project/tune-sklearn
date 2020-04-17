@@ -80,23 +80,9 @@ class _Trainable(Trainable):
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
             for i in range(n_splits):
-                if self.is_pipeline:
-                    for idx, step in enumerate(self.estimator_config.steps):
-                        for k in self.estimator_config[idx]:
-                            param_key = step + "__" + k
-                            self.estimator[i].set_params(
-                                **{param_key: self.estimator_config[idx][k]})
-                else:
-                    self.estimator[i].set_params(**self.estimator_config)
+                self.estimator[i].set_params(**self.estimator_config)
         else:
-            if self.is_pipeline:
-                for idx, step in enumerate(self.estimator_config.steps):
-                    for k in self.estimator_config[idx]:
-                        param_key = step + "__" + k
-                        self.estimator.set_params(
-                            **{param_key: self.estimator_config[idx][k]})
-            else:
-                self.estimator.set_params(**self.estimator_config)
+            self.estimator.set_params(**self.estimator_config)
 
     def _train(self):
         """Trains one iteration of the model called when ``tune.run`` is called.
@@ -886,19 +872,19 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         samples = 1
         all_lists = True
         if config["is_pipeline"]:
-            for i in range(len(self.param_distributions)):
-                for key, distribution in self.param_distributions[i].items():
+             for idx in range(len(self.estimator.steps)):
+                for key, distribution in self.param_distributions[idx].items():
                     if isinstance(distribution, list):
                         import random
 
-                        config[i][key] = tune.sample_from(
+                        config[key] = tune.sample_from(
                             (lambda d: lambda spec:
                              d[random.randint(0, len(d) - 1)])(distribution)
                         )
                         samples *= len(distribution)
                     else:
                         all_lists = False
-                        config[i][key] = tune.sample_from(
+                        config[key] = tune.sample_from(
                             (lambda d: lambda spec: d.rvs(1)[0])(distribution))
         else:
             for key, distribution in self.param_distributions.items():
@@ -1141,10 +1127,10 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
-        if config["is_pipeline"]::
-            for i in range(len(self.param_grid)):
-                for key, distribution in self.param_grid[i].items():
-                    config[i][key] = tune.grid_search(list(distribution))
+        if config["is_pipeline"]:
+            for idx in range(len(self.estimator.steps)):
+                for key, distribution in self.param_grid[idx].items():
+                    config[key] = tune.grid_search(list(distribution))
         else:
             for key, distribution in self.param_grid.items():
                 config[key] = tune.grid_search(list(distribution))
