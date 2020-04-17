@@ -25,6 +25,7 @@ from sklearn.base import is_classifier
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
+from sklearn.pipeline import Pipeline
 import ray
 from ray import tune
 from ray.tune import Trainable
@@ -517,7 +518,7 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         return self.scoring(self.best_estimator_, X, y)
 
-    def _fill_config_hyperparam(self, config):
+    def _fill_config_hyperparam(self, config, is_pipeline):
         """Fill in the ``config`` dictionary with the hyperparameters.
 
         For RandomizedSearchCV, samples are pulled from the distribution
@@ -530,6 +531,8 @@ class TuneBaseSearchCV(BaseEstimator):
         Args:
             config (:obj:`dict`): dictionary to be filled in as the
                 configuration for `tune.run`.
+            is_pipeline (bool): indicates whether the estimator for parameter
+                search is a ``Pipeline`` object.
 
         """
         raise NotImplementedError("Define in child class")
@@ -854,7 +857,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             self.num_samples,
             random_state=self.random_state)
 
-    def _fill_config_hyperparam(self, config):
+    def _fill_config_hyperparam(self, config, is_pipeline):
         """Fill in the ``config`` dictionary with the hyperparameters.
 
         Each distribution in ``self.param_distributions`` must implement
@@ -865,23 +868,41 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         Args:
             config (:obj:`dict`): dictionary to be filled in as the
                 configuration for `tune.run`.
+            is_pipeline (bool): indicates whether the estimator for parameter
+                search is a ``Pipeline`` object.
 
         """
         samples = 1
         all_lists = True
-        for key, distribution in self.param_distributions.items():
-            if isinstance(distribution, list):
-                import random
+        if is_pipeline:
+            for i in range(len(self.param_distributions)):
+                for key, distribution in self.param_distributions[i].items():
+                    if isinstance(distribution, list):
+                        import random
 
-                config[key] = tune.sample_from(
-                    lambda spec: distribution[random.randint(
-                        0, len(distribution) - 1)]
-                )
-                samples *= len(distribution)
-            else:
-                all_lists = False
-                config[key] = tune.sample_from(
-                    lambda spec: distribution.rvs(1)[0])
+                        config[i][key] = tune.sample_from(
+                            lambda spec: distribution[random.randint(
+                                0, len(distribution) - 1)]
+                        )
+                        samples *= len(distribution)
+                    else:
+                        all_lists = False
+                        config[i][key] = tune.sample_from(
+                            lambda spec: distribution.rvs(1)[0])
+        else:
+            for key, distribution in self.param_distributions.items():
+                if isinstance(distribution, list):
+                    import random
+
+                    config[key] = tune.sample_from(
+                        lambda spec: distribution[random.randint(
+                            0, len(distribution) - 1)]
+                    )
+                    samples *= len(distribution)
+                else:
+                    all_lists = False
+                    config[key] = tune.sample_from(
+                        lambda spec: distribution.rvs(1)[0])
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
@@ -1098,7 +1119,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         """
         return ParameterGrid(self.param_grid)
 
-    def _fill_config_hyperparam(self, config):
+    def _fill_config_hyperparam(self, config, is_pipeline):
         """Fill in the ``config`` dictionary with the hyperparameters.
 
         Each distribution is converted to a list, then returns a
@@ -1108,10 +1129,17 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         Args:
             config (:obj:`dict`): dictionary to be filled in as the
                 configuration for `tune.run`.
+            is_pipeline (bool): indicates whether the estimator for parameter
+                search is a ``Pipeline`` object.
 
         """
-        for key, distribution in self.param_grid.items():
-            config[key] = tune.grid_search(list(distribution))
+        if is_pipeline:
+            for i in range(len(self.param_grid)):
+                for key, distribution in self.param_grid[i].items():
+                    config[i][key] = tune.grid_search(list(distribution))
+        else:
+            for key, distribution in self.param_grid.items():
+                config[key] = tune.grid_search(list(distribution))
 
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
