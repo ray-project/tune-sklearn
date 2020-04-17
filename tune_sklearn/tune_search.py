@@ -16,8 +16,6 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import (
     cross_validate,
     check_cv,
-    ParameterGrid,
-    ParameterSampler,
 )
 from sklearn.model_selection._search import _check_param_grid
 from sklearn.metrics import check_scoring
@@ -431,16 +429,6 @@ class TuneBaseSearchCV(BaseEstimator):
         self.error_score = error_score
         self.return_train_score = return_train_score
 
-    def _get_param_iterator(self):
-        """Get a parameter iterator to be passed in to _format_results to
-        generate the cv_results_ dictionary.
-
-        Method should be overridden in a child class to generate different
-        iterators depending on whether it is randomized or grid search.
-
-        """
-        raise NotImplementedError("Implement in a child class.")
-
     def fit(self, X, y=None, groups=None, **fit_params):
         """Run fit with all sets of parameters. ``tune.run`` is used to perform
         the fit procedure, which is put in a helper function ``_tune_run``.
@@ -464,7 +452,7 @@ class TuneBaseSearchCV(BaseEstimator):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
-        ray.init(ignore_reinit_error=True)
+        ray.init(ignore_reinit_error=True, configure_logging=False)
 
         self._check_params()
         classifier = is_classifier(self.estimator)
@@ -490,32 +478,15 @@ class TuneBaseSearchCV(BaseEstimator):
         config["early_stopping_max_epochs"] = self.early_stopping_max_epochs
         config["return_train_score"] = self.return_train_score
 
-        candidate_params = list(self._get_param_iterator())
-
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)
 
-        self.cv_results_ = self._format_results(candidate_params,
-                                                self.n_splits, analysis)
+        self.cv_results_ = self._format_results(self.n_splits, analysis)
 
         if self.refit:
             best_config = analysis.get_best_config(
                 metric="average_test_score", mode="max")
-            for key in [
-                    "estimator",
-                    "scheduler",
-                    "X_id",
-                    "y_id",
-                    "groups",
-                    "cv",
-                    "fit_params",
-                    "scoring",
-                    "early_stopping",
-                    "early_stopping_max_epochs",
-                    "return_train_score",
-            ]:
-                best_config.pop(key)
-            self.best_params = best_config
+            self.best_params = self._clean_config_dict(best_config)
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
@@ -584,14 +555,42 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         raise NotImplementedError("Define in child class")
 
-    def _format_results(self, candidate_params, n_splits, out):
+    def _clean_config_dict(self, config):
+        """Helper to remove keys from the ``config`` dictionary returned from
+        ``tune.run``.
+
+        Args:
+            config (:obj:`dict`): Dictionary of all hyperparameter
+                configurations and extra output from ``tune.run``., Keys for
+                hyperparameters are the hyperparameter variable names
+                and the values are the numeric values set to those variables.
+
+        Returns:
+            config (:obj:`dict`): Dictionary of all hyperparameter
+                configurations without the output from ``tune.run``., Keys for
+                hyperparameters are the hyperparameter variable names
+                and the values are the numeric values set to those variables.
+        """
+        for key in [
+                "estimator",
+                "scheduler",
+                "X_id",
+                "y_id",
+                "groups",
+                "cv",
+                "fit_params",
+                "scoring",
+                "early_stopping",
+                "early_stopping_max_epochs",
+                "return_train_score",
+        ]:
+            config.pop(key)
+        return config
+
+    def _format_results(self, n_splits, out):
         """Helper to generate the ``cv_results_`` dictionary.
 
         Args:
-            candidate_params (:obj:`list` of :obj:`dict`): List of all
-                hyperparameterconfigurations encoded as a dictionary, where the
-                keys are the hyperparameter variables and the values are the
-                numeric values set to those variables.
             n_splits (int): integer specifying the number of folds when doing
                 cross-validation.
             out (:obj:`ExperimentAnalysis`): Object returned by `tune.run`.
@@ -618,6 +617,12 @@ class TuneBaseSearchCV(BaseEstimator):
             ]
         else:
             train_scores = None
+
+        configs = out.get_all_configs()
+        candidate_params = [
+            self._clean_config_dict(configs[config_key])
+            for config_key in configs
+        ]
 
         results = {"params": candidate_params}
         n_candidates = len(candidate_params)
@@ -871,19 +876,6 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         self.num_samples = n_iter
         self.random_state = random_state
 
-    def _get_param_iterator(self):
-        """Gets a ParameterSampler instance based on the hyperparameter
-        distributions.
-
-        Returns:
-            :obj:`ParameterSampler` instance.
-
-        """
-        return ParameterSampler(
-            self.param_distributions,
-            self.num_samples,
-            random_state=self.random_state)
-
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
 
@@ -902,16 +894,15 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         for key, distribution in self.param_distributions.items():
             if isinstance(distribution, list):
                 import random
-
-                config[key] = tune.sample_from(
-                    lambda spec: distribution[random.randint(
-                        0, len(distribution) - 1)]
-                )
+                config[key] = tune.sample_from((lambda d: lambda spec:
+                                                d[random.randint(
+                                                    0, len(d) - 1)])
+                                               (distribution))
                 samples *= len(distribution)
             else:
                 all_lists = False
                 config[key] = tune.sample_from(
-                    lambda spec: distribution.rvs(1)[0])
+                    (lambda d: lambda spec: d.rvs(1)[0])(distribution))
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
@@ -924,9 +915,9 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             config (dict): Configurations such as hyperparameters to run
             ``tune.run`` on.
 
-        resources_per_trial (dict): Resources to use per trial within Ray.
-            Accepted keys are `cpu`, `gpu` and custom resources, and values
-            are integers specifying the number of each resource to use.
+            resources_per_trial (dict): Resources to use per trial within Ray.
+                Accepted keys are `cpu`, `gpu` and custom resources, and values
+                are integers specifying the number of each resource to use.
 
         Returns:
             analysis (:obj:`ExperimentAnalysis`): Object returned by
@@ -1111,15 +1102,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         _check_param_grid(param_grid)
         self.param_grid = param_grid
 
-    def _get_param_iterator(self):
-        """Gets the hyperparameter grid.
-
-        Returns:
-            :obj:`ParameterGrid` instance.
-
-        """
-        return ParameterGrid(self.param_grid)
-
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
 
@@ -1144,9 +1126,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             config (dict): Configurations such as hyperparameters to run
                 ``tune.run`` on.
 
-        resources_per_trial (dict): Resources to use per trial within Ray.
-            Accepted keys are `cpu`, `gpu` and custom resources, and values
-            are integers specifying the number of each resource to use.
+            resources_per_trial (dict): Resources to use per trial within Ray.
+                Accepted keys are `cpu`, `gpu` and custom resources, and values
+                are integers specifying the number of each resource to use.
 
         Returns:
             analysis (:obj:`ExperimentAnalysis`): Object returned by

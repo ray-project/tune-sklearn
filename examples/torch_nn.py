@@ -45,7 +45,6 @@ net = NeuralNetClassifier(
 
 params = {
     "lr": [0.01, 0.02],
-    "max_epochs": [10, 20],
     "module__num_units": [10, 20],
 }
 
