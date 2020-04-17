@@ -12,7 +12,6 @@ If the estimator does not support `early_stopping` and it is set to `True` when 
 
 #### Dependencies
 - numpy (>=1.16)
-- pandas
 - ray
 - scikit-learn (>=0.22)
 - cloudpickle
@@ -21,7 +20,7 @@ If the estimator does not support `early_stopping` and it is set to `True` when 
 
 `pip install tune-sklearn`
 
-## Quick Start
+## Examples
 #### TuneGridSearchCV
 `TuneGridSearchCV` example. The dataset used in the example (MNIST) can be found [here](https://drive.google.com/file/d/1XUkN4a6NcvB9Naq9Gy8wVlqfTKHqAVd5/view?usp=sharing). We use this dataset to exemplify the speedup factor of `TuneGridSearchCV`.
 
@@ -55,7 +54,6 @@ y_subset = y_train[:size]
 tune_search = TuneGridSearchCV(
     SGDClassifier(),
     parameters,
-    early_stopping=True,
     scheduler=MedianStoppingRule(grace_period=10.0),
     early_stopping_max_epochs=10
 )
@@ -119,7 +117,6 @@ y_subset = y_train[:size]
 tune_search = TuneRandomizedSearchCV(SGDClassifier(),
     param_distributions=param_dists,
     n_iter=2,
-    early_stopping=True,
     scheduler=MedianStoppingRule(grace_period=10.0),
     early_stopping_max_epochs=10
 )
@@ -128,7 +125,7 @@ tune_search.fit(X_subset, y_subset)
 ```
 
 ## In Progress
-We are currently finding better ways to parallelize the entire grid search cross-validation process. We do not see a significant speedup thus far when we have `early_stopping=False`. We are also working to integrate more familiar interfaces to make it compatible with our grid search and randomized search interface, such as PyTorch neural nets or XGBoost classifiers/regressors. We will continue to add more examples in the [examples folder](https://github.com/ray-project/tune-sklearn/tree/master/examples) as we continue to add support for other interfaces!
+We are currently finding better ways to parallelize the entire grid search cross-validation process. We do not see a significant speedup thus far when we are not able to early stop. We are also working to integrate more familiar interfaces to make it compatible with our grid search and randomized search interface. We will continue to add more examples in the [examples folder](https://github.com/ray-project/tune-sklearn/tree/master/examples) as we continue to add support for other interfaces!
 
 ## More information
 [Ray Tune](https://ray.readthedocs.io/en/latest/tune.html)

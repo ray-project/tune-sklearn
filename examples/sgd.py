@@ -28,7 +28,6 @@ tune_search = TuneGridSearchCV(
     clf,
     parameter_grid,
     scheduler=scheduler,
-    early_stopping=True,
     early_stopping_max_epochs=10,
 )
 tune_search.fit(x_train, y_train)
