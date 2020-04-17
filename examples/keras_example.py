@@ -45,7 +45,7 @@ def create_model(optimizer="rmsprop", init="glorot_uniform"):
 model = KerasClassifier(build_fn=create_model)
 optimizers = ["rmsprop", "adam"]
 init = ["glorot_uniform", "normal"]
-epochs = [1]
+epochs = [5, 10]
 param_grid = dict(optimizer=optimizers, nb_epoch=epochs, init=init)
 grid = TuneGridSearchCV(estimator=model, param_grid=param_grid)
 grid_result = grid.fit(X_train, Y_train)
