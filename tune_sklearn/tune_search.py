@@ -464,7 +464,9 @@ class TuneBaseSearchCV(BaseEstimator):
 
         candidate_params = list(self._get_param_iterator())
 
-        self._fill_config_hyperparam(config)
+        is_pipeline = isinstance(self.estimator, Pipeline)
+
+        self._fill_config_hyperparam(config, is_pipeline=is_pipeline)
         analysis = self._tune_run(config, resources_per_trial)
 
         self.cv_results_ = self._format_results(candidate_params,
