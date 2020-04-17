@@ -1,13 +1,22 @@
+"""
+An example training a Keras model, performing
+grid search using TuneGridSearchCV.
+"""
+
 from keras.datasets import mnist
 from keras.layers import Dense, Activation, Dropout
 from keras.models import Sequential
-from time import time
 from keras.utils import np_utils
 from keras.wrappers.scikit_learn import KerasClassifier
 from tune_sklearn.tune_search import TuneGridSearchCV
 
 nb_classes = 10
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
+X_train = X_train[:500]
+y_train = y_train[:500]
+X_test = X_test[:100]
+y_test = y_test[:100]
+
 X_train = X_train.reshape(X_train.shape[0], 784)
 X_test = X_test.reshape(X_test.shape[0], 784)
 X_train = X_train.astype("float32")
@@ -33,18 +42,14 @@ def create_model(optimizer="rmsprop", init="glorot_uniform"):
     return model
 
 
-start = time()
 model = KerasClassifier(build_fn=create_model)
 optimizers = ["rmsprop", "adam"]
-init = ["glorot_uniform", "normal", "uniform"]
-epochs = [50, 100, 150]
-batches = [5, 10, 20]
+init = ["glorot_uniform", "normal"]
+epochs = [1]
 param_grid = dict(
-    optimizer=optimizers, nb_epoch=epochs, batch_size=batches, init=init)
+    optimizer=optimizers, nb_epoch=epochs, init=init)
 grid = TuneGridSearchCV(estimator=model, param_grid=param_grid)
 grid_result = grid.fit(X_train, Y_train)
-print(
-    "Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
-for params, mean_score, scores in grid_result.grid_scores_:
-    print("%f (%f) with: %r" % (scores.mean(), scores.std(), params))
-print("total time:", time() - start)
+print(grid_result.best_params_)
+print(grid_result.cv_results_)
+
