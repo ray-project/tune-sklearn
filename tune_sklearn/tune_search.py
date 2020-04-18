@@ -452,7 +452,7 @@ class TuneBaseSearchCV(BaseEstimator):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
-        ray.init(ignore_reinit_error=True)
+        ray.init(ignore_reinit_error=True, configure_logging=False)
 
         self._check_params()
         classifier = is_classifier(self.estimator)
@@ -853,7 +853,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             n_jobs=None,
             refit=True,
             cv=None,
-            verbose=1,
+            verbose=0,
             random_state=None,
             error_score=np.nan,
             return_train_score=False,
