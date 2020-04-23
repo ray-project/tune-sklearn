@@ -22,18 +22,11 @@ pipe = Pipeline([
 
 N_FEATURES_OPTIONS = [2, 4, 8]
 C_OPTIONS = [1, 10]
-param_grid = [
-    {
-        'reduce_dim': [PCA(iterated_power=7), NMF()],
-        'reduce_dim__n_components': N_FEATURES_OPTIONS,
-        'classify__C': C_OPTIONS
-    },
-    {
-        'reduce_dim': [SelectKBest(chi2)],
-        'reduce_dim__k': N_FEATURES_OPTIONS,
-        'classify__C': C_OPTIONS
-    },
-]
+param_grid = {
+    'reduce_dim': [PCA(iterated_power=7), NMF()],
+    'reduce_dim__n_components': N_FEATURES_OPTIONS,
+    'classify__C': C_OPTIONS
+}
 
 grid = TuneGridSearchCV(pipe, param_grid=param_grid)
 X, y = load_digits(return_X_y=True)
