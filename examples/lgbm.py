@@ -7,7 +7,6 @@ from tune_sklearn.tune_search import TuneRandomizedSearchCV
 import lightgbm as lgb
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
-import numpy as np
 
 # Load breast cancer dataset
 cancer = load_breast_cancer()
@@ -19,15 +18,15 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 model = lgb.LGBMClassifier()
 param_dists = {
-    'n_estimators': [400, 700, 1000],
-    'colsample_bytree': [0.7, 0.8],
-    'max_depth': [15, 20, 25],
-    'num_leaves': [50, 100, 200],
-    'reg_alpha': [1.1, 1.2, 1.3],
-    'reg_lambda': [1.1, 1.2, 1.3],
-    'min_split_gain': [0.3, 0.4],
-    'subsample': [0.7, 0.8, 0.9],
-    'subsample_freq': [20]
+    "n_estimators": [400, 700, 1000],
+    "colsample_bytree": [0.7, 0.8],
+    "max_depth": [15, 20, 25],
+    "num_leaves": [50, 100, 200],
+    "reg_alpha": [1.1, 1.2, 1.3],
+    "reg_lambda": [1.1, 1.2, 1.3],
+    "min_split_gain": [0.3, 0.4],
+    "subsample": [0.7, 0.8, 0.9],
+    "subsample_freq": [20]
 }
 
 gs = TuneRandomizedSearchCV(model, param_dists, n_iter=5, scoring="accuracy")
