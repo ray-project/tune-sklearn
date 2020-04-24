@@ -23,7 +23,6 @@ from sklearn.base import is_classifier
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
-from sklearn.pipeline import Pipeline
 import ray
 from ray import tune
 from ray.tune import Trainable
@@ -894,15 +893,19 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         for key, distribution in self.param_distributions.items():
             if isinstance(distribution, list):
                 import random
-                config[key] = tune.sample_from((lambda d: lambda spec:
-                                                d[random.randint(
-                                                    0, len(d) - 1)])
-                                               (distribution))
+
+                def get_sample(dist):
+                    return lambda spec: dist[random.randint(0, len(dist) - 1)]
+
+                config[key] = tune.sample_from(get_sample(distribution))
                 samples *= len(distribution)
             else:
                 all_lists = False
-                config[key] = tune.sample_from(
-                    (lambda d: lambda spec: d.rvs(1)[0])(distribution))
+
+                def get_sample(dist):
+                    return lambda spec: dist.rvs(1)[0]
+
+                config[key] = tune.sample_from(get_sample(distribution))
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
