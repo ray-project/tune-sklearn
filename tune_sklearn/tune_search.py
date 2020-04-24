@@ -72,7 +72,6 @@ class _Trainable(Trainable):
             "early_stopping_max_epochs")
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
-
         self.estimator_config = config
 
         if self.early_stopping:
@@ -584,7 +583,7 @@ class TuneBaseSearchCV(BaseEstimator):
                 "early_stopping_max_epochs",
                 "return_train_score",
         ]:
-            config.pop(key)
+            config.pop(key, None)
         return config
 
     def _format_results(self, n_splits, out):
@@ -894,15 +893,19 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
         for key, distribution in self.param_distributions.items():
             if isinstance(distribution, list):
                 import random
-                config[key] = tune.sample_from((lambda d: lambda spec:
-                                                d[random.randint(
-                                                    0, len(d) - 1)])
-                                               (distribution))
+
+                def get_sample(dist):
+                    return lambda spec: dist[random.randint(0, len(dist) - 1)]
+
+                config[key] = tune.sample_from(get_sample(distribution))
                 samples *= len(distribution)
             else:
                 all_lists = False
-                config[key] = tune.sample_from(
-                    (lambda d: lambda spec: d.rvs(1)[0])(distribution))
+
+                def get_sample(dist):
+                    return lambda spec: dist.rvs(1)[0]
+
+                config[key] = tune.sample_from(get_sample(distribution))
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 

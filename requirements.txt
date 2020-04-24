@@ -10,5 +10,6 @@ xgboost
 torch
 torchvision
 skorch
+lightgbm
 keras
 tensorflow
