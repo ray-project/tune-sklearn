@@ -73,9 +73,7 @@ class _Trainable(Trainable):
             "early_stopping_max_epochs")
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
-        self.is_pipeline = config.pop("is_pipeline")
         self.estimator_config = config
-        print(self.estimator_config)
 
         if self.early_stopping:
             n_splits = self.cv.get_n_splits(self.X, self.y)
@@ -479,7 +477,6 @@ class TuneBaseSearchCV(BaseEstimator):
         config["early_stopping"] = self.early_stopping
         config["early_stopping_max_epochs"] = self.early_stopping_max_epochs
         config["return_train_score"] = self.return_train_score
-        config["is_pipeline"] = isinstance(self.estimator, Pipeline)
 
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)
@@ -586,7 +583,6 @@ class TuneBaseSearchCV(BaseEstimator):
                 "early_stopping",
                 "early_stopping_max_epochs",
                 "return_train_score",
-                "is_pipeline",
         ]:
             config.pop(key, None)
         return config
