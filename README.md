@@ -126,7 +126,7 @@ tune_search.fit(X_subset, y_subset)
 
 ### Other Machine Learning Libraries
 
-#### Pytorch
+#### Pytorch/skorch
 
 ```python
 import numpy as np
