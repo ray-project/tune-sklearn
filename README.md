@@ -54,7 +54,7 @@ y_subset = y_train[:size]
 tune_search = TuneGridSearchCV(
     SGDClassifier(),
     parameters,
-    scheduler=MedianStoppingRule(grace_period=10.0),
+    scheduler="MedianStoppingRule",
     early_stopping_max_epochs=10
 )
 
@@ -117,7 +117,7 @@ y_subset = y_train[:size]
 tune_search = TuneRandomizedSearchCV(SGDClassifier(),
     param_distributions=param_dists,
     n_iter=2,
-    scheduler=MedianStoppingRule(grace_period=10.0),
+    scheduler="MedianStoppingRule",
     early_stopping_max_epochs=10
 )
 
