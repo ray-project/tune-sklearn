@@ -32,6 +32,7 @@ notifications:
 install:
   - pip3 install -U pip
   - pip3 install -r requirements.txt
+  - pip3 install -U ray
 
 script:
   - if [ "$OS" == "MAC" ]; then brew install libomp; fi
