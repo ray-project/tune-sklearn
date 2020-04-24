@@ -1,6 +1,7 @@
 numpy>=1.16
 pandas
 tabulate
+ray
 scikit-learn
 parameterized
 cloudpickle
