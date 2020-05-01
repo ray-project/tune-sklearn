@@ -1,9 +1,9 @@
-"""Example using LightGBM with TuneRandomizedSearchCV.
+"""Example using LightGBM, performing randomized search with TuneSearchCV.
 
 Example taken from https://mlfromscratch.com/gridsearch-keras-sklearn/#/
 """
 
-from tune_sklearn.tune_search import TuneRandomizedSearchCV
+from tune_sklearn.tune_search import TuneSearchCV
 import lightgbm as lgb
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
@@ -29,7 +29,7 @@ param_dists = {
     "subsample_freq": [20]
 }
 
-gs = TuneRandomizedSearchCV(model, param_dists, n_iter=5, scoring="accuracy")
+gs = TuneSearchCV(model, param_dists, n_iter=5, scoring="accuracy")
 gs.fit(X_train, y_train)
 print(gs.cv_results_)
 

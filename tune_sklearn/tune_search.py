@@ -726,7 +726,7 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         param_distributions (:obj:`dict`):
             Dictionary with parameters names (string) as keys and distributions
-            or lists of parameter settings to try.
+            or lists of parameter settings to try for randomized search.
 
             Distributions must provide a rvs  method for sampling (such as
             those from scipy.stats.distributions).
@@ -734,6 +734,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             If a list is given, it is sampled uniformly. If a list of dicts is
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
+
+            For Bayesian search, the values must be tuples that specify
+            the search space/range for the parameter.
 
         scheduler (str or :obj:`TrialScheduler`, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
@@ -818,6 +821,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             If None, the random number generator is the RandomState instance
             used by np.random. Defaults to None.
 
+            Ignored when doing Bayesian search.
+
         error_score ('raise' or int or float):
             Value to assign to the score if an error occurs in estimator
             fitting. If set to 'raise', the error is raised. If a numeric value
@@ -842,40 +847,44 @@ class TuneSearchCV(TuneBaseSearchCV):
             This parameter is used for early stopping. Defaults to 10.
 
         search_optimization ('random' or 'bayesian'):
-            If 'random', uses randomized search over the ``param_distributions``.
-            If 'bayesian', uses Bayesian optimization to search for hyperparameters.
+            If 'random', uses randomized search over the
+            ``param_distributions``. If 'bayesian', uses Bayesian
+            optimization to search for hyperparameters.
 
     """
 
-    def __init__(
-            self,
-            estimator,
-            param_distributions,
-            scheduler=None,
-            n_iter=10,
-            scoring=None,
-            n_jobs=None,
-            refit=True,
-            cv=None,
-            verbose=0,
-            random_state=None,
-            error_score=np.nan,
-            return_train_score=False,
-            early_stopping_max_epochs=10,
-            search_optimization="random"
-    ):
-        if search_optimization != "random" and search_optimization != "bayesian":
+    def __init__(self,
+                 estimator,
+                 param_distributions,
+                 scheduler=None,
+                 n_iter=10,
+                 scoring=None,
+                 n_jobs=None,
+                 refit=True,
+                 cv=None,
+                 verbose=0,
+                 random_state=None,
+                 error_score=np.nan,
+                 return_train_score=False,
+                 early_stopping_max_epochs=10,
+                 search_optimization="random"):
+        if search_optimization not in ["random", "bayesian"]:
             raise ValueError("Search optimization must be random or bayesian")
         if search_optimization == "bayesian" and random_state is not None:
-            warnings.warn("random state is ignored when using Bayesian optimization")
+            warnings.warn(
+                "random state is ignored when using Bayesian optimization")
 
         for dist in param_distributions.values():
             if search_optimization == "random":
-                if not (isinstance(dist, list) or hasattr(dist, rv)):
-                    raise ValueError("distribution must be list or scipy distribution when using randomized search")
+                if not (isinstance(dist, list) or hasattr(dist, "rvs")):
+                    raise ValueError(
+                        "distribution must be list or scipy "
+                        "distribution when using randomized search")
             else:
                 if not isinstance(dist, tuple):
-                    raise ValueError("distribution must be tuple when using bayesian search")
+                    raise ValueError(
+                        "distribution must be tuple when using bayesian search"
+                    )
 
         super(TuneSearchCV, self).__init__(
             estimator=estimator,
@@ -972,13 +981,11 @@ class TuneSearchCV(TuneBaseSearchCV):
             )
         else:
             search_algo = BayesOptSearch(
-                space=self.param_distributions
-                metric="average_test_score"
-                )
+                space=self.param_distributions, metric="average_test_score")
 
             analysis = tune.run(
                 _Trainable,
-                search_alg=search_algo
+                search_alg=search_algo,
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,

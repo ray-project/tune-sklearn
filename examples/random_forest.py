@@ -1,9 +1,9 @@
 """
 An example training a RandomForestClassifier, performing
-randomized search using TuneRandomizedSearchCV.
+randomized search using TuneSearchCV.
 """
 
-from tune_sklearn.tune_search import TuneRandomizedSearchCV
+from tune_sklearn.tune_search import TuneSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
@@ -21,7 +21,7 @@ param_distributions = {
     "max_depth": randint(2, 10)
 }
 
-tune_search = TuneRandomizedSearchCV(
+tune_search = TuneSearchCV(
     clf,
     param_distributions,
     n_iter=3,

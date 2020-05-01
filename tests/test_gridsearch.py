@@ -138,7 +138,7 @@ class GridSearchTest(unittest.TestCase):
         self.assertTrue("no scoring" in str(exc.exception))
 
     @parameterized.expand([("grid", tcv.TuneGridSearchCV, {}),
-                           ("random", tcv.TuneRandomizedSearchCV, {
+                           ("random", tcv.TuneSearchCV, {
                                "n_iter": 1
                            })])
     def test_hyperparameter_searcher_with_fit_params(self, name, cls, kwargs):
@@ -264,7 +264,7 @@ class GridSearchTest(unittest.TestCase):
         grid_search.fit(X, y)
         self.assertTrue(hasattr(grid_search, "cv_results_"))
 
-        random_search = tcv.TuneRandomizedSearchCV(
+        random_search = tcv.TuneSearchCV(
             clf, {"foo_param": [0]}, n_iter=1, cv=3)
         random_search.fit(X, y)
         self.assertTrue(hasattr(random_search, "cv_results_"))

@@ -84,10 +84,12 @@ end = time.time()
 print(“Sklearn Fit Time:”, end - start)
 ```
 
-#### TuneRandomizedSearchCV
+#### TuneSearchCV
+
+`TuneSearchCV` uses randomized search over the distribution by default, but can do Bayesian search as well by specifying the `search_optimization` parameter as shown here.
 
 ```python
-from tune_sklearn.tune_search import TuneRandomizedSearchCV
+from tune_sklearn.tune_search import TuneSearchCV
 
 # Load in data
 from scipy import io
@@ -114,11 +116,12 @@ size = 20000 # To save time
 X_subset = X_train[:size]
 y_subset = y_train[:size]
 
-tune_search = TuneRandomizedSearchCV(SGDClassifier(),
+tune_search = TuneSearchCV(SGDClassifier(),
     param_distributions=param_dists,
     n_iter=2,
     scheduler="MedianStoppingRule",
-    early_stopping_max_epochs=10
+    early_stopping_max_epochs=10,
+    search_optimization="bayesian"
 )
 
 tune_search.fit(X_subset, y_subset)
