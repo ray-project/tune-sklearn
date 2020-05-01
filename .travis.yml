@@ -48,6 +48,7 @@ script:
   - python3 xgbclassifier.py
   - python3 keras_example.py
   - python3 sklearn_pipeline.py
+  - python3 bayesian_sgd.py
 
 cache:
   directories:
