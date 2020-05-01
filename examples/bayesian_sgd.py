@@ -4,7 +4,6 @@ from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from ray.tune.schedulers import MedianStoppingRule
 import numpy as np
-from ray.tune.suggest.bayesopt import BayesOptSearch
 
 digits = datasets.load_digits()
 x = digits.data

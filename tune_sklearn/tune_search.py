@@ -871,13 +871,15 @@ class TuneSearchCV(TuneBaseSearchCV):
         if (search_optimization not in ["random", "bayesian"]
                 and not isinstance(search_optimization, BayesOptSearch)):
             raise ValueError("Search optimization must be random or bayesian")
-        if ((search_optimization == "bayesian" or isinstance(search_optimization, BayesOptSearch))
+        if ((search_optimization == "bayesian"
+             or isinstance(search_optimization, BayesOptSearch))
                 and random_state is not None):
             warnings.warn(
                 "random state is ignored when using Bayesian optimization")
         if isinstance(search_optimization, BayesOptSearch):
-            search_optimization.metric = "average_test_score"
-            warnings.warn("`param_distributions` is ignored when passing in `BayesOptSearch` object")
+            search_optimization._metric = "average_test_score"
+            warnings.warn("`param_distributions` is ignored when "
+                          "passing in `BayesOptSearch` object")
 
         for dist in param_distributions.values():
             if search_optimization == "random":
