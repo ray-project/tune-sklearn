@@ -868,11 +868,16 @@ class TuneSearchCV(TuneBaseSearchCV):
                  return_train_score=False,
                  early_stopping_max_epochs=10,
                  search_optimization="random"):
-        if search_optimization not in ["random", "bayesian"]:
+        if (search_optimization not in ["random", "bayesian"]
+                and not isinstance(search_optimization, BayesOptSearch)):
             raise ValueError("Search optimization must be random or bayesian")
-        if search_optimization == "bayesian" and random_state is not None:
+        if ((search_optimization == "bayesian" or isinstance(search_optimization, BayesOptSearch))
+                and random_state is not None):
             warnings.warn(
                 "random state is ignored when using Bayesian optimization")
+        if isinstance(search_optimization, BayesOptSearch):
+            search_optimization.metric = "average_test_score"
+            warnings.warn("`param_distributions` is ignored when passing in `BayesOptSearch` object")
 
         for dist in param_distributions.values():
             if search_optimization == "random":
@@ -918,7 +923,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
-        if self.search_optimization == "bayesian":
+        if (self.search_optimization == "bayesian"
+                or isinstance(self.search_optimization, BayesOptSearch)):
             return
 
         samples = 1
@@ -980,8 +986,17 @@ class TuneSearchCV(TuneBaseSearchCV):
                 resources_per_trial=resources_per_trial,
             )
         else:
-            search_algo = BayesOptSearch(
-                space=self.param_distributions, metric="average_test_score")
+            if self.search_optimization == "bayesian":
+                search_algo = BayesOptSearch(
+                    space=self.param_distributions,
+                    metric="average_test_score",
+                    utility_kwargs={
+                        "kind": "ucb",
+                        "kappa": 2.5,
+                        "xi": 0.0
+                    })
+            else:
+                search_algo = self.search_optimization
 
             analysis = tune.run(
                 _Trainable,

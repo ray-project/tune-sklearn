@@ -86,7 +86,7 @@ print(“Sklearn Fit Time:”, end - start)
 
 #### TuneSearchCV
 
-`TuneSearchCV` uses randomized search over the distribution by default, but can do Bayesian search as well by specifying the `search_optimization` parameter as shown here.
+`TuneSearchCV` uses randomized search over the distribution by default, but can do Bayesian search as well by specifying the `search_optimization` parameter as shown here. You need to run `pip install bayesian-optimization` for this to work. More details in [Tune Documentation](https://docs.ray.io/en/latest/tune-searchalg.html#bayesopt-search).
 
 ```python
 from tune_sklearn.tune_search import TuneSearchCV
@@ -108,8 +108,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
 
 # Example parameter distributions to tune from SGDClassifier
 param_dists = {
-    'alpha': scipy.stats.uniform(1e-4, 1e-1),
-    'epsilon': scipy.stats.uniform(1e-2, 1e-1)
+    'alpha': (1e-4, 1e-1),
+    'epsilon': (1e-2, 1e-1)
 }
 
 size = 20000 # To save time
