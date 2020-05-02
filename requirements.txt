@@ -2,6 +2,7 @@ numpy>=1.16
 pandas
 tabulate
 ray
+bayesian-optimization
 scikit-learn
 parameterized
 cloudpickle

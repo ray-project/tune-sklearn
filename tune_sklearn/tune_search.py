@@ -29,6 +29,7 @@ from ray.tune import Trainable
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     HyperBandForBOHB, MedianStoppingRule, TrialScheduler)
+from ray.tune.suggest.bayesopt import BayesOptSearch
 import numpy as np
 from numpy.ma import MaskedArray
 import os
@@ -210,7 +211,7 @@ class _Trainable(Trainable):
 
 
 class TuneBaseSearchCV(BaseEstimator):
-    """Abstract base class for TuneGridSearchCV and TuneRandomizedSearchCV"""
+    """Abstract base class for TuneGridSearchCV and TuneSearchCV"""
 
     defined_schedulers = [
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
@@ -701,7 +702,7 @@ class TuneBaseSearchCV(BaseEstimator):
         return results
 
 
-class TuneRandomizedSearchCV(TuneBaseSearchCV):
+class TuneSearchCV(TuneBaseSearchCV):
     """Randomized search on hyper parameters.
 
     RandomizedSearchCV implements a "fit" and a "score" method.
@@ -725,7 +726,7 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
 
         param_distributions (:obj:`dict`):
             Dictionary with parameters names (string) as keys and distributions
-            or lists of parameter settings to try.
+            or lists of parameter settings to try for randomized search.
 
             Distributions must provide a rvs  method for sampling (such as
             those from scipy.stats.distributions).
@@ -733,6 +734,9 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             If a list is given, it is sampled uniformly. If a list of dicts is
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
+
+            For Bayesian search, the values must be tuples that specify
+            the search space/range for the parameter.
 
         scheduler (str or :obj:`TrialScheduler`, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
@@ -817,6 +821,8 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             If None, the random number generator is the RandomState instance
             used by np.random. Defaults to None.
 
+            Ignored when doing Bayesian search.
+
         error_score ('raise' or int or float):
             Value to assign to the score if an error occurs in estimator
             fitting. If set to 'raise', the error is raised. If a numeric value
@@ -840,25 +846,53 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
 
+        search_optimization ('random' or 'bayesian'):
+            If 'random', uses randomized search over the
+            ``param_distributions``. If 'bayesian', uses Bayesian
+            optimization to search for hyperparameters.
+
     """
 
-    def __init__(
-            self,
-            estimator,
-            param_distributions,
-            scheduler=None,
-            n_iter=10,
-            scoring=None,
-            n_jobs=None,
-            refit=True,
-            cv=None,
-            verbose=0,
-            random_state=None,
-            error_score=np.nan,
-            return_train_score=False,
-            early_stopping_max_epochs=10,
-    ):
-        super(TuneRandomizedSearchCV, self).__init__(
+    def __init__(self,
+                 estimator,
+                 param_distributions,
+                 scheduler=None,
+                 n_iter=10,
+                 scoring=None,
+                 n_jobs=None,
+                 refit=True,
+                 cv=None,
+                 verbose=0,
+                 random_state=None,
+                 error_score=np.nan,
+                 return_train_score=False,
+                 early_stopping_max_epochs=10,
+                 search_optimization="random"):
+        if (search_optimization not in ["random", "bayesian"]
+                and not isinstance(search_optimization, BayesOptSearch)):
+            raise ValueError("Search optimization must be random or bayesian")
+        if ((search_optimization == "bayesian"
+             or isinstance(search_optimization, BayesOptSearch))
+                and random_state is not None):
+            warnings.warn(
+                "random state is ignored when using Bayesian optimization")
+        if isinstance(search_optimization, BayesOptSearch):
+            search_optimization._metric = "average_test_score"
+            warnings.warn("`param_distributions` is ignored when "
+                          "passing in `BayesOptSearch` object")
+
+        for dist in param_distributions.values():
+            if search_optimization == "random":
+                if not (isinstance(dist, list) or hasattr(dist, "rvs")):
+                    raise ValueError(
+                        "distribution must be a list or scipy "
+                        "distribution when using randomized search")
+            else:
+                if not isinstance(dist, tuple):
+                    raise ValueError("distribution must be a tuple when using "
+                                     "bayesian search")
+
+        super(TuneSearchCV, self).__init__(
             estimator=estimator,
             scheduler=scheduler,
             scoring=scoring,
@@ -873,7 +907,9 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
 
         self.param_distributions = param_distributions
         self.num_samples = n_iter
-        self.random_state = random_state
+        if search_optimization == "random":
+            self.random_state = random_state
+        self.search_optimization = search_optimization
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -888,6 +924,10 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
+        if (self.search_optimization == "bayesian"
+                or isinstance(self.search_optimization, BayesOptSearch)):
+            return
+
         samples = 1
         all_lists = True
         for key, distribution in self.param_distributions.items():
@@ -931,6 +971,10 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
             config["estimator"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
             ]
+        else:
+            config["estimator"] = self.estimator
+
+        if self.search_optimization == "random":
             analysis = tune.run(
                 _Trainable,
                 scheduler=self.scheduler,
@@ -943,9 +987,21 @@ class TuneRandomizedSearchCV(TuneBaseSearchCV):
                 resources_per_trial=resources_per_trial,
             )
         else:
-            config["estimator"] = self.estimator
+            if self.search_optimization == "bayesian":
+                search_algo = BayesOptSearch(
+                    space=self.param_distributions,
+                    metric="average_test_score",
+                    utility_kwargs={
+                        "kind": "ucb",
+                        "kappa": 2.5,
+                        "xi": 0.0
+                    })
+            else:
+                search_algo = self.search_optimization
+
             analysis = tune.run(
                 _Trainable,
+                search_alg=search_algo,
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
@@ -1142,27 +1198,18 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             config["estimator"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
             ]
-            analysis = tune.run(
-                _Trainable,
-                scheduler=self.scheduler,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.early_stopping_max_epochs},
-                config=config,
-                checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-            )
         else:
             config["estimator"] = self.estimator
-            analysis = tune.run(
-                _Trainable,
-                scheduler=self.scheduler,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.early_stopping_max_epochs},
-                config=config,
-                checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-            )
+
+        analysis = tune.run(
+            _Trainable,
+            scheduler=self.scheduler,
+            reuse_actors=True,
+            verbose=self.verbose,
+            stop={"training_iteration": self.early_stopping_max_epochs},
+            config=config,
+            checkpoint_at_end=True,
+            resources_per_trial=resources_per_trial,
+        )
 
         return analysis

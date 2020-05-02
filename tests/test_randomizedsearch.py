@@ -20,7 +20,7 @@ class RandomizedSearchTest(unittest.TestCase):
         n_splits = 3
         n_search_iter = 30
         params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
-        random_search = tcv.TuneRandomizedSearchCV(
+        random_search = tcv.TuneSearchCV(
             SVC(),
             n_iter=n_search_iter,
             cv=n_splits,

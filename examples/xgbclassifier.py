@@ -1,10 +1,10 @@
 """
 An example training a XGBClassifier, performing
-randomized search using TuneRandomizedSearchCV.
+randomized search using TuneSearchCV.
 """
 
 import warnings
-from tune_sklearn.tune_search import TuneRandomizedSearchCV
+from tune_sklearn.tune_search import TuneSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
@@ -32,7 +32,7 @@ xgb = XGBClassifier(
     silent=True,
     nthread=1)
 
-digit_search = TuneRandomizedSearchCV(
+digit_search = TuneSearchCV(
     xgb,
     param_distributions=params,
     n_iter=3,
