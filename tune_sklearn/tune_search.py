@@ -885,13 +885,12 @@ class TuneSearchCV(TuneBaseSearchCV):
             if search_optimization == "random":
                 if not (isinstance(dist, list) or hasattr(dist, "rvs")):
                     raise ValueError(
-                        "distribution must be list or scipy "
+                        "distribution must be a list or scipy "
                         "distribution when using randomized search")
             else:
                 if not isinstance(dist, tuple):
-                    raise ValueError(
-                        "distribution must be tuple when using bayesian search"
-                    )
+                    raise ValueError("distribution must be a tuple when using "
+                                     "bayesian search")
 
         super(TuneSearchCV, self).__init__(
             estimator=estimator,
