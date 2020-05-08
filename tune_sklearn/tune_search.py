@@ -28,7 +28,7 @@ from ray import tune
 from ray.tune import Trainable
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
-    HyperBandForBOHB, MedianStoppingRule, TrialScheduler)
+    HyperBandForBOHB, MedianStoppingRule, TrialScheduler, ASHAScheduler)
 from ray.tune.suggest.bayesopt import BayesOptSearch
 import numpy as np
 from numpy.ma import MaskedArray
@@ -215,7 +215,8 @@ class TuneBaseSearchCV(BaseEstimator):
 
     defined_schedulers = [
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
-        "HyperBandScheduler", "HyperBandForBOHB", "MedianStoppingRule"
+        "HyperBandScheduler", "HyperBandForBOHB", "MedianStoppingRule",
+        "ASHAScheduler"
     ]
 
     @property
@@ -383,11 +384,13 @@ class TuneBaseSearchCV(BaseEstimator):
             verbose=0,
             error_score="raise",
             return_train_score=False,
+            early_stopping=None,
             early_stopping_max_epochs=10,
     ):
         self.estimator = estimator
-        self.early_stopping = self._can_early_stop()
-        if self.early_stopping:
+        if self.early_stopping is None:
+            self.early_stopping = self._can_early_stop()
+        if self.early_stopping and self._can_early_stop():
             self.early_stopping_max_epochs = early_stopping_max_epochs
             if isinstance(scheduler, str):
                 if scheduler in TuneBaseSearchCV.defined_schedulers:
@@ -406,17 +409,21 @@ class TuneBaseSearchCV(BaseEstimator):
                     elif scheduler == "MedianStoppingRule":
                         self.scheduler = MedianStoppingRule(
                             metric="average_test_score")
+                    elif scheduler == "ASHAScheduler":
+                        self.scheduler = ASHAScheduler(
+                            metric="average_test_score")
                 else:
                     raise ValueError("{} is not a defined scheduler. "
                                      "Check the list of available schedulers."
                                      .format(scheduler))
-            elif isinstance(scheduler, TrialScheduler) or scheduler is None:
+            elif isinstance(scheduler, TrialScheduler):
                 self.scheduler = scheduler
-                if self.scheduler is not None:
-                    self.scheduler.metric = "average_test_score"
+                self.scheduler.metric = "average_test_score"
+            elif scheduler is None:
+                self.scheduler = ASHAScheduler(metric="average_test_score")
             else:
                 raise TypeError("Scheduler must be a str or tune scheduler")
-        else:
+        elif self.early_stopping:
             warnings.warn("Unable to do early stopping because "
                           "estimator does not have `partial_fit`")
             self.early_stopping_max_epochs = 1
