@@ -392,6 +392,7 @@ class TuneBaseSearchCV(BaseEstimator):
             self.early_stopping = self._can_early_stop()
         else:
             self.early_stopping = early_stopping
+
         if self.early_stopping and self._can_early_stop():
             self.early_stopping_max_epochs = early_stopping_max_epochs
             if isinstance(scheduler, str):
@@ -425,11 +426,14 @@ class TuneBaseSearchCV(BaseEstimator):
                 self.scheduler = ASHAScheduler(metric="average_test_score")
             else:
                 raise TypeError("Scheduler must be a str or tune scheduler")
-        elif self.early_stopping:
-            warnings.warn("Unable to do early stopping because "
-                          "estimator does not have `partial_fit`")
+        else:
+            warnings.warn("Early stopping is not enabled. "
+                          "This may be because the estimator "
+                          "does not have `partial_fit`"
+
             self.early_stopping_max_epochs = 1
             self.scheduler = None
+
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
