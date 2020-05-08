@@ -429,7 +429,7 @@ class TuneBaseSearchCV(BaseEstimator):
         else:
             warnings.warn("Early stopping is not enabled. "
                           "This may be because the estimator "
-                          "does not have `partial_fit`"
+                          "does not have `partial_fit`")
 
             self.early_stopping_max_epochs = 1
             self.scheduler = None
