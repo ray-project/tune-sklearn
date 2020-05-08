@@ -388,8 +388,10 @@ class TuneBaseSearchCV(BaseEstimator):
             early_stopping_max_epochs=10,
     ):
         self.estimator = estimator
-        if self.early_stopping is None:
+        if early_stopping is None:
             self.early_stopping = self._can_early_stop()
+        else:
+            self.early_stopping = early_stopping
         if self.early_stopping and self._can_early_stop():
             self.early_stopping_max_epochs = early_stopping_max_epochs
             if isinstance(scheduler, str):
