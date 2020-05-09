@@ -384,14 +384,11 @@ class TuneBaseSearchCV(BaseEstimator):
             verbose=0,
             error_score="raise",
             return_train_score=False,
-            early_stopping=None,
+            early_stopping=False,
             early_stopping_max_epochs=10,
     ):
         self.estimator = estimator
-        if early_stopping is None:
-            self.early_stopping = self._can_early_stop()
-        else:
-            self.early_stopping = early_stopping
+        self.early_stopping = early_stopping
 
         if self.early_stopping and self._can_early_stop():
             self.early_stopping_max_epochs = early_stopping_max_epochs
@@ -879,7 +876,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  random_state=None,
                  error_score=np.nan,
                  return_train_score=False,
-                 early_stopping=None,
+                 early_stopping=False,
                  early_stopping_max_epochs=10,
                  search_optimization="random"):
         if (search_optimization not in ["random", "bayesian"]
@@ -1159,7 +1156,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             verbose=0,
             error_score="raise",
             return_train_score=False,
-            early_stopping=None,
+            early_stopping=False,
             early_stopping_max_epochs=10,
     ):
         super(TuneGridSearchCV, self).__init__(
