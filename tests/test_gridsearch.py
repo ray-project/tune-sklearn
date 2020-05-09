@@ -586,7 +586,7 @@ class GridSearchTest(unittest.TestCase):
             SVC(),
             tuned_parameters,
             scheduler="MedianStoppingRule",
-            early_stopping_max_epochs=20)
+            max_iters=20)
         tune_search.fit(X_train, y_train)
 
         pred = tune_search.predict(X_test)
