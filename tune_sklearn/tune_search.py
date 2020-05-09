@@ -69,8 +69,7 @@ class _Trainable(Trainable):
         self.fit_params = config.pop("fit_params")
         self.scoring = config.pop("scoring")
         self.early_stopping = config.pop("early_stopping")
-        self.max_iters = config.pop(
-            "max_iters")
+        self.max_iters = config.pop("max_iters")
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
         self.estimator_config = config
