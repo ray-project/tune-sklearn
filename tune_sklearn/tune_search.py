@@ -744,7 +744,7 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         param_distributions (:obj:`dict`):
             Serves as the ``param_distributions`` parameter in scikit-learn's
-            ``RandomizedSearchCV`` or as the ``search_space`` parameter in 
+            ``RandomizedSearchCV`` or as the ``search_space`` parameter in
             ``BayesSearchCV``.
 
             For randomized search: dictionary with parameters names (string)
@@ -759,19 +759,19 @@ class TuneSearchCV(TuneBaseSearchCV):
             sampled using that dict as above.
 
             For Bayesian search: it is one of these cases:
-            
+
             1. dictionary, where keys are parameter names (strings) and values
             are skopt.space.Dimension instances (Real, Integer or Categorical)
             or any other valid value that defines skopt dimension (see
             skopt.Optimizer docs). Represents search space over parameters of
             the provided estimator.
-            
+
             2. list of dictionaries: a list of dictionaries, where every
             dictionary fits the description given in case 1 above. If a list of
             dictionary objects is given, then the search is performed
             sequentially for every parameter space with maximum number of
             evaluations set to self.n_iter.
-            
+
             3. list of (dict, int > 0): an extension of case 2 above, where
             first element of every tuple is a dictionary representing some
             search subspace, similarly as in case 2, and second element is a
