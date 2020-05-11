@@ -531,6 +531,9 @@ class TuneBaseSearchCV(BaseEstimator):
 
         Only sklearn estimators with partial_fit can be early stopped.
 
+        Returns:
+            bool: if the estimator can early stop
+
         """
         return (hasattr(self.estimator, "partial_fit")
                 and callable(getattr(self.estimator, "partial_fit", None)))
@@ -712,9 +715,15 @@ class TuneBaseSearchCV(BaseEstimator):
 
 
 class TuneSearchCV(TuneBaseSearchCV):
-    """Randomized search on hyper parameters.
+    """Generic, non-grid search on hyper parameters.
 
-    RandomizedSearchCV implements a "fit" and a "score" method.
+    Randomized search is invoked with ``search_optimization`` set to
+    ``"random"`` and behaves like scikit-learn's ``RandomizedSearchCV``.
+
+    Bayesian search is invoked with ``search_optimization`` set to
+    ``"bayesian"`` and behaves like scikit-learn's ``BayesSearchCV``.
+
+    TuneSearchCV implements a "fit" and a "score" method.
     It also implements "predict", "predict_proba", "decision_function",
     "transform" and "inverse_transform" if they are implemented in the
     estimator used.
@@ -734,8 +743,13 @@ class TuneSearchCV(TuneBaseSearchCV):
             or ``scoring`` must be passed.
 
         param_distributions (:obj:`dict`):
-            Dictionary with parameters names (string) as keys and distributions
-            or lists of parameter settings to try for randomized search.
+            Serves as the ``param_distributions`` parameter in scikit-learn's
+            ``RandomizedSearchCV`` or as the ``search_space`` parameter in 
+            ``BayesSearchCV``.
+
+            For randomized search: dictionary with parameters names (string)
+            as keys and distributions or lists of parameter settings to try
+            for randomized search.
 
             Distributions must provide a rvs  method for sampling (such as
             those from scipy.stats.distributions).
@@ -744,8 +758,25 @@ class TuneSearchCV(TuneBaseSearchCV):
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
 
-            For Bayesian search, the values must be tuples that specify
-            the search space/range for the parameter.
+            For Bayesian search: it is one of these cases:
+            
+            1. dictionary, where keys are parameter names (strings) and values
+            are skopt.space.Dimension instances (Real, Integer or Categorical)
+            or any other valid value that defines skopt dimension (see
+            skopt.Optimizer docs). Represents search space over parameters of
+            the provided estimator.
+            
+            2. list of dictionaries: a list of dictionaries, where every
+            dictionary fits the description given in case 1 above. If a list of
+            dictionary objects is given, then the search is performed
+            sequentially for every parameter space with maximum number of
+            evaluations set to self.n_iter.
+            
+            3. list of (dict, int > 0): an extension of case 2 above, where
+            first element of every tuple is a dictionary representing some
+            search subspace, similarly as in case 2, and second element is a
+            number of iterations that will be spent optimizing over this
+            subspace.
 
         scheduler (str or :obj:`TrialScheduler`, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
