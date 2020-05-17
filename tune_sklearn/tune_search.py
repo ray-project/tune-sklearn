@@ -31,7 +31,7 @@ from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     HyperBandForBOHB, MedianStoppingRule, TrialScheduler)
 from ray.tune.suggest.bayesopt import BayesOptSearch
-from list_searcher import ListSearcher
+from tune_sklearn.list_searcher import ListSearcher
 import numpy as np
 from numpy.ma import MaskedArray
 import os
@@ -1218,7 +1218,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             analysis = tune.run(
                 _Trainable,
                 search_alg=ListSearcher(self.param_grid),
-                num_samples=_list_grid_num_samples(),
+                num_samples=self._list_grid_num_samples(),
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
