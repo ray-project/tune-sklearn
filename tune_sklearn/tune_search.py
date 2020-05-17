@@ -18,6 +18,7 @@ from sklearn.model_selection import (
     check_cv,
 )
 from sklearn.model_selection._search import _check_param_grid
+from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import check_scoring
 from sklearn.base import is_classifier
 from sklearn.utils.metaestimators import _safe_split
@@ -30,6 +31,7 @@ from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     HyperBandForBOHB, MedianStoppingRule, TrialScheduler, ASHAScheduler)
 from ray.tune.suggest.bayesopt import BayesOptSearch
+from list_searcher import ListSearcher
 import numpy as np
 from numpy.ma import MaskedArray
 import os
@@ -1186,8 +1188,19 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
+        if isinstance(self.param_grid, list):
+            return
+
         for key, distribution in self.param_grid.items():
             config[key] = tune.grid_search(list(distribution))
+
+    def _list_grid_num_samples(self):
+        """Calculate the num_samples for `tune.run`.
+
+        This is used when a list of dictionaries is passed in
+        for the `param_grid`
+        """
+        return len(list(ParameterGrid(self.param_grid)))
 
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
@@ -1214,15 +1227,29 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         else:
             config["estimator"] = self.estimator
 
-        analysis = tune.run(
-            _Trainable,
-            scheduler=self.scheduler,
-            reuse_actors=True,
-            verbose=self.verbose,
-            stop={"training_iteration": self.max_iters},
-            config=config,
-            checkpoint_at_end=True,
-            resources_per_trial=resources_per_trial,
-        )
+        if isinstance(self.param_grid, list):
+            analysis = tune.run(
+                _Trainable,
+                search_alg=ListSearcher(list_of_params),
+                num_samples=_list_grid_num_samples(),
+                scheduler=self.scheduler,
+                reuse_actors=True,
+                verbose=self.verbose,
+                stop={"training_iteration": self.max_iters},
+                config=config,
+                checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial,
+            )
+        else:
+            analysis = tune.run(
+                _Trainable,
+                scheduler=self.scheduler,
+                reuse_actors=True,
+                verbose=self.verbose,
+                stop={"training_iteration": self.max_iters},
+                config=config,
+                checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial,
+            )
 
         return analysis
