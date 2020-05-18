@@ -29,7 +29,7 @@ from ray import tune
 from ray.tune import Trainable
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
-    HyperBandForBOHB, MedianStoppingRule, TrialScheduler)
+    HyperBandForBOHB, MedianStoppingRule, TrialScheduler, ASHAScheduler)
 from ray.tune.suggest.bayesopt import BayesOptSearch
 from tune_sklearn.list_searcher import ListSearcher
 import numpy as np
@@ -71,8 +71,7 @@ class _Trainable(Trainable):
         self.fit_params = config.pop("fit_params")
         self.scoring = config.pop("scoring")
         self.early_stopping = config.pop("early_stopping")
-        self.early_stopping_max_epochs = config.pop(
-            "early_stopping_max_epochs")
+        self.max_iters = config.pop("max_iters")
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
         self.estimator_config = config
@@ -217,7 +216,8 @@ class TuneBaseSearchCV(BaseEstimator):
 
     defined_schedulers = [
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
-        "HyperBandScheduler", "HyperBandForBOHB", "MedianStoppingRule"
+        "HyperBandScheduler", "HyperBandForBOHB", "MedianStoppingRule",
+        "ASHAScheduler"
     ]
 
     @property
@@ -385,12 +385,14 @@ class TuneBaseSearchCV(BaseEstimator):
             verbose=0,
             error_score="raise",
             return_train_score=False,
-            early_stopping_max_epochs=10,
+            early_stopping=False,
+            max_iters=10,
     ):
         self.estimator = estimator
-        self.early_stopping = self._can_early_stop()
-        if self.early_stopping:
-            self.early_stopping_max_epochs = early_stopping_max_epochs
+        self.early_stopping = early_stopping
+
+        if self.early_stopping and self._can_early_stop():
+            self.max_iters = max_iters
             if isinstance(scheduler, str):
                 if scheduler in TuneBaseSearchCV.defined_schedulers:
                     if scheduler == "PopulationBasedTraining":
@@ -408,21 +410,28 @@ class TuneBaseSearchCV(BaseEstimator):
                     elif scheduler == "MedianStoppingRule":
                         self.scheduler = MedianStoppingRule(
                             metric="average_test_score")
+                    elif scheduler == "ASHAScheduler":
+                        self.scheduler = ASHAScheduler(
+                            metric="average_test_score")
                 else:
                     raise ValueError("{} is not a defined scheduler. "
                                      "Check the list of available schedulers."
                                      .format(scheduler))
-            elif isinstance(scheduler, TrialScheduler) or scheduler is None:
+            elif isinstance(scheduler, TrialScheduler):
                 self.scheduler = scheduler
-                if self.scheduler is not None:
-                    self.scheduler.metric = "average_test_score"
+                self.scheduler.metric = "average_test_score"
+            elif scheduler is None:
+                self.scheduler = ASHAScheduler(metric="average_test_score")
             else:
                 raise TypeError("Scheduler must be a str or tune scheduler")
         else:
-            warnings.warn("Unable to do early stopping because "
-                          "estimator does not have `partial_fit`")
-            self.early_stopping_max_epochs = 1
+            warnings.warn("Early stopping is not enabled. "
+                          "This may be because the estimator "
+                          "does not have `partial_fit`")
+
+            self.max_iters = 1
             self.scheduler = None
+
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
@@ -477,7 +486,7 @@ class TuneBaseSearchCV(BaseEstimator):
         config["fit_params"] = fit_params
         config["scoring"] = self.scoring
         config["early_stopping"] = self.early_stopping
-        config["early_stopping_max_epochs"] = self.early_stopping_max_epochs
+        config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
 
         self._fill_config_hyperparam(config)
@@ -523,6 +532,9 @@ class TuneBaseSearchCV(BaseEstimator):
         """Helper method to determine if it is possible to do early stopping.
 
         Only sklearn estimators with partial_fit can be early stopped.
+
+        Returns:
+            bool: if the estimator can early stop
 
         """
         return (hasattr(self.estimator, "partial_fit")
@@ -583,7 +595,7 @@ class TuneBaseSearchCV(BaseEstimator):
                 "fit_params",
                 "scoring",
                 "early_stopping",
-                "early_stopping_max_epochs",
+                "max_iters",
                 "return_train_score",
         ]:
             config.pop(key, None)
@@ -705,9 +717,15 @@ class TuneBaseSearchCV(BaseEstimator):
 
 
 class TuneSearchCV(TuneBaseSearchCV):
-    """Randomized search on hyper parameters.
+    """Generic, non-grid search on hyper parameters.
 
-    RandomizedSearchCV implements a "fit" and a "score" method.
+    Randomized search is invoked with ``search_optimization`` set to
+    ``"random"`` and behaves like scikit-learn's ``RandomizedSearchCV``.
+
+    Bayesian search is invoked with ``search_optimization`` set to
+    ``"bayesian"`` and behaves like scikit-learn's ``BayesSearchCV``.
+
+    TuneSearchCV implements a "fit" and a "score" method.
     It also implements "predict", "predict_proba", "decision_function",
     "transform" and "inverse_transform" if they are implemented in the
     estimator used.
@@ -727,8 +745,13 @@ class TuneSearchCV(TuneBaseSearchCV):
             or ``scoring`` must be passed.
 
         param_distributions (:obj:`dict`):
-            Dictionary with parameters names (string) as keys and distributions
-            or lists of parameter settings to try for randomized search.
+            Serves as the ``param_distributions`` parameter in scikit-learn's
+            ``RandomizedSearchCV`` or as the ``search_space`` parameter in
+            ``BayesSearchCV``.
+
+            For randomized search: dictionary with parameters names (string)
+            as keys and distributions or lists of parameter settings to try
+            for randomized search.
 
             Distributions must provide a rvs  method for sampling (such as
             those from scipy.stats.distributions).
@@ -737,8 +760,25 @@ class TuneSearchCV(TuneBaseSearchCV):
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
 
-            For Bayesian search, the values must be tuples that specify
-            the search space/range for the parameter.
+            For Bayesian search: it is one of these cases:
+
+            1. dictionary, where keys are parameter names (strings) and values
+            are skopt.space.Dimension instances (Real, Integer or Categorical)
+            or any other valid value that defines skopt dimension (see
+            skopt.Optimizer docs). Represents search space over parameters of
+            the provided estimator.
+
+            2. list of dictionaries: a list of dictionaries, where every
+            dictionary fits the description given in case 1 above. If a list of
+            dictionary objects is given, then the search is performed
+            sequentially for every parameter space with maximum number of
+            evaluations set to self.n_iter.
+
+            3. list of (dict, int > 0): an extension of case 2 above, where
+            first element of every tuple is a dictionary representing some
+            search subspace, similarly as in case 2, and second element is a
+            number of iterations that will be spent optimizing over this
+            subspace.
 
         scheduler (str or :obj:`TrialScheduler`, optional):
             Scheduler for executing fit. Refer to ray.tune.schedulers for all
@@ -843,7 +883,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
 
-        early_stopping_max_epochs (int):
+        max_iters (int):
             Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
@@ -868,7 +908,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                  random_state=None,
                  error_score=np.nan,
                  return_train_score=False,
-                 early_stopping_max_epochs=10,
+                 early_stopping=False,
+                 max_iters=10,
                  search_optimization="random"):
         if (search_optimization not in ["random", "bayesian"]
                 and not isinstance(search_optimization, BayesOptSearch)):
@@ -904,7 +945,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
-            early_stopping_max_epochs=early_stopping_max_epochs,
+            early_stopping=early_stopping,
+            max_iters=max_iters,
         )
 
         self.param_distributions = param_distributions
@@ -982,7 +1024,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.early_stopping_max_epochs},
+                stop={"training_iteration": self.max_iters},
                 num_samples=self.num_samples,
                 config=config,
                 checkpoint_at_end=True,
@@ -1007,7 +1049,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.early_stopping_max_epochs},
+                stop={"training_iteration": self.max_iters},
                 num_samples=self.num_samples,
                 config=config,
                 checkpoint_at_end=True,
@@ -1127,7 +1169,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
 
-        early_stopping_max_epochs (int):
+        max_iters (int):
             Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
@@ -1146,7 +1188,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             verbose=0,
             error_score="raise",
             return_train_score=False,
-            early_stopping_max_epochs=10,
+            early_stopping=False,
+            max_iters=10,
     ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
@@ -1157,7 +1200,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
-            early_stopping_max_epochs=early_stopping_max_epochs,
+            early_stopping=early_stopping,
+            max_iters=max_iters,
         )
 
         _check_param_grid(param_grid)
