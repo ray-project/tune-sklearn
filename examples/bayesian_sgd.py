@@ -21,7 +21,7 @@ tune_search = TuneSearchCV(
     search_optimization="bayesian",
     n_iter=3,
     scheduler=scheduler,
-    early_stopping_max_epochs=10,
+    max_iters=10,
 )
 tune_search.fit(x_train, y_train)
 
