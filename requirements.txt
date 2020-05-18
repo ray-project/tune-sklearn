@@ -3,7 +3,6 @@ pandas
 tabulate
 ray
 bayesian-optimization
-scikit-learn
 parameterized
 cloudpickle
 pytest
