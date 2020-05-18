@@ -31,7 +31,7 @@ class RandomListSearcher(Searcher):
         Searcher.__init__(self)
 
     def suggest(self, trial_id):
-        selected_dict = self._configurations[random.randint(0, len(param_grid) - 1)]
+        selected_dict = self._configurations[random.randint(0, len(self._configurations) - 1)]
         generated_config = {}
 
         for key, distribution in selected_dict.items():

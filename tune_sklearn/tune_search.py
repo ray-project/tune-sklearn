@@ -31,7 +31,7 @@ from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     HyperBandForBOHB, MedianStoppingRule, TrialScheduler, ASHAScheduler)
 from ray.tune.suggest.bayesopt import BayesOptSearch
-from tune_sklearn.list_searcher import ListSearcher
+from tune_sklearn.list_searcher import ListSearcher, RandomListSearcher
 import numpy as np
 from numpy.ma import MaskedArray
 import os
@@ -888,9 +888,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
 
-        search_optimization ('random' or 'bayesian'):
-            If 'random', uses randomized search over the
-            ``param_distributions``. If 'bayesian', uses Bayesian
+        search_optimization ("random" or "bayesian"):
+            If "random", uses randomized search over the
+            ``param_distributions``. If "bayesian", uses Bayesian
             optimization to search for hyperparameters.
 
     """
@@ -911,6 +911,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  early_stopping=False,
                  max_iters=10,
                  search_optimization="random"):
+
         if (search_optimization not in ["random", "bayesian"]
                 and not isinstance(search_optimization, BayesOptSearch)):
             raise ValueError("Search optimization must be random or bayesian")
@@ -1036,7 +1037,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 analysis = tune.run(
                     _Trainable,
                     scheduler=self.scheduler,
-                    search_alg=RandomListSearcher(self.param_grid),
+                    search_alg=RandomListSearcher(self.param_distributions),
                     reuse_actors=True,
                     verbose=self.verbose,
                     stop={"training_iteration": self.max_iters},

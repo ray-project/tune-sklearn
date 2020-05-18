@@ -5,7 +5,7 @@ https://scikit-learn.org/stable/auto_examples/compose/
 plot_compare_reduction.html
 """
 
-from tune_sklearn.tune_search import TuneGridSearchCV
+from tune_sklearn.tune_search import TuneSearchCV
 from sklearn.datasets import load_digits
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
@@ -33,7 +33,7 @@ param_grid = [
     },
 ]
 
-grid = TuneGridSearchCV(pipe, param_grid=param_grid)
+grid = TuneSearchCV(pipe, param_grid, search_optimization="random")
 X, y = load_digits(return_X_y=True)
 grid.fit(X, y)
 print(grid.cv_results_)
