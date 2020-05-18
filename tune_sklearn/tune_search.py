@@ -467,7 +467,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self._check_params()
         classifier = is_classifier(self.estimator)
-        cv = check_cv(self.cv, y, classifier)
+        cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
         resources_per_trial = None
@@ -1266,7 +1266,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.early_stopping_max_epochs},
+                stop={"training_iteration": self.max_iters},
                 config=config,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
@@ -1277,7 +1277,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 scheduler=self.scheduler,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.early_stopping_max_epochs},
+                stop={"training_iteration": self.max_iters},
                 config=config,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
