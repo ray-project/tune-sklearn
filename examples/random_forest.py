@@ -25,7 +25,7 @@ tune_search = TuneSearchCV(
     clf,
     param_distributions,
     n_iter=3,
-    early_stopping_max_epochs=10,
+    max_iters=10,
 )
 
 tune_search.fit(x_train, y_train)

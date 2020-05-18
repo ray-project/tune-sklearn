@@ -6,7 +6,7 @@ Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for
 
 Tune-sklearn provides additional benefits if specifying a scheduler **with an estimator that supports early stopping**. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). 
 
-If the estimator does not support `partial_fit`, a warning will be shown saying early stopping cannot be done and it will simply run the cross-validation on Ray's parallel back-end. We are currently experimenting with ways to support early stopping for estimators that do not directly expose a `partial_fit` interface in their estimators -- stay tuned!
+If the estimator does not support `partial_fit`, a warning will be shown saying early stopping cannot be done and it will simply run the cross-validation on Ray's parallel back-end. We are currently experimenting with ways to support early stopping for estimators that do not directly expose a `partial_fit` interface in their estimators -- stay tuned! By default, early stopping is performed whenever possible, but can be disabled by setting the `early_stopping` parameter to `false`.
 
 ### Installation
 
