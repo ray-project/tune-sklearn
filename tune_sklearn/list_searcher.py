@@ -1,4 +1,4 @@
-from ray.tune.suggest import Searcher
+from ray.tune.suggest.suggestion import Searcher
 
 
 class ListSearcher(Searcher):
@@ -9,8 +9,6 @@ class ListSearcher(Searcher):
     def suggest(self, trial_id):
         if self._configurations:
             return self._configurations.pop(0)
-        else:
-            self.set_finished()
 
     def on_trial_complete(self, **kwargs):
         pass

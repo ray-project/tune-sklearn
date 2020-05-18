@@ -1217,7 +1217,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         if isinstance(self.param_grid, list):
             analysis = tune.run(
                 _Trainable,
-                search_alg=ListSearcher(self.param_grid),
+                search_alg=ListSearcher(list(ParameterGrid(self.param_grid))),
                 num_samples=self._list_grid_num_samples(),
                 scheduler=self.scheduler,
                 reuse_actors=True,

@@ -10,6 +10,7 @@ from sklearn.datasets import load_digits
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 from sklearn.decomposition import PCA, NMF
+from sklearn.feature_selection import SelectKBest, chi2
 
 pipe = Pipeline([
     # the reduce_dim stage is populated by the param_grid
@@ -19,7 +20,20 @@ pipe = Pipeline([
 
 N_FEATURES_OPTIONS = [2, 4, 8]
 C_OPTIONS = [1, 10]
-param_grid = {
+param_grid = [
+    {
+        'reduce_dim': [PCA(iterated_power=7), NMF()],
+        'reduce_dim__n_components': N_FEATURES_OPTIONS,
+        'classify__C': C_OPTIONS
+    },
+    {
+        'reduce_dim': [SelectKBest(chi2)],
+        'reduce_dim__k': N_FEATURES_OPTIONS,
+        'classify__C': C_OPTIONS
+    },
+]
+
+param_grid_old = {
     "reduce_dim": [PCA(iterated_power=7), NMF()],
     "reduce_dim__n_components": N_FEATURES_OPTIONS,
     "classify__C": C_OPTIONS
