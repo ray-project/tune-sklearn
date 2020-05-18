@@ -33,7 +33,8 @@ install:
   - pip3 install -U pip
   - pip3 install -r requirements.txt
   - pip3 install -U ray
-  - pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple scikit-learn
+  # Nightly wheel installation
+  - pip3 install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple -U scikit-learn
 
 script:
   - if [ "$OS" == "MAC" ]; then brew install libomp; fi

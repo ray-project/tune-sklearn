@@ -392,10 +392,6 @@ class GridSearchTest(unittest.TestCase):
         assert_array_equal(y_pred, y_pred2)
         self.assertEqual(C, C2)
 
-        # Smoke test the score
-        # np.testing.assert_allclose(f1_score(cv.predict(X_[:180]), y[:180]),
-        #                            cv.score(X_[:180], y[:180]))
-
         # test loss where greater is worse
         def f1_loss(y_true_, y_pred_):
             return -f1_score(y_true_, y_pred_)
@@ -584,7 +580,7 @@ class GridSearchTest(unittest.TestCase):
             SVC(),
             tuned_parameters,
             scheduler="MedianStoppingRule",
-            early_stopping_max_epochs=20)
+            max_iters=20)
         tune_search.fit(X_train, y_train)
 
         pred = tune_search.predict(X_test)
