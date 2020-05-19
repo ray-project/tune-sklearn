@@ -20,6 +20,7 @@ class ListSearcher(Searcher):
     def on_trial_complete(self, **kwargs):
         pass
 
+
 class RandomListSearcher(Searcher):
     """Custom search algorithm to support passing in a list of
     dictionaries to TuneSearchCV for randomized search
@@ -31,12 +32,16 @@ class RandomListSearcher(Searcher):
         Searcher.__init__(self)
 
     def suggest(self, trial_id):
-        selected_dict = self._configurations[random.randint(0, len(self._configurations) - 1)]
+        selected_dict = self._configurations[random.randint(
+            0,
+            len(self._configurations) - 1)]
         generated_config = {}
 
         for key, distribution in selected_dict.items():
             if isinstance(distribution, list):
-                generated_config[key] = distribution[random.randint(0, len(distribution) - 1)]
+                generated_config[key] = distribution[random.randint(
+                    0,
+                    len(distribution) - 1)]
             else:
                 generated_config[key] = distribution.rvs(1)[0]
 
