@@ -326,9 +326,8 @@ class GridSearchTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as exc:
             tcv.TuneGridSearchCV(clf, param_dict)
-        self.assertTrue((
-            "Parameter values for parameter (C) need to be a sequence"
-            "(but not a string) or np.ndarray.") in str(exc.exception))
+        self.assertTrue(("Parameter grid for parameter (C) needs to"
+                         " be a list or numpy array") in str(exc.exception))
 
         param_dict = {"C": []}
         clf = SVC()
@@ -344,9 +343,8 @@ class GridSearchTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as exc:
             tcv.TuneGridSearchCV(clf, param_dict)
-        self.assertTrue((
-            "Parameter values for parameter (C) need to be a sequence"
-            "(but not a string) or np.ndarray.") in str(exc.exception))
+        self.assertTrue(("Parameter grid for parameter (C) needs to"
+                         " be a list or numpy array") in str(exc.exception))
 
         param_dict = {"C": np.ones(6).reshape(3, 2)}
         clf = SVC()

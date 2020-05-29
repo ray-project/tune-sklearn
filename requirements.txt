@@ -1,9 +1,9 @@
 numpy>=1.16
+scikit-learn
 pandas
 tabulate
 ray
 bayesian-optimization
-scikit-learn
 parameterized
 cloudpickle
 pytest

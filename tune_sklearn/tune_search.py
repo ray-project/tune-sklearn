@@ -18,6 +18,7 @@ from sklearn.model_selection import (
     check_cv,
 )
 from sklearn.model_selection._search import _check_param_grid
+from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import check_scoring
 from sklearn.base import is_classifier
 from sklearn.utils.metaestimators import _safe_split
@@ -30,6 +31,7 @@ from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     HyperBandForBOHB, MedianStoppingRule, TrialScheduler, ASHAScheduler)
 from ray.tune.suggest.bayesopt import BayesOptSearch
+from tune_sklearn.list_searcher import ListSearcher, RandomListSearcher
 import numpy as np
 from numpy.ma import MaskedArray
 import os
@@ -465,7 +467,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self._check_params()
         classifier = is_classifier(self.estimator)
-        cv = check_cv(self.cv, y, classifier)
+        cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
         resources_per_trial = None
@@ -886,9 +888,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
 
-        search_optimization ('random' or 'bayesian'):
-            If 'random', uses randomized search over the
-            ``param_distributions``. If 'bayesian', uses Bayesian
+        search_optimization ("random" or "bayesian"):
+            If "random", uses randomized search over the
+            ``param_distributions``. If "bayesian", uses Bayesian
             optimization to search for hyperparameters.
 
     """
@@ -909,6 +911,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  early_stopping=False,
                  max_iters=10,
                  search_optimization="random"):
+
         if (search_optimization not in ["random", "bayesian"]
                 and not isinstance(search_optimization, BayesOptSearch)):
             raise ValueError("Search optimization must be random or bayesian")
@@ -922,16 +925,27 @@ class TuneSearchCV(TuneBaseSearchCV):
             warnings.warn("`param_distributions` is ignored when "
                           "passing in `BayesOptSearch` object")
 
-        for dist in param_distributions.values():
-            if search_optimization == "random":
-                if not (isinstance(dist, list) or hasattr(dist, "rvs")):
-                    raise ValueError(
-                        "distribution must be a list or scipy "
-                        "distribution when using randomized search")
-            else:
-                if not isinstance(dist, tuple):
-                    raise ValueError("distribution must be a tuple when using "
-                                     "bayesian search")
+        if isinstance(param_distributions, list):
+            if search_optimization == "bayesian":
+                raise ValueError("list of dictionaries for parameters "
+                                 "is not supported for bayesian search")
+
+        if isinstance(param_distributions, dict):
+            check_param_distributions = [param_distributions]
+        else:
+            check_param_distributions = param_distributions
+        for p in check_param_distributions:
+            for dist in p.values():
+                if search_optimization == "random":
+                    if not (isinstance(dist, list) or hasattr(dist, "rvs")):
+                        raise ValueError(
+                            "distribution must be a list or scipy "
+                            "distribution when using randomized search")
+                else:
+                    if not isinstance(dist, tuple):
+                        raise ValueError(
+                            "distribution must be a tuple when using "
+                            "bayesian search")
 
         super(TuneSearchCV, self).__init__(
             estimator=estimator,
@@ -968,6 +982,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         """
         if (self.search_optimization == "bayesian"
                 or isinstance(self.search_optimization, BayesOptSearch)):
+            return
+
+        if isinstance(self.param_distributions, list):
             return
 
         samples = 1
@@ -1017,17 +1034,31 @@ class TuneSearchCV(TuneBaseSearchCV):
             config["estimator"] = self.estimator
 
         if self.search_optimization == "random":
-            analysis = tune.run(
-                _Trainable,
-                scheduler=self.scheduler,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.max_iters},
-                num_samples=self.num_samples,
-                config=config,
-                checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-            )
+            if isinstance(self.param_distributions, list):
+                analysis = tune.run(
+                    _Trainable,
+                    scheduler=self.scheduler,
+                    search_alg=RandomListSearcher(self.param_distributions),
+                    reuse_actors=True,
+                    verbose=self.verbose,
+                    stop={"training_iteration": self.max_iters},
+                    num_samples=self.num_samples,
+                    config=config,
+                    checkpoint_at_end=True,
+                    resources_per_trial=resources_per_trial,
+                )
+            else:
+                analysis = tune.run(
+                    _Trainable,
+                    scheduler=self.scheduler,
+                    reuse_actors=True,
+                    verbose=self.verbose,
+                    stop={"training_iteration": self.max_iters},
+                    num_samples=self.num_samples,
+                    config=config,
+                    checkpoint_at_end=True,
+                    resources_per_trial=resources_per_trial,
+                )
         else:
             if self.search_optimization == "bayesian":
                 search_algo = BayesOptSearch(
@@ -1217,8 +1248,19 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
+        if isinstance(self.param_grid, list):
+            return
+
         for key, distribution in self.param_grid.items():
             config[key] = tune.grid_search(list(distribution))
+
+    def _list_grid_num_samples(self):
+        """Calculate the num_samples for `tune.run`.
+
+        This is used when a list of dictionaries is passed in
+        for the `param_grid`
+        """
+        return len(list(ParameterGrid(self.param_grid)))
 
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
@@ -1245,15 +1287,29 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         else:
             config["estimator"] = self.estimator
 
-        analysis = tune.run(
-            _Trainable,
-            scheduler=self.scheduler,
-            reuse_actors=True,
-            verbose=self.verbose,
-            stop={"training_iteration": self.max_iters},
-            config=config,
-            checkpoint_at_end=True,
-            resources_per_trial=resources_per_trial,
-        )
+        if isinstance(self.param_grid, list):
+            analysis = tune.run(
+                _Trainable,
+                search_alg=ListSearcher(self.param_grid),
+                num_samples=self._list_grid_num_samples(),
+                scheduler=self.scheduler,
+                reuse_actors=True,
+                verbose=self.verbose,
+                stop={"training_iteration": self.max_iters},
+                config=config,
+                checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial,
+            )
+        else:
+            analysis = tune.run(
+                _Trainable,
+                scheduler=self.scheduler,
+                reuse_actors=True,
+                verbose=self.verbose,
+                stop={"training_iteration": self.max_iters},
+                config=config,
+                checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial,
+            )
 
         return analysis
