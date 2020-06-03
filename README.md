@@ -55,7 +55,8 @@ tune_search = TuneGridSearchCV(
     SGDClassifier(),
     parameters,
     scheduler="MedianStoppingRule",
-    early_stopping_max_epochs=10
+    early_stopping=True,
+    max_iters=10
 )
 
 import time # Just to compare fit times
@@ -103,7 +104,8 @@ tune_search = TuneSearchCV(SGDClassifier(),
     param_distributions=param_dists,
     n_iter=2,
     scheduler="MedianStoppingRule",
-    early_stopping_max_epochs=10,
+    early_stopping=True,
+    max_iters=10,
     search_optimization="bayesian"
 )
 
