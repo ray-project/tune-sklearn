@@ -2,7 +2,7 @@
 """
 
 import ray
-from sklearn.model_selection import cross_validate,
+from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
 
 class _Trainable(Trainable):
