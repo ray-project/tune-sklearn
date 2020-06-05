@@ -7,9 +7,11 @@ from sklearn.base import clone
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
 import numpy as np
+import os
 from pickle import PicklingError
 import cloudpickle as cpickle
 import warnings
+
 
 class _Trainable(Trainable):
     """Class to be passed in as the first argument of tune.run to train models.

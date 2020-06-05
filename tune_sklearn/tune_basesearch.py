@@ -15,6 +15,7 @@ import numpy as np
 from numpy.ma import MaskedArray
 import warnings
 
+
 class TuneBaseSearchCV(BaseEstimator):
     """Abstract base class for TuneGridSearchCV and TuneSearchCV"""
 

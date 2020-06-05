@@ -18,6 +18,7 @@ from tune_sklearn.list_searcher import RandomListSearcher
 import numpy as np
 import warnings
 
+
 class TuneSearchCV(TuneBaseSearchCV):
     """Generic, non-grid search on hyper parameters.
 
@@ -388,4 +389,3 @@ class TuneSearchCV(TuneBaseSearchCV):
             )
 
         return analysis
-

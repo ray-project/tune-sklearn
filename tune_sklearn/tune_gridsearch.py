@@ -2,8 +2,10 @@ from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from sklearn.model_selection._search import _check_param_grid
 from sklearn.base import clone
+from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
+
 
 class TuneGridSearchCV(TuneBaseSearchCV):
     """Exhaustive search over specified parameter values for an estimator.
