@@ -3,6 +3,7 @@
 
 import ray
 from ray.tune import Trainable
+from sklearn.base import clone
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
 
