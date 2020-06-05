@@ -138,10 +138,10 @@ class GridSearchTest(unittest.TestCase):
 
         self.assertTrue("no scoring" in str(exc.exception))
 
-    @parameterized.expand([("grid", TuneGridSearchCV, {}),
-                           ("random", TuneSearchCV, {
-                               "n_iter": 1
-                           })])
+    @parameterized.expand([("grid", TuneGridSearchCV, {}), ("random",
+                                                            TuneSearchCV, {
+                                                                "n_iter": 1
+                                                            })])
     def test_hyperparameter_searcher_with_fit_params(self, name, cls, kwargs):
         X = np.arange(100).reshape(10, 10)
         y = np.array([0] * 5 + [1] * 5)
@@ -164,14 +164,12 @@ class GridSearchTest(unittest.TestCase):
         clf = LinearSVC(random_state=0)
         grid = {"C": [0.1]}
 
-        search_no_scoring = TuneGridSearchCV(
-            clf, grid, scoring=None).fit(X, y)
+        search_no_scoring = TuneGridSearchCV(clf, grid, scoring=None).fit(X, y)
         search_accuracy = TuneGridSearchCV(
             clf, grid, scoring="accuracy").fit(X, y)
         search_no_score_method_auc = TuneGridSearchCV(
             LinearSVCNoScore(), grid, scoring="roc_auc").fit(X, y)
-        search_auc = TuneGridSearchCV(
-            clf, grid, scoring="roc_auc").fit(X, y)
+        search_auc = TuneGridSearchCV(clf, grid, scoring="roc_auc").fit(X, y)
 
         # Check warning only occurs in situation where behavior changed:
         # estimator requires score method to compete with scoring parameter
@@ -234,8 +232,7 @@ class GridSearchTest(unittest.TestCase):
         y = np.array([0] * 5 + [1] * 5)
         Cs = [0.1, 1, 10]
 
-        grid_search = TuneGridSearchCV(
-            LinearSVC(random_state=0), {"C": Cs})
+        grid_search = TuneGridSearchCV(LinearSVC(random_state=0), {"C": Cs})
         grid_search.fit(X, y)
         assert_array_equal(grid_search.best_estimator_.classes_,
                            grid_search.classes_)
@@ -246,8 +243,7 @@ class GridSearchTest(unittest.TestCase):
         self.assertFalse(hasattr(grid_search, "classes_"))
 
         # Test that the grid searcher has no classes_ attribute before it's fit
-        grid_search = TuneGridSearchCV(
-            LinearSVC(random_state=0), {"C": Cs})
+        grid_search = TuneGridSearchCV(LinearSVC(random_state=0), {"C": Cs})
         self.assertFalse(hasattr(grid_search, "classes_"))
 
         # Test that the grid searcher has no classes_ attribute without a refit
@@ -265,8 +261,7 @@ class GridSearchTest(unittest.TestCase):
         grid_search.fit(X, y)
         self.assertTrue(hasattr(grid_search, "cv_results_"))
 
-        random_search = TuneSearchCV(
-            clf, {"foo_param": [0]}, n_iter=1, cv=3)
+        random_search = TuneSearchCV(clf, {"foo_param": [0]}, n_iter=1, cv=3)
         random_search.fit(X, y)
         self.assertTrue(hasattr(random_search, "cv_results_"))
 
@@ -477,8 +472,7 @@ class GridSearchTest(unittest.TestCase):
 
         clf = CheckingClassifier(check_X=lambda x: isinstance(x, list))
         cv = KFold(n_splits=3)
-        grid_search = TuneGridSearchCV(
-            clf, {"foo_param": [1, 2, 3]}, cv=cv)
+        grid_search = TuneGridSearchCV(clf, {"foo_param": [1, 2, 3]}, cv=cv)
         grid_search.fit(X.tolist(), y).score(X, y)
         self.assertTrue(hasattr(grid_search, "cv_results_"))
 
@@ -489,8 +483,7 @@ class GridSearchTest(unittest.TestCase):
 
         clf = CheckingClassifier(check_y=lambda x: isinstance(x, list))
         cv = KFold(n_splits=3)
-        grid_search = TuneGridSearchCV(
-            clf, {"foo_param": [1, 2, 3]}, cv=cv)
+        grid_search = TuneGridSearchCV(clf, {"foo_param": [1, 2, 3]}, cv=cv)
         grid_search.fit(X, y.tolist()).score(X, y)
         self.assertTrue(hasattr(grid_search, "cv_results_"))
 
@@ -603,8 +596,7 @@ class GridSearchTest(unittest.TestCase):
         # create and fit a ridge regression model, testing each alpha
         model = linear_model.Ridge()
 
-        tune_search = TuneGridSearchCV(model, param_grid,
-                                           "MedianStoppingRule")
+        tune_search = TuneGridSearchCV(model, param_grid, "MedianStoppingRule")
         tune_search.fit(X_train, y_train)
 
         pred = tune_search.predict(X_test)
