@@ -25,7 +25,7 @@ If the estimator does not support `partial_fit`, a warning will be shown saying 
 `TuneGridSearchCV` example. The dataset used in the example (MNIST) can be found [here](https://drive.google.com/file/d/1XUkN4a6NcvB9Naq9Gy8wVlqfTKHqAVd5/view?usp=sharing). We use this dataset to exemplify the speedup factor of `TuneGridSearchCV`.
 
 ```python
-from tune_sklearn.tune_search import TuneGridSearchCV
+from tune_sklearn.tune_gridsearch import TuneGridSearchCV
 
 # Load in data
 from scipy import io
@@ -137,7 +137,7 @@ from sklearn.datasets import make_classification
 from torch import nn
 import torch.nn.functional as F
 from skorch import NeuralNetClassifier
-from tune_sklearn.tune_search import TuneGridSearchCV
+from tune_sklearn.tune_gridsearch import TuneGridSearchCV
 
 X, y = make_classification(1000, 20, n_informative=10, random_state=0)
 X = X.astype(np.float32)
@@ -187,7 +187,7 @@ from keras.layers import Dense, Activation, Dropout
 from keras.models import Sequential
 from keras.utils import np_utils
 from keras.wrappers.scikit_learn import KerasClassifier
-from tune_sklearn.tune_search import TuneGridSearchCV
+from tune_sklearn.tune_gridsearch import TuneGridSearchCV
 
 nb_classes = 10
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
