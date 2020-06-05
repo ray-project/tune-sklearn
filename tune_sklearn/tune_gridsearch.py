@@ -1,8 +1,8 @@
 """A GridSearchCV interface built with a Ray Tune back-end.
 """
 
-from tune_basesearch import TuneBaseSearchCV
-from _trainable import _Trainable
+from tune_sklearn.tune_basesearch import TuneBaseSearchCV
+from tune_sklearn._trainable import _Trainable
 from collections import defaultdict
 from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
