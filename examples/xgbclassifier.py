@@ -30,7 +30,8 @@ xgb = XGBClassifier(
     n_estimators=50,
     objective="binary:logistic",
     silent=True,
-    nthread=1)
+    nthread=1,
+)
 
 digit_search = TuneSearchCV(
     xgb,
