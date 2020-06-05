@@ -7,7 +7,7 @@ by eliminating worse hyperparameter choices early based off
 of its average test score from cross validation.
 """
 
-from tune_sklearn.tune_search import TuneGridSearchCV
+from tune_sklearn.tune_gridsearch import TuneGridSearchCV
 from sklearn.linear_model import SGDClassifier
 from sklearn import datasets
 from sklearn.model_selection import train_test_split

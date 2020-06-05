@@ -9,7 +9,6 @@ https://optuna.org
     -- Anthony Yu and Michael Chau
 """
 
-from _trainable import _Trainable
 from collections import defaultdict
 from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
