@@ -1,4 +1,4 @@
-from tune_sklearn import tune_search as tcv
+from tune_sklearn.tune_search import TuneSearchCV
 import numpy as np
 from numpy.testing import assert_array_equal
 from sklearn.datasets import make_classification
@@ -20,7 +20,7 @@ class RandomizedSearchTest(unittest.TestCase):
         n_splits = 3
         n_search_iter = 30
         params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
-        random_search = tcv.TuneSearchCV(
+        random_search = TuneSearchCV(
             SVC(),
             n_iter=n_search_iter,
             cv=n_splits,
