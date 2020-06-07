@@ -1,3 +1,8 @@
+"""Helper class to support passing a
+list of dictionaries for hyperparameters
+    -- Anthony Yu and Michael Chau
+"""
+
 from ray.tune.suggest.suggestion import Searcher
 from sklearn.model_selection import ParameterGrid
 import random
