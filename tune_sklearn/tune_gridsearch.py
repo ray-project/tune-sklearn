@@ -1,3 +1,7 @@
+"""Class for doing grid search over lists of hyperparameters
+    -- Anthony Yu and Michael Chau
+"""
+
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from sklearn.model_selection._search import _check_param_grid

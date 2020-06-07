@@ -1,3 +1,15 @@
+"""Parent class for a cross-validation interface
+built with a Ray Tune back-end.
+
+Implementation derived from referencing the equivalent
+GridSearchCV interfaces from Dask and Optuna.
+
+https://ray.readthedocs.io/en/latest/tune.html
+https://dask.org
+https://optuna.org
+    -- Anthony Yu and Michael Chau
+"""
+
 from collections import defaultdict
 from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
