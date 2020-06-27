@@ -141,7 +141,6 @@ class _Trainable(Trainable):
                     scoring=self.scoring,
                     return_train_score=self.return_train_score,
                 )
-            
 
             ret = {}
             for i, score in enumerate(scores["test_score"]):
