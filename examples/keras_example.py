@@ -46,7 +46,10 @@ model = KerasClassifier(build_fn=create_model)
 optimizers = ["rmsprop", "adam"]
 kernel_initializer = ["glorot_uniform", "normal"]
 epochs = [5, 10]
-param_grid = dict(optimizer=optimizers, nb_epoch=epochs, kernel_initializer=kernel_initializer)
+param_grid = dict(
+    optimizer=optimizers,
+    nb_epoch=epochs,
+    kernel_initializer=kernel_initializer)
 grid = TuneGridSearchCV(estimator=model, param_grid=param_grid)
 grid_result = grid.fit(X_train, Y_train)
 print(grid_result.best_params_)

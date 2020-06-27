@@ -160,7 +160,7 @@ class _Trainable(Trainable):
             try:
                 cpickle.dump(self.estimator, f)
                 self.pickled = True
-            except PicklingError:
+            except Exception:
                 self.pickled = False
                 warnings.warn("{} could not be pickled. "
                               "Restoring estimators may run into issues."

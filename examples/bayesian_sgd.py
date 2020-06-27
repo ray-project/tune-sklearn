@@ -20,6 +20,7 @@ tune_search = TuneSearchCV(
     parameter_grid,
     search_optimization="bayesian",
     n_iter=3,
+    early_stopping=True,
     scheduler=scheduler,
     max_iters=10,
 )
