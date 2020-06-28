@@ -33,7 +33,7 @@ class _Trainable(Trainable):
 
         """
         self.estimator = clone(config.pop("estimator"))
-        self.scheduler = config.pop("scheduler")
+        self.early_stopping = config.pop("early_stopping")
         X_id = config.pop("X_id")
         self.X = ray.get(X_id)
 
@@ -42,13 +42,12 @@ class _Trainable(Trainable):
         self.groups = config.pop("groups")
         self.fit_params = config.pop("fit_params")
         self.scoring = config.pop("scoring")
-        self.early_stopping = config.pop("early_stopping")
         self.max_iters = config.pop("max_iters")
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
         self.estimator_config = config
 
-        if self.early_stopping:
+        if self.early_stopping is not None:
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
@@ -141,7 +140,6 @@ class _Trainable(Trainable):
                     scoring=self.scoring,
                     return_train_score=self.return_train_score,
                 )
-            
 
             ret = {}
             for i, score in enumerate(scores["test_score"]):

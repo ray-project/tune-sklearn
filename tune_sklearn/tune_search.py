@@ -76,15 +76,17 @@ class TuneSearchCV(TuneBaseSearchCV):
             number of iterations that will be spent optimizing over this
             subspace.
 
-        scheduler (str or :obj:`TrialScheduler`, optional):
-            Scheduler for executing fit. Refer to ray.tune.schedulers for all
-            options. If a string is given, a scheduler will be created with
-            default parameters. To specify parameters of the scheduler, pass in
-            a scheduler object instead of a string. The scheduler will be
-            used if the estimator supports partial fitting to stop fitting to a
-            hyperparameter configuration if it performs poorly.
+        early_stopping (str or :obj:`TrialScheduler`, optional):
+            Scheduler for executing fit with early stopping.
 
-            If None, the FIFO scheduler will be used. Defaults to None.
+            Refer to ray.tune.schedulers for all options. If a string is given,
+            a scheduler will be created with default parameters. To specify
+            parameters of the scheduler, pass in a scheduler object instead of
+            a string. The scheduler will be used if the estimator supports
+            partial fitting to stop fitting to a hyperparameter configuration
+            if it performs poorly.
+
+            If None, early stopping will not be used. This is the default.
 
         n_iter (int):
             Number of parameter settings that are sampled. n_iter trades
@@ -194,7 +196,7 @@ class TuneSearchCV(TuneBaseSearchCV):
     def __init__(self,
                  estimator,
                  param_distributions,
-                 scheduler=None,
+                 early_stopping=None,
                  n_iter=10,
                  scoring=None,
                  n_jobs=None,
@@ -204,7 +206,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                  random_state=None,
                  error_score=np.nan,
                  return_train_score=False,
-                 early_stopping=False,
                  max_iters=10,
                  search_optimization="random"):
 
@@ -245,7 +246,7 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         super(TuneSearchCV, self).__init__(
             estimator=estimator,
-            scheduler=scheduler,
+            early_stopping=early_stopping,
             scoring=scoring,
             n_jobs=n_jobs,
             cv=cv,
@@ -253,7 +254,6 @@ class TuneSearchCV(TuneBaseSearchCV):
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
-            early_stopping=early_stopping,
             max_iters=max_iters,
         )
 
@@ -333,7 +333,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             if isinstance(self.param_distributions, list):
                 analysis = tune.run(
                     _Trainable,
-                    scheduler=self.scheduler,
+                    scheduler=self.early_stopping,
                     search_alg=RandomListSearcher(self.param_distributions),
                     reuse_actors=True,
                     verbose=self.verbose,
@@ -346,7 +346,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             else:
                 analysis = tune.run(
                     _Trainable,
-                    scheduler=self.scheduler,
+                    scheduler=self.early_stopping,
                     reuse_actors=True,
                     verbose=self.verbose,
                     stop={"training_iteration": self.max_iters},
@@ -371,7 +371,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             analysis = tune.run(
                 _Trainable,
                 search_alg=search_algo,
-                scheduler=self.scheduler,
+                scheduler=self.early_stopping,
                 reuse_actors=True,
                 verbose=self.verbose,
                 stop={"training_iteration": self.max_iters},

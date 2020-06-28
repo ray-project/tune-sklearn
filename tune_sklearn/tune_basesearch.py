@@ -194,7 +194,7 @@ class TuneBaseSearchCV(BaseEstimator):
     def __init__(
             self,
             estimator,
-            scheduler=None,
+            early_stopping=None,
             scoring=None,
             n_jobs=None,
             cv=5,
@@ -202,43 +202,44 @@ class TuneBaseSearchCV(BaseEstimator):
             verbose=0,
             error_score="raise",
             return_train_score=False,
-            early_stopping=False,
             max_iters=10,
     ):
         self.estimator = estimator
-        self.early_stopping = early_stopping
 
-        if self.early_stopping and self._can_early_stop():
+        if early_stopping is not None and self._can_early_stop():
             self.max_iters = max_iters
-            if isinstance(scheduler, str):
-                if scheduler in TuneBaseSearchCV.defined_schedulers:
-                    if scheduler == "PopulationBasedTraining":
-                        self.scheduler = PopulationBasedTraining(
+            if isinstance(early_stopping, str):
+                if early_stopping in TuneBaseSearchCV.defined_schedulers:
+                    if early_stopping == "PopulationBasedTraining":
+                        self.early_stopping = PopulationBasedTraining(
                             metric="average_test_score")
-                    elif scheduler == "AsyncHyperBandScheduler":
-                        self.scheduler = AsyncHyperBandScheduler(
+                    elif early_stopping == "AsyncHyperBandScheduler":
+                        self.early_stopping = AsyncHyperBandScheduler(
                             metric="average_test_score")
-                    elif scheduler == "HyperBandScheduler":
-                        self.scheduler = HyperBandScheduler(
+                    elif early_stopping == "HyperBandScheduler":
+                        self.early_stopping = HyperBandScheduler(
                             metric="average_test_score")
-                    elif scheduler == "HyperBandForBOHB":
-                        self.scheduler = HyperBandForBOHB(
+                    elif early_stopping == "HyperBandForBOHB":
+                        self.early_stopping = HyperBandForBOHB(
                             metric="average_test_score")
-                    elif scheduler == "MedianStoppingRule":
-                        self.scheduler = MedianStoppingRule(
+                    elif early_stopping == "MedianStoppingRule":
+                        self.early_stopping = MedianStoppingRule(
                             metric="average_test_score")
-                    elif scheduler == "ASHAScheduler":
-                        self.scheduler = ASHAScheduler(
+                    elif early_stopping == "ASHAScheduler":
+                        self.early_stopping = ASHAScheduler(
                             metric="average_test_score")
                 else:
                     raise ValueError("{} is not a defined scheduler. "
                                      "Check the list of available schedulers."
-                                     .format(scheduler))
-            elif isinstance(scheduler, TrialScheduler):
-                self.scheduler = scheduler
-                self.scheduler.metric = "average_test_score"
-            elif scheduler is None:
-                self.scheduler = ASHAScheduler(metric="average_test_score")
+                                     .format(early_stopping))
+            elif isinstance(early_stopping, TrialScheduler):
+                self.early_stopping = early_stopping
+                self.early_stopping.metric = "average_test_score"
+            elif early_stopping is None:
+                self.early_stopping = None
+                warnings.warn("Early stopping is not enabled. "
+                              "To enable early stopping, pass in a supported "
+                              "scheduler from Tune.")
             else:
                 raise TypeError("Scheduler must be a str or tune scheduler")
         else:
@@ -247,7 +248,7 @@ class TuneBaseSearchCV(BaseEstimator):
                           "does not have `partial_fit`")
 
             self.max_iters = 1
-            self.scheduler = None
+            self.early_stopping = None
 
         self.cv = cv
         self.scoring = scoring
@@ -295,14 +296,13 @@ class TuneBaseSearchCV(BaseEstimator):
         y_id = ray.put(y)
 
         config = {}
-        config["scheduler"] = self.scheduler
+        config["early_stopping"] = self.early_stopping
         config["X_id"] = X_id
         config["y_id"] = y_id
         config["groups"] = groups
         config["cv"] = cv
         config["fit_params"] = fit_params
         config["scoring"] = self.scoring
-        config["early_stopping"] = self.early_stopping
         config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
 
@@ -404,14 +404,13 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         for key in [
                 "estimator",
-                "scheduler",
+                "early_stopping",
                 "X_id",
                 "y_id",
                 "groups",
                 "cv",
                 "fit_params",
                 "scoring",
-                "early_stopping",
                 "max_iters",
                 "return_train_score",
         ]:

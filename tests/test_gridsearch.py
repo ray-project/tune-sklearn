@@ -573,7 +573,7 @@ class GridSearchTest(unittest.TestCase):
         tune_search = TuneGridSearchCV(
             SVC(),
             tuned_parameters,
-            scheduler="MedianStoppingRule",
+            early_stopping="MedianStoppingRule",
             max_iters=20)
         tune_search.fit(X_train, y_train)
 
@@ -596,7 +596,11 @@ class GridSearchTest(unittest.TestCase):
         # create and fit a ridge regression model, testing each alpha
         model = linear_model.Ridge()
 
-        tune_search = TuneGridSearchCV(model, param_grid, "MedianStoppingRule")
+        tune_search = TuneGridSearchCV(
+            model, 
+            param_grid, 
+            early_stopping="MedianStoppingRule",
+        )
         tune_search.fit(X_train, y_train)
 
         pred = tune_search.predict(X_test)
