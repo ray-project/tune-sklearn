@@ -5,8 +5,8 @@ https://scikit-learn.org/stable/auto_examples/compose/
 plot_compare_reduction.html
 """
 
-from tune_sklearn.tune_search import TuneSearchCV
-from tune_sklearn.tune_gridsearch import TuneGridSearchCV
+from tune_sklearn import TuneSearchCV
+from tune_sklearn import TuneGridSearchCV
 from sklearn.datasets import load_digits
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC

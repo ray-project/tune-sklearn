@@ -1,4 +1,4 @@
-from tune_sklearn.tune_search import TuneSearchCV
+from tune_sklearn import TuneSearchCV
 import numpy as np
 from numpy.testing import assert_array_equal
 from sklearn.datasets import make_classification
