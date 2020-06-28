@@ -27,15 +27,15 @@ Y_train = np_utils.to_categorical(y_train, nb_classes)
 Y_test = np_utils.to_categorical(y_test, nb_classes)
 
 
-def create_model(optimizer="rmsprop", init="glorot_uniform"):
+def create_model(optimizer="rmsprop", kernel_initializer="glorot_uniform"):
     model = Sequential()
     model.add(Dense(512, input_shape=(784, )))
     model.add(Activation("relu"))
     model.add(Dropout(0.2))
-    model.add(Dense(512, init=init))
+    model.add(Dense(512, kernel_initializer=kernel_initializer))
     model.add(Activation("relu"))
     model.add(Dropout(0.2))
-    model.add(Dense(10, init=init))
+    model.add(Dense(10, kernel_initializer=kernel_initializer))
     model.add(Activation("softmax"))  # This special "softmax" a
     model.compile(
         loss="binary_crossentropy", optimizer=optimizer, metrics=["accuracy"])
@@ -44,9 +44,12 @@ def create_model(optimizer="rmsprop", init="glorot_uniform"):
 
 model = KerasClassifier(build_fn=create_model)
 optimizers = ["rmsprop", "adam"]
-init = ["glorot_uniform", "normal"]
+kernel_initializer = ["glorot_uniform", "normal"]
 epochs = [5, 10]
-param_grid = dict(optimizer=optimizers, nb_epoch=epochs, init=init)
+param_grid = dict(
+    optimizer=optimizers,
+    nb_epoch=epochs,
+    kernel_initializer=kernel_initializer)
 grid = TuneGridSearchCV(estimator=model, param_grid=param_grid)
 grid_result = grid.fit(X_train, Y_train)
 print(grid_result.best_params_)

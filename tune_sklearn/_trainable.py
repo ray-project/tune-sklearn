@@ -115,16 +115,32 @@ class _Trainable(Trainable):
 
             return ret
         else:
-            scores = cross_validate(
-                self.estimator,
-                self.X,
-                self.y,
-                cv=self.cv,
-                fit_params=self.fit_params,
-                groups=self.groups,
-                scoring=self.scoring,
-                return_train_score=self.return_train_score,
-            )
+            try:
+                scores = cross_validate(
+                    self.estimator,
+                    self.X,
+                    self.y,
+                    cv=self.cv,
+                    n_jobs=-1,
+                    fit_params=self.fit_params,
+                    groups=self.groups,
+                    scoring=self.scoring,
+                    return_train_score=self.return_train_score,
+                )
+            except PicklingError:
+                warnings.warn("An error occurred in parallelizing the cross "
+                              "validation. Proceeding to cross validate with "
+                              "one core.")
+                scores = cross_validate(
+                    self.estimator,
+                    self.X,
+                    self.y,
+                    cv=self.cv,
+                    fit_params=self.fit_params,
+                    groups=self.groups,
+                    scoring=self.scoring,
+                    return_train_score=self.return_train_score,
+                )
 
             ret = {}
             for i, score in enumerate(scores["test_score"]):
