@@ -128,22 +128,28 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
 
+        resources_per_trial (:obj:`dict` of int):
+            dictionary specifying the number of cpu's and gpu's to
+            use to train the model.
+
     """
 
-    def __init__(
-            self,
-            estimator,
-            param_grid,
-            early_stopping=None,
-            scoring=None,
-            n_jobs=None,
-            cv=5,
-            refit=True,
-            verbose=0,
-            error_score="raise",
-            return_train_score=False,
-            max_iters=10,
-    ):
+    def __init__(self,
+                 estimator,
+                 param_grid,
+                 early_stopping=None,
+                 scoring=None,
+                 n_jobs=None,
+                 cv=5,
+                 refit=True,
+                 verbose=0,
+                 error_score="raise",
+                 return_train_score=False,
+                 max_iters=10,
+                 resources_per_trial={
+                     "cpu": 1,
+                     "gpu": 0
+                 }):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
@@ -154,7 +160,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             max_iters=max_iters,
-        )
+            resources_per_trial=resources_per_trial)
 
         _check_param_grid(param_grid)
         self.param_grid = param_grid
@@ -185,7 +191,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         """
         return len(list(ParameterGrid(self.param_grid)))
 
-    def _tune_run(self, config, resources_per_trial):
+    def _tune_run(self, config):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
         generated when  early stopping is not possible.
@@ -193,10 +199,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         Args:
             config (dict): Configurations such as hyperparameters to run
                 ``tune.run`` on.
-
-            resources_per_trial (dict): Resources to use per trial within Ray.
-                Accepted keys are `cpu`, `gpu` and custom resources, and values
-                are integers specifying the number of each resource to use.
 
         Returns:
             analysis (:obj:`ExperimentAnalysis`): Object returned by
@@ -221,7 +223,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
             )
         else:
             analysis = tune.run(
@@ -232,7 +233,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
             )
 
         return analysis

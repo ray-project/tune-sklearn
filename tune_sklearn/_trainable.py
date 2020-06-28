@@ -3,6 +3,7 @@
 
 import ray
 from ray.tune import Trainable
+from ray.tune.resources import Resources
 from sklearn.base import clone
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
@@ -196,3 +197,7 @@ class _Trainable(Trainable):
 
     def reset_config(self, new_config):
         return False
+
+    @classmethod
+    def default_resource_request(cls, config):
+        return Resources(cpu=config["num_cpu"], gpu=config["num_gpu"])
