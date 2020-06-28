@@ -31,7 +31,6 @@ from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KernelDensity
-from ray.tune.schedulers import MedianStoppingRule
 from ray.tune.error import TuneError
 import unittest
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
