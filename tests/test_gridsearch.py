@@ -31,7 +31,6 @@ from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KernelDensity
-from ray.tune.schedulers import MedianStoppingRule
 from ray.tune.error import TuneError
 import unittest
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
@@ -113,14 +112,11 @@ class GridSearchTest(unittest.TestCase):
         # multiple `SVC` instances in parallel using threads sometimes results
         # in wrong results. This only happens with threads, not processes/sync.
         # For now, we'll fit using the sync scheduler.
-        grid_search = TuneGridSearchCV(
-            clf, {"C": Cs}, scoring="accuracy", scheduler=MedianStoppingRule())
+        grid_search = TuneGridSearchCV(clf, {"C": Cs}, scoring="accuracy")
         grid_search.fit(X, y)
 
         grid_search_no_score = TuneGridSearchCV(
-            clf_no_score, {"C": Cs},
-            scoring="accuracy",
-            scheduler=MedianStoppingRule())
+            clf_no_score, {"C": Cs}, scoring="accuracy")
         # smoketest grid search
         grid_search_no_score.fit(X, y)
 
@@ -573,7 +569,7 @@ class GridSearchTest(unittest.TestCase):
         tune_search = TuneGridSearchCV(
             SVC(),
             tuned_parameters,
-            scheduler="MedianStoppingRule",
+            early_stopping="MedianStoppingRule",
             max_iters=20)
         tune_search.fit(X_train, y_train)
 
@@ -596,7 +592,11 @@ class GridSearchTest(unittest.TestCase):
         # create and fit a ridge regression model, testing each alpha
         model = linear_model.Ridge()
 
-        tune_search = TuneGridSearchCV(model, param_grid, "MedianStoppingRule")
+        tune_search = TuneGridSearchCV(
+            model,
+            param_grid,
+            early_stopping="MedianStoppingRule",
+        )
         tune_search.fit(X_train, y_train)
 
         pred = tune_search.predict(X_test)

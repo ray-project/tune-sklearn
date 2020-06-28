@@ -36,15 +36,17 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             in the list are explored. This enables searching over any sequence
             of parameter settings.
 
-        scheduler (str or :obj:`TrialScheduler`, optional):
-            Scheduler for executing fit. Refer to ray.tune.schedulers for all
-            options. If a string is given, a scheduler will be created with
-            default parameters. To specify parameters of the scheduler, pass in
-            a scheduler object instead of a string. The scheduler will be
-            used if the estimator supports partial fitting to stop fitting to a
-            hyperparameter configuration if it performs poorly.
+        early_stopping (str or :obj:`TrialScheduler`, optional):
+            Scheduler for executing fit with early stopping.
 
-            If None, the FIFO scheduler will be used. Defaults to None.
+            Refer to ray.tune.schedulers for all options. If a string is given,
+            a scheduler will be created with default parameters. To specify
+            parameters of the scheduler, pass in a scheduler object instead of
+            a string. The scheduler will be used if the estimator supports
+            partial fitting to stop fitting to a hyperparameter configuration
+            if it performs poorly.
+
+            If None, early stopping will not be used. This is the default.
 
         scoring (str, :obj:`callable`, :obj:`list`, :obj:`tuple`, :obj:`dict`
             or None):
@@ -132,7 +134,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             self,
             estimator,
             param_grid,
-            scheduler=None,
+            early_stopping=None,
             scoring=None,
             n_jobs=None,
             cv=5,
@@ -140,19 +142,17 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             verbose=0,
             error_score="raise",
             return_train_score=False,
-            early_stopping=False,
             max_iters=10,
     ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
-            scheduler=scheduler,
+            early_stopping=early_stopping,
             scoring=scoring,
             n_jobs=n_jobs,
             cv=cv,
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
-            early_stopping=early_stopping,
             max_iters=max_iters,
         )
 
@@ -203,7 +203,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
-        if self.early_stopping:
+        if self.early_stopping is not None:
             config["estimator"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
             ]
@@ -215,7 +215,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 _Trainable,
                 search_alg=ListSearcher(self.param_grid),
                 num_samples=self._list_grid_num_samples(),
-                scheduler=self.scheduler,
+                scheduler=self.early_stopping,
                 reuse_actors=True,
                 verbose=self.verbose,
                 stop={"training_iteration": self.max_iters},
@@ -226,7 +226,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         else:
             analysis = tune.run(
                 _Trainable,
-                scheduler=self.scheduler,
+                scheduler=self.early_stopping,
                 reuse_actors=True,
                 verbose=self.verbose,
                 stop={"training_iteration": self.max_iters},

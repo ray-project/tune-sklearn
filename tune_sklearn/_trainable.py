@@ -33,7 +33,7 @@ class _Trainable(Trainable):
 
         """
         self.estimator = clone(config.pop("estimator"))
-        self.scheduler = config.pop("scheduler")
+        self.early_stopping = config.pop("early_stopping")
         X_id = config.pop("X_id")
         self.X = ray.get(X_id)
 
@@ -42,13 +42,12 @@ class _Trainable(Trainable):
         self.groups = config.pop("groups")
         self.fit_params = config.pop("fit_params")
         self.scoring = config.pop("scoring")
-        self.early_stopping = config.pop("early_stopping")
         self.max_iters = config.pop("max_iters")
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
         self.estimator_config = config
 
-        if self.early_stopping:
+        if self.early_stopping is not None:
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
@@ -63,7 +62,7 @@ class _Trainable(Trainable):
         Different routines are run depending on if the ``early_stopping``
         attribute is True or not.
 
-        If ``self.early_stopping`` is True, each fold is fit with
+        If ``self.early_stopping`` is not None, each fold is fit with
         `partial_fit`, which stops training the model if the validation
         score is not improving for a particular fold.
 
@@ -77,7 +76,7 @@ class _Trainable(Trainable):
                 ``cv_results_`` for one of the cross-validation interfaces.
 
         """
-        if self.early_stopping:
+        if self.early_stopping is not None:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
                 X_train, y_train = _safe_split(self.estimator[i], self.X,
                                                self.y, train)

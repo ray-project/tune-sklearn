@@ -27,8 +27,7 @@ scheduler = MedianStoppingRule(grace_period=10.0)
 tune_search = TuneGridSearchCV(
     clf,
     parameter_grid,
-    scheduler=scheduler,
-    early_stopping=True,
+    early_stopping=scheduler,
     max_iters=10,
 )
 tune_search.fit(x_train, y_train)
