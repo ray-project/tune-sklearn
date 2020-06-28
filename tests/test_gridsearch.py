@@ -112,13 +112,11 @@ class GridSearchTest(unittest.TestCase):
         # multiple `SVC` instances in parallel using threads sometimes results
         # in wrong results. This only happens with threads, not processes/sync.
         # For now, we'll fit using the sync scheduler.
-        grid_search = TuneGridSearchCV(
-            clf, {"C": Cs}, scoring="accuracy")
+        grid_search = TuneGridSearchCV(clf, {"C": Cs}, scoring="accuracy")
         grid_search.fit(X, y)
 
         grid_search_no_score = TuneGridSearchCV(
-            clf_no_score, {"C": Cs},
-            scoring="accuracy")
+            clf_no_score, {"C": Cs}, scoring="accuracy")
         # smoketest grid search
         grid_search_no_score.fit(X, y)
 

@@ -322,7 +322,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
-        if self.early_stopping:
+        if self.early_stopping is not None:
             config["estimator"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
             ]

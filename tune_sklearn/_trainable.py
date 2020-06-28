@@ -62,7 +62,7 @@ class _Trainable(Trainable):
         Different routines are run depending on if the ``early_stopping``
         attribute is True or not.
 
-        If ``self.early_stopping`` is True, each fold is fit with
+        If ``self.early_stopping`` is not None, each fold is fit with
         `partial_fit`, which stops training the model if the validation
         score is not improving for a particular fold.
 
@@ -76,7 +76,7 @@ class _Trainable(Trainable):
                 ``cv_results_`` for one of the cross-validation interfaces.
 
         """
-        if self.early_stopping:
+        if self.early_stopping is not None:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
                 X_train, y_train = _safe_split(self.estimator[i], self.X,
                                                self.y, train)

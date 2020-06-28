@@ -235,17 +235,13 @@ class TuneBaseSearchCV(BaseEstimator):
             elif isinstance(early_stopping, TrialScheduler):
                 self.early_stopping = early_stopping
                 self.early_stopping.metric = "average_test_score"
-            elif early_stopping is None:
-                self.early_stopping = None
-                warnings.warn("Early stopping is not enabled. "
-                              "To enable early stopping, pass in a supported "
-                              "scheduler from Tune.")
             else:
                 raise TypeError("Scheduler must be a str or tune scheduler")
         else:
             warnings.warn("Early stopping is not enabled. "
-                          "This may be because the estimator "
-                          "does not have `partial_fit`")
+                          "To enable early stopping, pass in a supported "
+                          "scheduler from Tune and ensure the estimator "
+                          "has `partial_fit`.")
 
             self.max_iters = 1
             self.early_stopping = None
