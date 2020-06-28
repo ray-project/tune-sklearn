@@ -597,8 +597,8 @@ class GridSearchTest(unittest.TestCase):
         model = linear_model.Ridge()
 
         tune_search = TuneGridSearchCV(
-            model, 
-            param_grid, 
+            model,
+            param_grid,
             early_stopping="MedianStoppingRule",
         )
         tune_search.fit(X_train, y_train)
