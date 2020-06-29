@@ -47,6 +47,8 @@ class _Trainable(Trainable):
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
         self.estimator_config = config
+        self.num_cpu = config.pop("num_cpu")
+        self.num_gpu = config.pop("num_gpu")
 
         if self.early_stopping is not None:
             n_splits = self.cv.get_n_splits(self.X, self.y)
@@ -200,4 +202,4 @@ class _Trainable(Trainable):
 
     @classmethod
     def default_resource_request(cls, config):
-        return Resources(cpu=config["num_cpu"], gpu=config["num_gpu"])
+        return Resources(cpu=self.num_cpu, gpu=self.num_gpu)
