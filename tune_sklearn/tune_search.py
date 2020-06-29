@@ -191,11 +191,6 @@ class TuneSearchCV(TuneBaseSearchCV):
             ``param_distributions``. If "bayesian", uses Bayesian
             optimization to search for hyperparameters.
 
-        resources_per_trial (dict):
-            Resources to use per trial within Ray.
-            Accepted keys are `cpu`, `gpu` and custom resources, and values
-            are integers specifying the number of each resource to use.
-
     """
 
     def __init__(self,
@@ -213,10 +208,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  return_train_score=False,
                  max_iters=10,
                  search_optimization="random",
-                 resources_per_trial={
-                     "cpu": 1,
-                     "gpu": 0
-                 }):
+                 use_gpu=False):
 
         if (search_optimization not in ["random", "bayesian"]
                 and not isinstance(search_optimization, BayesOptSearch)):
@@ -313,7 +305,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
-    def _tune_run(self, config):
+    def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
         generated when  early stopping is not possible.
@@ -321,6 +313,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         Args:
             config (dict): Configurations such as hyperparameters to run
             ``tune.run`` on.
+            resources_per_trial (dict): Resources to use per trial within Ray.
+                Accepted keys are `cpu`, `gpu` and custom resources, and values
+                are integers specifying the number of each resource to use.
 
         Returns:
             analysis (:obj:`ExperimentAnalysis`): Object returned by
@@ -346,6 +341,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     num_samples=self.num_samples,
                     config=config,
                     checkpoint_at_end=True,
+                    resources_per_trial=resources_per_trial
                 )
             else:
                 analysis = tune.run(
@@ -357,6 +353,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     num_samples=self.num_samples,
                     config=config,
                     checkpoint_at_end=True,
+                    resources_per_trial=resources_per_trial
                 )
         else:
             if self.search_optimization == "bayesian":
@@ -381,6 +378,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 num_samples=self.num_samples,
                 config=config,
                 checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial
             )
 
         return analysis

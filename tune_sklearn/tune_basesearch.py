@@ -26,7 +26,7 @@ from ray.tune.schedulers import (
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
-
+import multiprocessing
 
 class TuneBaseSearchCV(BaseEstimator):
     """Abstract base class for TuneGridSearchCV and TuneSearchCV"""
@@ -202,10 +202,8 @@ class TuneBaseSearchCV(BaseEstimator):
                  error_score="raise",
                  return_train_score=False,
                  max_iters=10,
-                 resources_per_trial={
-                     "cpu": 1,
-                     "gpu": 0
-                 }):
+                 use_gpu=False):
+
         self.estimator = estimator
 
         if early_stopping is not None and self._can_early_stop():
@@ -255,7 +253,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.verbose = verbose
         self.error_score = error_score
         self.return_train_score = return_train_score
-        self.resources_per_trial = resources_per_trial
+        self.use_gpu = use_gpu
 
     def fit(self, X, y=None, groups=None, **fit_params):
         """Run fit with all sets of parameters. ``tune.run`` is used to perform
@@ -288,6 +286,14 @@ class TuneBaseSearchCV(BaseEstimator):
         self.n_splits = cv.get_n_splits(X, y, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
 
+        if self.n_jobs is not None:
+            if self.n_jobs < 0:
+                resources_per_trial = {"cpu": max(multiprocessing.cpu_count() + 1 + self.n_jobs, 1), "gpu": 1 if self.use_gpu else 0}
+            else:
+                resources_per_trial = {"cpu": self.n_jobs, "gpu": 1 if self.use_gpu else 0}
+        else:
+            resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
+
         X_id = ray.put(X)
         y_id = ray.put(y)
 
@@ -301,11 +307,9 @@ class TuneBaseSearchCV(BaseEstimator):
         config["scoring"] = self.scoring
         config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
-        config["num_cpu"] = self.resources_per_trial["cpu"]
-        config["num_gpu"] = self.resources_per_trial["gpu"]
 
         self._fill_config_hyperparam(config)
-        analysis = self._tune_run(config)
+        analysis = self._tune_run(config, resources_per_trial)
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
@@ -372,12 +376,14 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         raise NotImplementedError("Define in child class")
 
-    def _tune_run(self, config):
+    def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Implement this in a child class.
 
         Args:
             config (:obj:`dict`): dictionary to be passed in as the
                 configuration for `tune.run`.
+            resources_per_trial (:obj:`dict` of int): dictionary specifying the
+                number of cpu's and gpu's to use to train the model.
 
         """
         raise NotImplementedError("Define in child class")
@@ -401,7 +407,6 @@ class TuneBaseSearchCV(BaseEstimator):
         for key in [
                 "estimator", "early_stopping", "X_id", "y_id", "groups", "cv",
                 "fit_params", "scoring", "max_iters", "return_train_score",
-                "num_cpu", "num_gpu"
         ]:
             config.pop(key, None)
         return config
