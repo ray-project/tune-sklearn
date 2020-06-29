@@ -202,4 +202,4 @@ class _Trainable(Trainable):
 
     @classmethod
     def default_resource_request(cls, config):
-        return Resources(cpu=self.num_cpu, gpu=self.num_gpu)
+        return Resources(cpu=config["num_cpu"], gpu=config["num_gpu"])
