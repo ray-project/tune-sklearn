@@ -196,4 +196,3 @@ class _Trainable(Trainable):
 
     def reset_config(self, new_config):
         return False
-

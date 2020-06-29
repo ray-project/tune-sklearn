@@ -219,8 +219,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial
-            )
+                resources_per_trial=resources_per_trial)
         else:
             analysis = tune.run(
                 _Trainable,
@@ -230,7 +229,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial
-            )
+                resources_per_trial=resources_per_trial)
 
         return analysis

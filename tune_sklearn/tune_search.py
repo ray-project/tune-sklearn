@@ -341,8 +341,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     num_samples=self.num_samples,
                     config=config,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial
-                )
+                    resources_per_trial=resources_per_trial)
             else:
                 analysis = tune.run(
                     _Trainable,
@@ -353,8 +352,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     num_samples=self.num_samples,
                     config=config,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial
-                )
+                    resources_per_trial=resources_per_trial)
         else:
             if self.search_optimization == "bayesian":
                 search_algo = BayesOptSearch(
@@ -378,7 +376,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 num_samples=self.num_samples,
                 config=config,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial
-            )
+                resources_per_trial=resources_per_trial)
 
         return analysis

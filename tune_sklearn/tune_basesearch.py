@@ -28,6 +28,7 @@ from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
 
+
 class TuneBaseSearchCV(BaseEstimator):
     """Abstract base class for TuneGridSearchCV and TuneSearchCV"""
 
@@ -288,9 +289,16 @@ class TuneBaseSearchCV(BaseEstimator):
 
         if self.n_jobs is not None:
             if self.n_jobs < 0:
-                resources_per_trial = {"cpu": max(multiprocessing.cpu_count() + 1 + self.n_jobs, 1), "gpu": 1 if self.use_gpu else 0}
+                resources_per_trial = {
+                    "cpu": max(multiprocessing.cpu_count() + 1 + self.n_jobs,
+                               1),
+                    "gpu": 1 if self.use_gpu else 0
+                }
             else:
-                resources_per_trial = {"cpu": self.n_jobs, "gpu": 1 if self.use_gpu else 0}
+                resources_per_trial = {
+                    "cpu": self.n_jobs,
+                    "gpu": 1 if self.use_gpu else 0
+                }
         else:
             resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
 
@@ -405,8 +413,16 @@ class TuneBaseSearchCV(BaseEstimator):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "estimator", "early_stopping", "X_id", "y_id", "groups", "cv",
-                "fit_params", "scoring", "max_iters", "return_train_score",
+                "estimator",
+                "early_stopping",
+                "X_id",
+                "y_id",
+                "groups",
+                "cv",
+                "fit_params",
+                "scoring",
+                "max_iters",
+                "return_train_score",
         ]:
             config.pop(key, None)
         return config
