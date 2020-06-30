@@ -3,7 +3,7 @@ An example training a RandomForestClassifier, performing
 randomized search using TuneSearchCV.
 """
 
-from tune_sklearn.tune_search import TuneSearchCV
+from tune_sklearn import TuneSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import datasets
 from sklearn.model_selection import train_test_split

@@ -4,7 +4,7 @@ randomized search using TuneSearchCV.
 """
 
 import warnings
-from tune_sklearn.tune_search import TuneSearchCV
+from tune_sklearn import TuneSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier

@@ -3,7 +3,7 @@
 Example taken from https://mlfromscratch.com/gridsearch-keras-sklearn/#/
 """
 
-from tune_sklearn.tune_search import TuneSearchCV
+from tune_sklearn import TuneSearchCV
 import lightgbm as lgb
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
