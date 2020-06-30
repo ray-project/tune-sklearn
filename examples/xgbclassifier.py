@@ -34,10 +34,7 @@ xgb = XGBClassifier(
 )
 
 digit_search = TuneSearchCV(
-    xgb,
-    param_distributions=params,
-    n_iter=3,
-)
+    xgb, param_distributions=params, n_iter=3, use_gpu=True)
 
 digit_search.fit(x_train, y_train)
 print(digit_search.best_params_)

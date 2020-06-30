@@ -54,8 +54,8 @@ y_subset = y_train[:size]
 tune_search = TuneGridSearchCV(
     SGDClassifier(),
     parameters,
-    scheduler="MedianStoppingRule",
-    early_stopping_max_epochs=10
+    early_stopping="MedianStoppingRule",
+    max_iters=10,
 )
 
 import time # Just to compare fit times
@@ -119,8 +119,8 @@ y_subset = y_train[:size]
 tune_search = TuneSearchCV(SGDClassifier(),
     param_distributions=param_dists,
     n_iter=2,
-    scheduler="MedianStoppingRule",
-    early_stopping_max_epochs=10,
+    early_stopping="MedianStoppingRule",
+    max_iters=10,
     search_optimization="bayesian"
 )
 
@@ -226,7 +226,7 @@ optimizers = ["rmsprop", "adam"]
 init = ["glorot_uniform", "normal"]
 epochs = [5, 10]
 param_grid = dict(optimizer=optimizers, nb_epoch=epochs, init=init)
-grid = TuneGridSearchCV(estimator=model, param_grid=param_grid)
+grid = TuneGridSearchCV(estimator=model, param_grid=param_grid, use_gpu=True)
 grid_result = grid.fit(X_train, Y_train)
 print(grid_result.best_params_)
 print(grid_result.cv_results_)
