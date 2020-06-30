@@ -1,5 +1,5 @@
-from tune_sklearn.tune_gridsearch import TuneGridSearchCV
-from tune_sklearn.tune_search import TuneSearchCV
+from tune_sklearn import TuneGridSearchCV
+from tune_sklearn import TuneSearchCV
 import numpy as np
 from numpy.testing import (
     assert_almost_equal,

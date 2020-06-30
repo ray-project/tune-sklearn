@@ -11,7 +11,7 @@ from sklearn.datasets import make_classification
 from torch import nn
 import torch.nn.functional as F
 from skorch import NeuralNetClassifier
-from tune_sklearn.tune_gridsearch import TuneGridSearchCV
+from tune_sklearn import TuneGridSearchCV
 
 X, y = make_classification(1000, 20, n_informative=10, random_state=0)
 X = X.astype(np.float32)
