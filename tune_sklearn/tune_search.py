@@ -207,7 +207,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                  error_score=np.nan,
                  return_train_score=False,
                  max_iters=10,
-                 search_optimization="random"):
+                 search_optimization="random",
+                 use_gpu=False):
 
         if (search_optimization not in ["random", "bayesian"]
                 and not isinstance(search_optimization, BayesOptSearch)):
@@ -312,7 +313,6 @@ class TuneSearchCV(TuneBaseSearchCV):
         Args:
             config (dict): Configurations such as hyperparameters to run
             ``tune.run`` on.
-
             resources_per_trial (dict): Resources to use per trial within Ray.
                 Accepted keys are `cpu`, `gpu` and custom resources, and values
                 are integers specifying the number of each resource to use.
@@ -341,8 +341,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     num_samples=self.num_samples,
                     config=config,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                )
+                    resources_per_trial=resources_per_trial)
             else:
                 analysis = tune.run(
                     _Trainable,
@@ -353,8 +352,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     num_samples=self.num_samples,
                     config=config,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                )
+                    resources_per_trial=resources_per_trial)
         else:
             if self.search_optimization == "bayesian":
                 search_algo = BayesOptSearch(
@@ -378,7 +376,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 num_samples=self.num_samples,
                 config=config,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-            )
+                resources_per_trial=resources_per_trial)
 
         return analysis

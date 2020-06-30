@@ -130,20 +130,19 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
     """
 
-    def __init__(
-            self,
-            estimator,
-            param_grid,
-            early_stopping=None,
-            scoring=None,
-            n_jobs=None,
-            cv=5,
-            refit=True,
-            verbose=0,
-            error_score="raise",
-            return_train_score=False,
-            max_iters=10,
-    ):
+    def __init__(self,
+                 estimator,
+                 param_grid,
+                 early_stopping=None,
+                 scoring=None,
+                 n_jobs=None,
+                 cv=5,
+                 refit=True,
+                 verbose=0,
+                 error_score="raise",
+                 return_train_score=False,
+                 max_iters=10,
+                 use_gpu=False):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
@@ -154,7 +153,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             max_iters=max_iters,
-        )
+            use_gpu=use_gpu)
 
         _check_param_grid(param_grid)
         self.param_grid = param_grid
@@ -193,7 +192,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         Args:
             config (dict): Configurations such as hyperparameters to run
                 ``tune.run`` on.
-
             resources_per_trial (dict): Resources to use per trial within Ray.
                 Accepted keys are `cpu`, `gpu` and custom resources, and values
                 are integers specifying the number of each resource to use.
@@ -221,8 +219,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-            )
+                resources_per_trial=resources_per_trial)
         else:
             analysis = tune.run(
                 _Trainable,
@@ -232,7 +229,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-            )
+                resources_per_trial=resources_per_trial)
 
         return analysis

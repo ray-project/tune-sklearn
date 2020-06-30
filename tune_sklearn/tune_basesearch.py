@@ -26,6 +26,7 @@ from ray.tune.schedulers import (
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
+import multiprocessing
 
 
 class TuneBaseSearchCV(BaseEstimator):
@@ -191,19 +192,19 @@ class TuneBaseSearchCV(BaseEstimator):
         else:
             check_is_fitted(self)
 
-    def __init__(
-            self,
-            estimator,
-            early_stopping=None,
-            scoring=None,
-            n_jobs=None,
-            cv=5,
-            refit=True,
-            verbose=0,
-            error_score="raise",
-            return_train_score=False,
-            max_iters=10,
-    ):
+    def __init__(self,
+                 estimator,
+                 early_stopping=None,
+                 scoring=None,
+                 n_jobs=None,
+                 cv=5,
+                 refit=True,
+                 verbose=0,
+                 error_score="raise",
+                 return_train_score=False,
+                 max_iters=10,
+                 use_gpu=False):
+
         self.estimator = estimator
 
         if early_stopping is not None and self._can_early_stop():
@@ -253,6 +254,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.verbose = verbose
         self.error_score = error_score
         self.return_train_score = return_train_score
+        self.use_gpu = use_gpu
 
     def fit(self, X, y=None, groups=None, **fit_params):
         """Run fit with all sets of parameters. ``tune.run`` is used to perform
@@ -284,9 +286,21 @@ class TuneBaseSearchCV(BaseEstimator):
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
-        resources_per_trial = None
-        if self.n_jobs and self.n_jobs != -1:
-            resources_per_trial = {"cpu": self.n_jobs, "gpu": 0}
+
+        if self.n_jobs is not None:
+            if self.n_jobs < 0:
+                resources_per_trial = {
+                    "cpu": max(multiprocessing.cpu_count() + 1 + self.n_jobs,
+                               1),
+                    "gpu": 1 if self.use_gpu else 0
+                }
+            else:
+                resources_per_trial = {
+                    "cpu": self.n_jobs,
+                    "gpu": 1 if self.use_gpu else 0
+                }
+        else:
+            resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
 
         X_id = ray.put(X)
         y_id = ray.put(y)
