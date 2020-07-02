@@ -26,7 +26,7 @@ To start out, it’s as easy as changing our import statement to get Tune’s gr
 
 ```python
 # from sklearn.model_selection import GridSearchCV
-from tune_sklearn.tune_gridsearch import TuneGridSearchCV
+from tune_sklearn import TuneGridSearchCV
 
 # Other imports
 import numpy as np
@@ -86,7 +86,7 @@ print("Sklearn Accuracy:", accuracy)
 `TuneSearchCV` uses randomized search over the distribution by default, but can do Bayesian search as well by specifying the `search_optimization` parameter as shown here. You need to run `pip install bayesian-optimization` for this to work. More details in [Tune Documentation](https://docs.ray.io/en/latest/tune-searchalg.html#bayesopt-search).
 
 ```python
-from tune_sklearn.tune_search import TuneSearchCV
+from tune_sklearn import TuneSearchCV
 
 # Other imports
 import scipy
