@@ -35,159 +35,122 @@ class TuneSearchCV(TuneBaseSearchCV):
     given by n_iter.
 
     Args:
-        estimator (:obj:`estimator`): This is assumed to implement the
-            scikit-learn estimator interface.
-            Either estimator needs to provide a ``score`` function,
-            or ``scoring`` must be passed.
-
-        param_distributions (:obj:`dict`):
-            Serves as the ``param_distributions`` parameter in scikit-learn's
+        estimator (`estimator`): This is assumed to implement the
+            scikit-learn estimator interface. Either estimator needs to
+            provide a ``score`` function, or ``scoring`` must be passed.
+        param_distributions (`dict`): Serves as the ``param_distributions``
+            parameter in scikit-learn's
             ``RandomizedSearchCV`` or as the ``search_space`` parameter in
             ``BayesSearchCV``.
-
             For randomized search: dictionary with parameters names (string)
             as keys and distributions or lists of parameter settings to try
             for randomized search.
-
             Distributions must provide a rvs  method for sampling (such as
             those from scipy.stats.distributions).
-
             If a list is given, it is sampled uniformly. If a list of dicts is
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
-
             For Bayesian search: it is one of these cases:
 
-            1. dictionary, where keys are parameter names (strings) and values
-            are skopt.space.Dimension instances (Real, Integer or Categorical)
-            or any other valid value that defines skopt dimension (see
-            skopt.Optimizer docs). Represents search space over parameters of
-            the provided estimator.
+                1. dictionary, where keys are parameter names (strings) and values
+                are skopt.space.Dimension instances (Real, Integer or Categorical)
+                or any other valid value that defines skopt dimension (see
+                skopt.Optimizer docs). Represents search space over parameters of
+                the provided estimator.
 
-            2. list of dictionaries: a list of dictionaries, where every
-            dictionary fits the description given in case 1 above. If a list of
-            dictionary objects is given, then the search is performed
-            sequentially for every parameter space with maximum number of
-            evaluations set to self.n_iter.
+                2. list of dictionaries: a list of dictionaries, where every
+                dictionary fits the description given in case 1 above. If a list of
+                dictionary objects is given, then the search is performed
+                sequentially for every parameter space with maximum number of
+                evaluations set to self.n_iter.
 
-            3. list of (dict, int > 0): an extension of case 2 above, where
-            first element of every tuple is a dictionary representing some
-            search subspace, similarly as in case 2, and second element is a
-            number of iterations that will be spent optimizing over this
-            subspace.
-
-        early_stopping (str or :obj:`TrialScheduler`, optional):
-            Scheduler for executing fit with early stopping.
-
+                3. list of (dict, int > 0): an extension of case 2 above, where
+                first element of every tuple is a dictionary representing some
+                search subspace, similarly as in case 2, and second element is a
+                number of iterations that will be spent optimizing over this
+                subspace.
+        early_stopping (str or `TrialScheduler`, optional): Scheduler for
+            executing fit with early stopping.
             Refer to ray.tune.schedulers for all options. If a string is given,
             a scheduler will be created with default parameters. To specify
             parameters of the scheduler, pass in a scheduler object instead of
             a string. The scheduler will be used if the estimator supports
             partial fitting to stop fitting to a hyperparameter configuration
             if it performs poorly.
-
             If None, early stopping will not be used. This is the default.
-
-        n_iter (int):
-            Number of parameter settings that are sampled. n_iter trades
-            off runtime vs quality of the solution. Defaults to 10.
-
-        scoring (str, :obj:`callable`, :obj:`list`, :obj:`tuple`, :obj:`dict`
-            or None):
-            A single string (see :ref:`scoring_parameter`) or a callable
-            (see :ref:`scoring`) to evaluate the predictions on the test set.
-
+        n_iter (int): Number of parameter settings that are sampled.
+            n_iter trades off runtime vs quality of the solution.
+            Defaults to 10.
+        scoring (str, `callable`, `list`, `tuple`, `dict`
+            or None): A single string (see Scikit-Learn documentation
+            on `scoring_parameter`) or a callable
+            to evaluate the predictions on the test set.
             For evaluating multiple metrics, either give a list of (unique)
             strings or a dict with names as keys and callables as values.
-
             NOTE that when using custom scorers, each scorer should return a
             single value. Metric functions returning a list/array of values
             can be wrapped into multiple scorers that return one value each.
-
             If None, the estimator's score method is used. Defaults to None.
-
-        n_jobs (int):
-            Number of jobs to run in parallel. None or -1 means using all
-            processors. Defaults to None.
-
-        refit (bool, str, or :obj:`callable`):
-            Refit an estimator using the best found parameters on the whole
-            dataset.
-
+        n_jobs (int): Number of jobs to run in parallel. None or -1 means
+            using all processors. Defaults to None.
+        refit (bool, str, or `callable`): Refit an estimator using the
+            best found parameters on the whole dataset.
             For multiple metric evaluation, this needs to be a string denoting
             the scorer that would be used to find the best parameters for
             refitting the estimator at the end.
-
             The refitted estimator is made available at the ``best_estimator_``
             attribute and permits using ``predict`` directly on this
             ``GridSearchCV`` instance.
-
             Also for multiple metric evaluation, the attributes
             ``best_index_``, ``best_score_`` and ``best_params_`` will only be
             available if ``refit`` is set and all of them will be determined
             w.r.t this specific scorer. ``best_score_`` is not returned if
-            refit is callable.
-
-            See ``scoring`` parameter to know more about multiple metric
-            evaluation.
-
-            Defaults to True.
-
-        cv (int, :obj`cross-validation generator` or :obj:`iterable`):
-            Determines the cross-validation splitting strategy.
-
+            refit is callable. See ``scoring`` parameter to know more about
+            multiple metric evaluation. Defaults to True.
+        cv (int, `cross-validation generator` or `iterable`): Determines
+            the cross-validation splitting strategy.
             Possible inputs for cv are:
-            - None, to use the default 5-fold cross validation,
-            - integer, to specify the number of folds in a `(Stratified)KFold`,
-            - An iterable yielding (train, test) splits as arrays of indices.
+
+                - None, to use the default 5-fold cross validation,
+
+                - integer, to specify the number of folds in a `(Stratified)KFold`,
+
+                - An iterable yielding (train, test) splits as arrays of indices.
 
             For integer/None inputs, if the estimator is a classifier and ``y``
             is either binary or multiclass, :class:`StratifiedKFold` is used.
             In all other cases, :class:`KFold` is used. Defaults to None.
-
-        verbose (int):
-            Controls the verbosity: 0 = silent, 1 = only status updates,
-            2 = status and trial results. Defaults to 0.
-
-        random_state (int or :obj:`RandomState`):
-            Pseudo random number generator state used for random uniform
+        verbose (int): Controls the verbosity: 0 = silent, 1 = only status
+            updates, 2 = status and trial results. Defaults to 0.
+        random_state (int or `RandomState`): Pseudo random number generator
+            state used for random uniform
             sampling from lists of possible values instead of scipy.stats
             distributions.
-
             If int, random_state is the seed used by the random number
             generator;
             If RandomState instance, random_state is the random number
             generator;
             If None, the random number generator is the RandomState instance
             used by np.random. Defaults to None.
-
             Ignored when doing Bayesian search.
-
-        error_score ('raise' or int or float):
-            Value to assign to the score if an error occurs in estimator
+        error_score ('raise' or int or float): Value to assign to the score if
+            an error occurs in estimator
             fitting. If set to 'raise', the error is raised. If a numeric value
             is given, FitFailedWarning is raised. This parameter does not
             affect the refit step, which will always raise the error.
             Defaults to np.nan.
-
-        return_train_score (bool):
-            If ``False``, the ``cv_results_`` attribute will not include
-            training scores. Defaults to False.
-
+        return_train_score (bool): If ``False``, the ``cv_results_``
+            attribute will not include training scores. Defaults to False.
             Computing training scores is used to get insights on how different
             parameter settings impact the overfitting/underfitting trade-off.
-
             However computing the scores on the training set can be
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
-
-        max_iters (int):
-            Indicates the maximum number of epochs to run for each
+        max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
-
-        search_optimization ("random" or "bayesian"):
-            If "random", uses randomized search over the
+        search_optimization ("random" or "bayesian"): If "random", uses
+            randomized search over the
             ``param_distributions``. If "bayesian", uses Bayesian
             optimization to search for hyperparameters.
 
@@ -273,7 +236,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         by ``rvs``.
 
         Args:
-            config (:obj:`dict`): dictionary to be filled in as the
+            config (`dict`): dictionary to be filled in as the
                 configuration for `tune.run`.
 
         """
@@ -318,7 +281,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 are integers specifying the number of each resource to use.
 
         Returns:
-            analysis (:obj:`ExperimentAnalysis`): Object returned by
+            analysis (`ExperimentAnalysis`): Object returned by
                 `tune.run`.
 
         """
