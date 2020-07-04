@@ -18,7 +18,7 @@ If the estimator does not support `partial_fit`, a warning will be shown saying 
 
 #### User Installation
 
-`pip install tune-sklearn`
+`pip install tune-sklearn ray[tune]`
 
 ## Examples
 #### TuneGridSearchCV
