@@ -257,23 +257,23 @@ class TuneBaseSearchCV(BaseEstimator):
         self.use_gpu = use_gpu
 
     def fit(self, X, y=None, groups=None, **fit_params):
-        """Run fit with all sets of parameters. ``tune.run`` is used to perform
-        the fit procedure, which is put in a helper function ``_tune_run``.
+        """Run fit with all sets of parameters.
+
+        ``tune.run`` is used to perform the fit procedure.
 
         Args:
             X (:obj:`array-like` (shape = [n_samples, n_features])):
                 Training vector, where n_samples is the number of samples and
                 n_features is the number of features.
-            y (:obj:`array-like` (shape = [n_samples] or
-                [n_samples, n_output]), optional):
-                Target relative to X for classification or regression;
-                None for unsupervised learning.
+            y (:obj:`array-like`): Shape of array expected to be [n_samples]
+                or [n_samples, n_output]). Target relative to X for
+                classification or regression; None for unsupervised learning.
             groups (:obj:`array-like` (shape (n_samples,)), optional):
                 Group labels for the samples used while splitting the dataset
                 into train/test set. Only used in conjunction with a "Group"
                 `cv` instance (e.g., `GroupKFold`).
-            **fit_params (:obj:`dict` of str):
-                Parameters passed to the ``fit`` method of the estimator.
+            **fit_params (:obj:`dict` of str): Parameters passed to
+                the ``fit`` method of the estimator.
 
         Returns:
             :obj:`TuneBaseSearchCV` child instance, after fitting.
@@ -341,12 +341,12 @@ class TuneBaseSearchCV(BaseEstimator):
         """Compute the score(s) of an estimator on a given test set.
 
         Args:
-            X (:obj:`array-like` (shape = [n_samples, n_features])):
-                Input data, where n_samples is the number of samples and
+            X (:obj:`array-like` (shape = [n_samples, n_features])): Input
+                data, where n_samples is the number of samples and
                 n_features is the number of features.
-            y (:obj:`array-like` (shape = [n_samples] or
-                [n_samples, n_output]), optional):
-                Target relative to X for classification or regression;
+            y (:obj:`array-like`): Shape of array is expected to be
+                [n_samples] or [n_samples, n_output]). Target relative to X
+                for classification or regression. You can also pass in
                 None for unsupervised learning.
 
         Returns:
