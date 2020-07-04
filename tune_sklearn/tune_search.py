@@ -38,8 +38,8 @@ class TuneSearchCV(TuneBaseSearchCV):
         estimator (`estimator`): This is assumed to implement the
             scikit-learn estimator interface. Either estimator needs to
             provide a ``score`` function, or ``scoring`` must be passed.
-        param_distributions (`dict`): Serves as the ``param_distributions``
-            parameter in scikit-learn's
+        param_distributions (`dict` or `list`): Serves as the
+            ``param_distributions`` parameter in scikit-learn's
             ``RandomizedSearchCV`` or as the ``search_space`` parameter in
             ``BayesSearchCV``.
             For randomized search: dictionary with parameters names (string)
@@ -50,25 +50,15 @@ class TuneSearchCV(TuneBaseSearchCV):
             If a list is given, it is sampled uniformly. If a list of dicts is
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
-            For Bayesian search: it is one of these cases:
-
-                1. dictionary, where keys are parameter names (strings) and values
-                are skopt.space.Dimension instances (Real, Integer or Categorical)
-                or any other valid value that defines skopt dimension (see
-                skopt.Optimizer docs). Represents search space over parameters of
-                the provided estimator.
-
-                2. list of dictionaries: a list of dictionaries, where every
-                dictionary fits the description given in case 1 above. If a list of
-                dictionary objects is given, then the search is performed
-                sequentially for every parameter space with maximum number of
-                evaluations set to self.n_iter.
-
-                3. list of (dict, int > 0): an extension of case 2 above, where
-                first element of every tuple is a dictionary representing some
-                search subspace, similarly as in case 2, and second element is a
-                number of iterations that will be spent optimizing over this
-                subspace.
+            For Bayesian search:
+            If an object is passed in for ``search_optimization``,
+            ``param_distributions`` is ignored because the user specifies
+            the search space.
+            If the string "bayesian" is passed in, ``param_distributions``
+            is a dictionary where keys are
+            parameter names (strings) and values are tuples.
+            Represents search space over parameters of
+            the provided estimator.
         early_stopping (str or `TrialScheduler`, optional): Scheduler for
             executing fit with early stopping.
             Refer to ray.tune.schedulers for all options. If a string is given,
@@ -113,9 +103,11 @@ class TuneSearchCV(TuneBaseSearchCV):
 
                 - None, to use the default 5-fold cross validation,
 
-                - integer, to specify the number of folds in a `(Stratified)KFold`,
+                - integer, to specify the number of folds in a
+                `(Stratified)KFold`,
 
-                - An iterable yielding (train, test) splits as arrays of indices.
+                - An iterable yielding (train, test) splits as
+                arrays of indices.
 
             For integer/None inputs, if the estimator is a classifier and ``y``
             is either binary or multiclass, :class:`StratifiedKFold` is used.
@@ -149,10 +141,10 @@ class TuneSearchCV(TuneBaseSearchCV):
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
-        search_optimization ("random" or "bayesian"): If "random", uses
-            randomized search over the
-            ``param_distributions``. If "bayesian", uses Bayesian
-            optimization to search for hyperparameters.
+        search_optimization ("random", "bayesian", or :obj:`BayesOptSearch`):
+            If "random", uses randomized search over the
+            ``param_distributions``. If "bayesian" or ``BayesOptSearch``,
+            uses Bayesian optimization to search for hyperparameters.
 
     """
 
