@@ -53,9 +53,13 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             using all processors. Defaults to None.
         cv (int, `cross-validation generator` or `iterable`): Determines the
             cross-validation splitting strategy. Possible inputs for cv are:
+
             - None, to use the default 5-fold cross validation,
+
             - integer, to specify the number of folds in a `(Stratified)KFold`,
+
             - An iterable yielding (train, test) splits as arrays of indices.
+
             For integer/None inputs, if the estimator is a classifier and ``y``
             is either binary or multiclass, :class:`StratifiedKFold` is used.
             In all other cases, :class:`KFold` is used. Defaults to None.
@@ -92,7 +96,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
         max_iters (int): Indicates the maximum number of epochs to run for each
-            hyperparameter configuration sampled (specified by ``n_iter``).
+            hyperparameter configuration sampled.
             This parameter is used for early stopping. Defaults to 10.
     """
 
