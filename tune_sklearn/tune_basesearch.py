@@ -22,7 +22,7 @@ from sklearn.exceptions import NotFittedError
 import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
-    HyperBandForBOHB, MedianStoppingRule, TrialScheduler, ASHAScheduler)
+    MedianStoppingRule, TrialScheduler, ASHAScheduler)
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
