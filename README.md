@@ -14,7 +14,6 @@ If the estimator does not support `partial_fit`, a warning will be shown saying 
 - numpy (>=1.16)
 - ray
 - scikit-learn (>=0.23)
-- cloudpickle
 
 #### User Installation
 

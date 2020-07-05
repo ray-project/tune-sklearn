@@ -235,7 +235,8 @@ class TuneBaseSearchCV(BaseEstimator):
                 self.early_stopping = early_stopping
                 self.early_stopping.metric = "average_test_score"
             else:
-                raise TypeError("Scheduler must be a str or tune scheduler")
+                raise TypeError("`early_stopping` must be a str, boolean, "
+                                "or tune scheduler")
         else:
             warnings.warn("Early stopping is not enabled. "
                           "To enable early stopping, pass in a supported "
