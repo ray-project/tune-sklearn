@@ -34,8 +34,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
     defined_schedulers = [
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
-        "HyperBandScheduler", "HyperBandForBOHB", "MedianStoppingRule",
-        "ASHAScheduler"
+        "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler"
     ]
 
     @property
@@ -207,8 +206,10 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.estimator = estimator
 
-        if early_stopping is not None and self._can_early_stop():
+        if early_stopping and self._can_early_stop():
             self.max_iters = max_iters
+            if early_stopping is True:
+                early_stopping = "AsyncHyperBandScheduler"
             if isinstance(early_stopping, str):
                 if early_stopping in TuneBaseSearchCV.defined_schedulers:
                     if early_stopping == "PopulationBasedTraining":
@@ -219,9 +220,6 @@ class TuneBaseSearchCV(BaseEstimator):
                             metric="average_test_score")
                     elif early_stopping == "HyperBandScheduler":
                         self.early_stopping = HyperBandScheduler(
-                            metric="average_test_score")
-                    elif early_stopping == "HyperBandForBOHB":
-                        self.early_stopping = HyperBandForBOHB(
                             metric="average_test_score")
                     elif early_stopping == "MedianStoppingRule":
                         self.early_stopping = MedianStoppingRule(

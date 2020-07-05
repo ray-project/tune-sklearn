@@ -59,15 +59,19 @@ class TuneSearchCV(TuneBaseSearchCV):
             parameter names (strings) and values are tuples.
             Represents search space over parameters of
             the provided estimator.
-        early_stopping (str or `TrialScheduler`, optional): Scheduler for
-            executing fit with early stopping.
-            Refer to ray.tune.schedulers for all options. If a string is given,
-            a scheduler will be created with default parameters. To specify
-            parameters of the scheduler, pass in a scheduler object instead of
-            a string. The scheduler will be used if the estimator supports
-            partial fitting to stop fitting to a hyperparameter configuration
-            if it performs poorly.
-            If None, early stopping will not be used. This is the default.
+        early_stopping (bool, str or :class:`TrialScheduler`, optional): Option
+            to stop fitting to a hyperparameter configuration if it performs
+            poorly. Possible inputs are:
+
+            - If True, defaults to ASHAScheduler.
+            - A string corresponding to the name of a Tune Trial Scheduler
+              (i.e., "ASHAScheduler"). To specify parameters of the scheduler,
+              pass in a scheduler object instead of a string.
+            - Scheduler for executing fit with early stopping. Only a subset
+              of schedulers are currently supported. The scheduler will only be
+              used if the estimator supports partial fitting
+            - If None or False, early stopping will not be used.
+
         n_iter (int): Number of parameter settings that are sampled.
             n_iter trades off runtime vs quality of the solution.
             Defaults to 10.
@@ -101,13 +105,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             the cross-validation splitting strategy.
             Possible inputs for cv are:
 
-                - None, to use the default 5-fold cross validation,
-
-                - integer, to specify the number of folds in a
-                `(Stratified)KFold`,
-
-                - An iterable yielding (train, test) splits as
-                arrays of indices.
+            - None, to use the default 5-fold cross validation,
+            - integer, to specify the number of folds in a `(Stratified)KFold`,
+            - An iterable yielding (train, test) splits as arrays of indices.
 
             For integer/None inputs, if the estimator is a classifier and ``y``
             is either binary or multiclass, :class:`StratifiedKFold` is used.

@@ -33,14 +33,19 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             dictionaries, in which case the grids spanned by each dictionary
             in the list are explored. This enables searching over any sequence
             of parameter settings.
-        early_stopping (str or `TrialScheduler`, optional): Scheduler for
-            executing fit with early stopping.
-            Refer to ray.tune.schedulers for all options. If a string is given,
-            a scheduler will be created with default parameters. To specify
-            parameters of the scheduler, pass in a scheduler object instead of
-            a string. The scheduler will be used if the estimator supports
-            partial fitting to stop fitting to a hyperparameter configuration
-            if it performs poorly. If None, early stopping will not be used.
+        early_stopping (bool, str or :class:`TrialScheduler`, optional): Option
+            to stop fitting to a hyperparameter configuration if it performs
+            poorly. Possible inputs are:
+
+            - If True, defaults to ASHAScheduler.
+            - A string corresponding to the name of a Tune Trial Scheduler
+              (i.e., "ASHAScheduler"). To specify parameters of the scheduler,
+              pass in a scheduler object instead of a string.
+            - Scheduler for executing fit with early stopping. Only a subset
+              of schedulers are currently supported. The scheduler will only be
+              used if the estimator supports partial fitting
+            - If None or False, early stopping will not be used.
+
         scoring (str, `callable`, `list`, `tuple`, `dict` or None): A single
             string or a callable to evaluate the predictions on the test set.
             For evaluating multiple metrics, either give a list of (unique)
@@ -55,9 +60,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             cross-validation splitting strategy. Possible inputs for cv are:
 
             - None, to use the default 5-fold cross validation,
-
             - integer, to specify the number of folds in a `(Stratified)KFold`,
-
             - An iterable yielding (train, test) splits as arrays of indices.
 
             For integer/None inputs, if the estimator is a classifier and ``y``

@@ -21,7 +21,7 @@ class _Trainable(Trainable):
 
     """
 
-    def setup(self, config):
+    def _setup(self, config):
         """Sets up Trainable attributes during initialization.
 
         Also sets up parameters for the sklearn estimator passed in.
@@ -56,7 +56,7 @@ class _Trainable(Trainable):
         else:
             self.estimator.set_params(**self.estimator_config)
 
-    def step(self):
+    def _train(self):
         """Trains one iteration of the model called when ``tune.run`` is called.
 
         Different routines are run depending on if the ``early_stopping``
@@ -159,7 +159,7 @@ class _Trainable(Trainable):
 
             return ret
 
-    def save_checkpoint(self, checkpoint_dir):
+    def _save(self, checkpoint_dir):
         """Creates a checkpoint in ``checkpoint_dir``, creating a pickle file.
 
         Args:
@@ -181,8 +181,8 @@ class _Trainable(Trainable):
                               .format(self.estimator))
         return path
 
-    def load_checkpoint(self, checkpoint):
-        """Loads a checkpoint created from `save_checkpoint`.
+    def _restore(self, checkpoint):
+        """Loads a checkpoint created from `save`.
 
         Args:
             checkpoint (str): file path to pickled checkpoint file.
