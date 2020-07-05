@@ -14,11 +14,10 @@ If the estimator does not support `partial_fit`, a warning will be shown saying 
 - numpy (>=1.16)
 - ray
 - scikit-learn (>=0.23)
-- cloudpickle
 
 #### User Installation
 
-`pip install tune-sklearn`
+`pip install tune-sklearn ray[tune]`
 
 ## Examples
 #### TuneGridSearchCV

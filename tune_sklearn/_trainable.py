@@ -9,7 +9,7 @@ from sklearn.utils.metaestimators import _safe_split
 import numpy as np
 import os
 from pickle import PicklingError
-import cloudpickle as cpickle
+import ray.cloudpickle as cpickle
 import warnings
 
 
@@ -182,7 +182,7 @@ class _Trainable(Trainable):
         return path
 
     def _restore(self, checkpoint):
-        """Loads a checkpoint created from `_save`.
+        """Loads a checkpoint created from `save`.
 
         Args:
             checkpoint (str): file path to pickled checkpoint file.

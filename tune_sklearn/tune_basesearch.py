@@ -22,7 +22,7 @@ from sklearn.exceptions import NotFittedError
 import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
-    HyperBandForBOHB, MedianStoppingRule, TrialScheduler, ASHAScheduler)
+    MedianStoppingRule, TrialScheduler, ASHAScheduler)
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
@@ -34,8 +34,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
     defined_schedulers = [
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
-        "HyperBandScheduler", "HyperBandForBOHB", "MedianStoppingRule",
-        "ASHAScheduler"
+        "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler"
     ]
 
     @property
@@ -207,8 +206,10 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.estimator = estimator
 
-        if early_stopping is not None and self._can_early_stop():
+        if early_stopping and self._can_early_stop():
             self.max_iters = max_iters
+            if early_stopping is True:
+                early_stopping = "AsyncHyperBandScheduler"
             if isinstance(early_stopping, str):
                 if early_stopping in TuneBaseSearchCV.defined_schedulers:
                     if early_stopping == "PopulationBasedTraining":
@@ -219,9 +220,6 @@ class TuneBaseSearchCV(BaseEstimator):
                             metric="average_test_score")
                     elif early_stopping == "HyperBandScheduler":
                         self.early_stopping = HyperBandScheduler(
-                            metric="average_test_score")
-                    elif early_stopping == "HyperBandForBOHB":
-                        self.early_stopping = HyperBandForBOHB(
                             metric="average_test_score")
                     elif early_stopping == "MedianStoppingRule":
                         self.early_stopping = MedianStoppingRule(
@@ -237,7 +235,8 @@ class TuneBaseSearchCV(BaseEstimator):
                 self.early_stopping = early_stopping
                 self.early_stopping.metric = "average_test_score"
             else:
-                raise TypeError("Scheduler must be a str or tune scheduler")
+                raise TypeError("`early_stopping` must be a str, boolean, "
+                                "or tune scheduler")
         else:
             warnings.warn("Early stopping is not enabled. "
                           "To enable early stopping, pass in a supported "
@@ -257,23 +256,23 @@ class TuneBaseSearchCV(BaseEstimator):
         self.use_gpu = use_gpu
 
     def fit(self, X, y=None, groups=None, **fit_params):
-        """Run fit with all sets of parameters. ``tune.run`` is used to perform
-        the fit procedure, which is put in a helper function ``_tune_run``.
+        """Run fit with all sets of parameters.
+
+        ``tune.run`` is used to perform the fit procedure.
 
         Args:
             X (:obj:`array-like` (shape = [n_samples, n_features])):
                 Training vector, where n_samples is the number of samples and
                 n_features is the number of features.
-            y (:obj:`array-like` (shape = [n_samples] or
-                [n_samples, n_output]), optional):
-                Target relative to X for classification or regression;
-                None for unsupervised learning.
+            y (:obj:`array-like`): Shape of array expected to be [n_samples]
+                or [n_samples, n_output]). Target relative to X for
+                classification or regression; None for unsupervised learning.
             groups (:obj:`array-like` (shape (n_samples,)), optional):
                 Group labels for the samples used while splitting the dataset
                 into train/test set. Only used in conjunction with a "Group"
                 `cv` instance (e.g., `GroupKFold`).
-            **fit_params (:obj:`dict` of str):
-                Parameters passed to the ``fit`` method of the estimator.
+            **fit_params (:obj:`dict` of str): Parameters passed to
+                the ``fit`` method of the estimator.
 
         Returns:
             :obj:`TuneBaseSearchCV` child instance, after fitting.
@@ -341,12 +340,12 @@ class TuneBaseSearchCV(BaseEstimator):
         """Compute the score(s) of an estimator on a given test set.
 
         Args:
-            X (:obj:`array-like` (shape = [n_samples, n_features])):
-                Input data, where n_samples is the number of samples and
+            X (:obj:`array-like` (shape = [n_samples, n_features])): Input
+                data, where n_samples is the number of samples and
                 n_features is the number of features.
-            y (:obj:`array-like` (shape = [n_samples] or
-                [n_samples, n_output]), optional):
-                Target relative to X for classification or regression;
+            y (:obj:`array-like`): Shape of array is expected to be
+                [n_samples] or [n_samples, n_output]). Target relative to X
+                for classification or regression. You can also pass in
                 None for unsupervised learning.
 
         Returns:
