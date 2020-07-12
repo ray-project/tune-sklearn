@@ -6,10 +6,12 @@ from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from sklearn.base import clone
 from ray import tune
-from ray.tune.suggest.bayesopt import BayesOptSearch
 from tune_sklearn.list_searcher import RandomListSearcher
 import numpy as np
 import warnings
+import skopt
+from skopt import Optimizer
+from ray.tune.suggest.skopt import SkOptSearch
 
 
 class TuneSearchCV(TuneBaseSearchCV):
@@ -50,15 +52,15 @@ class TuneSearchCV(TuneBaseSearchCV):
             If a list is given, it is sampled uniformly. If a list of dicts is
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
-            For Bayesian search:
-            If an object is passed in for ``search_optimization``,
-            ``param_distributions`` is ignored because the user specifies
-            the search space.
-            If the string "bayesian" is passed in, ``param_distributions``
-            is a dictionary where keys are
-            parameter names (strings) and values are tuples.
-            Represents search space over parameters of
-            the provided estimator.
+            For Bayesian search: dictionary with parameter names (string)
+            as keys. Values can be
+
+            - a (lower_bound, upper_bound) tuple (for Real
+              or Integer dimensions),
+            - a (lower_bound, upper_bound, "prior") tuple
+              (for Real dimensions),
+            - as a list of categories (for Categorical dimensions), or
+            - an instance of a Dimension object (Real, Integer or Categorical).
         early_stopping (bool, str or :class:`TrialScheduler`, optional): Option
             to stop fitting to a hyperparameter configuration if it performs
             poorly. Possible inputs are:
@@ -141,10 +143,10 @@ class TuneSearchCV(TuneBaseSearchCV):
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
-        search_optimization ("random", "bayesian", or :obj:`BayesOptSearch`):
+        search_optimization ("random" or "bayesian"):
             If "random", uses randomized search over the
-            ``param_distributions``. If "bayesian" or ``BayesOptSearch``,
-            uses Bayesian optimization to search for hyperparameters.
+            ``param_distributions``. If "bayesian", uses
+            Bayesian optimization to search for hyperparameters.
 
     """
 
@@ -165,18 +167,11 @@ class TuneSearchCV(TuneBaseSearchCV):
                  search_optimization="random",
                  use_gpu=False):
 
-        if (search_optimization not in ["random", "bayesian"]
-                and not isinstance(search_optimization, BayesOptSearch)):
+        if (search_optimization not in ["random", "bayesian"]):
             raise ValueError("Search optimization must be random or bayesian")
-        if ((search_optimization == "bayesian"
-             or isinstance(search_optimization, BayesOptSearch))
-                and random_state is not None):
+        if (search_optimization == "bayesian" and random_state is not None):
             warnings.warn(
                 "random state is ignored when using Bayesian optimization")
-        if isinstance(search_optimization, BayesOptSearch):
-            search_optimization._metric = "average_test_score"
-            warnings.warn("`param_distributions` is ignored when "
-                          "passing in `BayesOptSearch` object")
 
         if isinstance(param_distributions, list):
             if search_optimization == "bayesian":
@@ -195,9 +190,12 @@ class TuneSearchCV(TuneBaseSearchCV):
                             "distribution must be a list or scipy "
                             "distribution when using randomized search")
                 else:
-                    if not isinstance(dist, tuple):
+                    if not isinstance(
+                            dist, skopt.space.Dimension) and not isinstance(
+                                dist, tuple) and not isinstance(dist, list):
                         raise ValueError(
-                            "distribution must be a tuple when using "
+                            "distribution must be a tuple, list, or "
+                            "`skopt.space.Dimension` instance when using "
                             "bayesian search")
 
         super(TuneSearchCV, self).__init__(
@@ -232,8 +230,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
-        if (self.search_optimization == "bayesian"
-                or isinstance(self.search_optimization, BayesOptSearch)):
+        if (self.search_optimization == "bayesian"):
             return
 
         if isinstance(self.param_distributions, list):
@@ -259,6 +256,12 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config[key] = tune.sample_from(get_sample(distribution))
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
+
+    def _get_skopt_params(self):
+        hyperparameter_names = list(self.param_distributions.keys())
+        spaces = list(self.param_distributions.values())
+
+        return hyperparameter_names, spaces
 
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
@@ -309,17 +312,11 @@ class TuneSearchCV(TuneBaseSearchCV):
                     checkpoint_at_end=True,
                     resources_per_trial=resources_per_trial)
         else:
-            if self.search_optimization == "bayesian":
-                search_algo = BayesOptSearch(
-                    space=self.param_distributions,
-                    metric="average_test_score",
-                    utility_kwargs={
-                        "kind": "ucb",
-                        "kappa": 2.5,
-                        "xi": 0.0
-                    })
-            else:
-                search_algo = self.search_optimization
+            hyperparameter_names, spaces = self._get_skopt_params()
+            search_algo = SkOptSearch(
+                Optimizer(spaces),
+                hyperparameter_names,
+                metric="average_test_score")
 
             analysis = tune.run(
                 _Trainable,
