@@ -74,6 +74,9 @@ class TuneSearchCV(TuneBaseSearchCV):
               used if the estimator supports partial fitting
             - If None or False, early stopping will not be used.
 
+            https://scikit-optimize.github.io/stable/modules/generated/
+            skopt.Optimizer.html#skopt.Optimizer
+
         n_iter (int): Number of parameter settings that are sampled.
             n_iter trades off runtime vs quality of the solution.
             Defaults to 10.
@@ -146,7 +149,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         search_optimization ("random" or "bayesian"):
             If "random", uses randomized search over the
             ``param_distributions``. If "bayesian", uses
-            Bayesian optimization to search for hyperparameters.
+            Bayesian optimization from scikit-optimize
+            (https://scikit-optimize.github.io/stable/index.html)
+            to search for hyperparameters.
 
     """
 

@@ -1,9 +1,8 @@
 from tune_sklearn import TuneSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
-import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from ray.tune.suggest.bayesopt import BayesOptSearch
+from skopt.space.space import Real
 
 digits = datasets.load_digits()
 X = digits.data
@@ -11,9 +10,11 @@ y = digits.target
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-space = {'n_estimators': (100,200),
-        'min_samples_split': (2, 10),
-        'min_samples_leaf': (1, 5)}
+space = {
+    "n_estimators": (100, 200),
+    "min_weight_fraction_leaf": Real(0.0, 0.5),
+    "min_samples_leaf": (1, 5)
+}
 
 tune_search = TuneSearchCV(
     RandomForestClassifier(),
