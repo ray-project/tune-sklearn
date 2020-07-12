@@ -61,6 +61,9 @@ class TuneSearchCV(TuneBaseSearchCV):
               (for Real dimensions),
             - as a list of categories (for Categorical dimensions), or
             - an instance of a Dimension object (Real, Integer or Categorical).
+
+            https://scikit-optimize.github.io/stable/modules/generated/
+            skopt.Optimizer.html#skopt.Optimizer
         early_stopping (bool, str or :class:`TrialScheduler`, optional): Option
             to stop fitting to a hyperparameter configuration if it performs
             poorly. Possible inputs are:
@@ -73,10 +76,6 @@ class TuneSearchCV(TuneBaseSearchCV):
               of schedulers are currently supported. The scheduler will only be
               used if the estimator supports partial fitting
             - If None or False, early stopping will not be used.
-
-            https://scikit-optimize.github.io/stable/modules/generated/
-            skopt.Optimizer.html#skopt.Optimizer
-
         n_iter (int): Number of parameter settings that are sampled.
             n_iter trades off runtime vs quality of the solution.
             Defaults to 10.
