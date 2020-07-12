@@ -82,7 +82,7 @@ print("Sklearn Accuracy:", accuracy)
 
 #### TuneSearchCV
 
-`TuneSearchCV` uses randomized search over the distribution by default, but can do Bayesian search as well by specifying the `search_optimization` parameter as shown here. You need to run `pip install bayesian-optimization` for this to work. More details in [Tune Documentation](https://docs.ray.io/en/latest/tune-searchalg.html#bayesopt-search).
+`TuneSearchCV` uses randomized search over the distribution by default, but can do Bayesian search as well by specifying the `search_optimization` parameter as shown here. You need to run `pip install scikit-optimize` for this to work. More details in [Tune Documentation](https://docs.ray.io/en/latest/tune-searchalg.html#bayesopt-search).
 
 ```python
 from tune_sklearn import TuneSearchCV
