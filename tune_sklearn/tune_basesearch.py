@@ -210,7 +210,7 @@ class TuneBaseSearchCV(BaseEstimator):
             self.max_iters = max_iters
             if early_stopping is True:
                 early_stopping = "AsyncHyperBandScheduler"
-            if isinstance(early_stopping, str):
+            elif isinstance(early_stopping, str):
                 if early_stopping in TuneBaseSearchCV.defined_schedulers:
                     if early_stopping == "PopulationBasedTraining":
                         self.early_stopping = PopulationBasedTraining(
@@ -237,7 +237,7 @@ class TuneBaseSearchCV(BaseEstimator):
             else:
                 raise TypeError("`early_stopping` must be a str, boolean, "
                                 "or tune scheduler")
-        else:
+        elif not early_stopping:
             warnings.warn("Early stopping is not enabled. "
                           "To enable early stopping, pass in a supported "
                           "scheduler from Tune and ensure the estimator "
@@ -245,6 +245,9 @@ class TuneBaseSearchCV(BaseEstimator):
 
             self.max_iters = 1
             self.early_stopping = None
+        else:
+            raise ValueError("Early stopping is not supported because "
+                             "the estimator does not have `partial_fit`")
 
         self.cv = cv
         self.scoring = scoring
