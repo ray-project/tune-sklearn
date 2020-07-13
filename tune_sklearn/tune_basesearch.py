@@ -213,7 +213,7 @@ class TuneBaseSearchCV(BaseEstimator):
                 # that it is resolved appropriately in
                 # the next block
                 early_stopping = "AsyncHyperBandScheduler"
-             # Resolve the early stopping object
+            # Resolve the early stopping object
             if isinstance(early_stopping, str):
                 if early_stopping in TuneBaseSearchCV.defined_schedulers:
                     if early_stopping == "PopulationBasedTraining":
