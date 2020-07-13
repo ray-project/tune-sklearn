@@ -45,7 +45,7 @@ script:
   - python3 -m unittest test_randomizedsearch.py
   - python3 -m unittest test_gridsearch.py
   - cd ../examples
-  - for f in *.py; do python "$f"; done
+  - for f in *.py; do python3 "$f"; done
 
 cache:
   directories:
