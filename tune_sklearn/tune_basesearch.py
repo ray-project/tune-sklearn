@@ -209,8 +209,8 @@ class TuneBaseSearchCV(BaseEstimator):
         if early_stopping and self._can_early_stop():
             self.max_iters = max_iters
             if early_stopping is True:
-                self.early_stopping = "AsyncHyperBandScheduler"
-            elif isinstance(early_stopping, str):
+                early_stopping = "AsyncHyperBandScheduler"
+            if isinstance(early_stopping, str):
                 if early_stopping in TuneBaseSearchCV.defined_schedulers:
                     if early_stopping == "PopulationBasedTraining":
                         self.early_stopping = PopulationBasedTraining(
