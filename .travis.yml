@@ -45,14 +45,7 @@ script:
   - python3 -m unittest test_randomizedsearch.py
   - python3 -m unittest test_gridsearch.py
   - cd ../examples
-  - python3 random_forest.py
-  - python3 sgd.py
-  - python3 torch_nn.py
-  - python3 lgbm.py
-  - python3 xgbclassifier.py
-  - python3 keras_example.py
-  - python3 sklearn_pipeline.py
-  - python3 bayesian_sgd.py
+  - for f in *.py; do python3 "$f"; done
 
 cache:
   directories:
