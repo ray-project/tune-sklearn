@@ -62,8 +62,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             - as a list of categories (for Categorical dimensions), or
             - an instance of a Dimension object (Real, Integer or Categorical).
 
-            https://scikit-optimize.github.io/stable/modules/generated/
-            skopt.Optimizer.html#skopt.Optimizer
+            https://scikit-optimize.github.io/stable/modules/
+            classes.html#module-skopt.space.space
         early_stopping (bool, str or :class:`TrialScheduler`, optional): Option
             to stop fitting to a hyperparameter configuration if it performs
             poorly. Possible inputs are:
