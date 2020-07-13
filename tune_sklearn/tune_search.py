@@ -76,6 +76,7 @@ class TuneSearchCV(TuneBaseSearchCV):
               of schedulers are currently supported. The scheduler will only be
               used if the estimator supports partial fitting
             - If None or False, early stopping will not be used.
+
         n_iter (int): Number of parameter settings that are sampled.
             n_iter trades off runtime vs quality of the solution.
             Defaults to 10.
