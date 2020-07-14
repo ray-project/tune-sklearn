@@ -13,3 +13,4 @@ skorch
 lightgbm
 keras
 tensorflow
+click
