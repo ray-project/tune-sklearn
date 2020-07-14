@@ -26,6 +26,8 @@ from ray.tune.schedulers import (
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
+import traceback
+import logging
 import multiprocessing
 
 
@@ -281,63 +283,75 @@ class TuneBaseSearchCV(BaseEstimator):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
-        ray.init(ignore_reinit_error=True, configure_logging=False)
+        try:
+            ray_init = ray.is_initialized()
+            if not ray_init:
+                ray.init(ignore_reinit_error=True, configure_logging=False)
 
-        self._check_params()
-        classifier = is_classifier(self.estimator)
-        cv = check_cv(cv=self.cv, y=y, classifier=classifier)
-        self.n_splits = cv.get_n_splits(X, y, groups)
-        self.scoring = check_scoring(self.estimator, scoring=self.scoring)
+            self._check_params()
+            classifier = is_classifier(self.estimator)
+            cv = check_cv(cv=self.cv, y=y, classifier=classifier)
+            self.n_splits = cv.get_n_splits(X, y, groups)
+            self.scoring = check_scoring(self.estimator, scoring=self.scoring)
 
-        if self.n_jobs is not None:
-            if self.n_jobs < 0:
-                resources_per_trial = {
-                    "cpu": max(multiprocessing.cpu_count() + 1 + self.n_jobs,
-                               1),
-                    "gpu": 1 if self.use_gpu else 0
-                }
+            if self.n_jobs is not None:
+                if self.n_jobs < 0:
+                    resources_per_trial = {
+                        "cpu": max(
+                            multiprocessing.cpu_count() + 1 + self.n_jobs, 1),
+                        "gpu": 1 if self.use_gpu else 0
+                    }
+                else:
+                    resources_per_trial = {
+                        "cpu": self.n_jobs,
+                        "gpu": 1 if self.use_gpu else 0
+                    }
             else:
                 resources_per_trial = {
-                    "cpu": self.n_jobs,
+                    "cpu": 1,
                     "gpu": 1 if self.use_gpu else 0
                 }
-        else:
-            resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
 
-        X_id = ray.put(X)
-        y_id = ray.put(y)
+            X_id = ray.put(X)
+            y_id = ray.put(y)
 
-        config = {}
-        config["early_stopping"] = self.early_stopping
-        config["X_id"] = X_id
-        config["y_id"] = y_id
-        config["groups"] = groups
-        config["cv"] = cv
-        config["fit_params"] = fit_params
-        config["scoring"] = self.scoring
-        config["max_iters"] = self.max_iters
-        config["return_train_score"] = self.return_train_score
+            config = {}
+            config["early_stopping"] = self.early_stopping
+            config["X_id"] = X_id
+            config["y_id"] = y_id
+            config["groups"] = groups
+            config["cv"] = cv
+            config["fit_params"] = fit_params
+            config["scoring"] = self.scoring
+            config["max_iters"] = self.max_iters
+            config["return_train_score"] = self.return_train_score
 
-        self._fill_config_hyperparam(config)
-        analysis = self._tune_run(config, resources_per_trial)
+            self._fill_config_hyperparam(config)
+            analysis = self._tune_run(config, resources_per_trial)
 
-        self.cv_results_ = self._format_results(self.n_splits, analysis)
+            self.cv_results_ = self._format_results(self.n_splits, analysis)
 
-        if self.refit:
-            best_config = analysis.get_best_config(
-                metric="average_test_score", mode="max")
-            self.best_params = self._clean_config_dict(best_config)
-            self.best_estimator_ = clone(self.estimator)
-            self.best_estimator_.set_params(**self.best_params)
-            self.best_estimator_.fit(X, y, **fit_params)
+            if self.refit:
+                best_config = analysis.get_best_config(
+                    metric="average_test_score", mode="max")
+                self.best_params = self._clean_config_dict(best_config)
+                self.best_estimator_ = clone(self.estimator)
+                self.best_estimator_.set_params(**self.best_params)
+                self.best_estimator_.fit(X, y, **fit_params)
 
-            df = analysis.dataframe(metric="average_test_score", mode="max")
-            self.best_score = df["average_test_score"].iloc[df[
-                "average_test_score"].idxmax()]
+                df = analysis.dataframe(
+                    metric="average_test_score", mode="max")
+                self.best_score = df["average_test_score"].iloc[df[
+                    "average_test_score"].idxmax()]
 
-        ray.shutdown()
+            if not ray_init and ray.is_initialized():
+                ray.shutdown()
 
-        return self
+            return self
+        except Exception:
+            logging.error(traceback.format_exc())
+            if not ray_init and ray.is_initialized():
+                ray.shutdown()
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.
