@@ -258,6 +258,81 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.use_gpu = use_gpu
 
+    def _fit(self, X, y=None, groups=None, **fit_params):
+        """Helper method to run fit procedure
+
+        Args:
+            X (:obj:`array-like` (shape = [n_samples, n_features])):
+                Training vector, where n_samples is the number of samples and
+                n_features is the number of features.
+            y (:obj:`array-like`): Shape of array expected to be [n_samples]
+                or [n_samples, n_output]). Target relative to X for
+                classification or regression; None for unsupervised learning.
+            groups (:obj:`array-like` (shape (n_samples,)), optional):
+                Group labels for the samples used while splitting the dataset
+                into train/test set. Only used in conjunction with a "Group"
+                `cv` instance (e.g., `GroupKFold`).
+            **fit_params (:obj:`dict` of str): Parameters passed to
+                the ``fit`` method of the estimator.
+
+        Returns:
+            :obj:`TuneBaseSearchCV` child instance, after fitting.
+        """
+
+        self._check_params()
+        classifier = is_classifier(self.estimator)
+        cv = check_cv(cv=self.cv, y=y, classifier=classifier)
+        self.n_splits = cv.get_n_splits(X, y, groups)
+        self.scoring = check_scoring(self.estimator, scoring=self.scoring)
+
+        if self.n_jobs is not None:
+            if self.n_jobs < 0:
+                resources_per_trial = {
+                    "cpu": max(multiprocessing.cpu_count() + 1 + self.n_jobs,
+                               1),
+                    "gpu": 1 if self.use_gpu else 0
+                }
+            else:
+                resources_per_trial = {
+                    "cpu": self.n_jobs,
+                    "gpu": 1 if self.use_gpu else 0
+                }
+        else:
+            resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
+
+        X_id = ray.put(X)
+        y_id = ray.put(y)
+
+        config = {}
+        config["early_stopping"] = self.early_stopping
+        config["X_id"] = X_id
+        config["y_id"] = y_id
+        config["groups"] = groups
+        config["cv"] = cv
+        config["fit_params"] = fit_params
+        config["scoring"] = self.scoring
+        config["max_iters"] = self.max_iters
+        config["return_train_score"] = self.return_train_score
+
+        self._fill_config_hyperparam(config)
+        analysis = self._tune_run(config, resources_per_trial)
+
+        self.cv_results_ = self._format_results(self.n_splits, analysis)
+
+        if self.refit:
+            best_config = analysis.get_best_config(
+                metric="average_test_score", mode="max")
+            self.best_params = self._clean_config_dict(best_config)
+            self.best_estimator_ = clone(self.estimator)
+            self.best_estimator_.set_params(**self.best_params)
+            self.best_estimator_.fit(X, y, **fit_params)
+
+            df = analysis.dataframe(metric="average_test_score", mode="max")
+            self.best_score = df["average_test_score"].iloc[df[
+                "average_test_score"].idxmax()]
+
+            return self
+
     def fit(self, X, y=None, groups=None, **fit_params):
         """Run fit with all sets of parameters.
 
@@ -286,66 +361,13 @@ class TuneBaseSearchCV(BaseEstimator):
             if not ray_init:
                 ray.init(ignore_reinit_error=True, configure_logging=False)
 
-            self._check_params()
-            classifier = is_classifier(self.estimator)
-            cv = check_cv(cv=self.cv, y=y, classifier=classifier)
-            self.n_splits = cv.get_n_splits(X, y, groups)
-            self.scoring = check_scoring(self.estimator, scoring=self.scoring)
-
-            if self.n_jobs is not None:
-                if self.n_jobs < 0:
-                    resources_per_trial = {
-                        "cpu": max(
-                            multiprocessing.cpu_count() + 1 + self.n_jobs, 1),
-                        "gpu": 1 if self.use_gpu else 0
-                    }
-                else:
-                    resources_per_trial = {
-                        "cpu": self.n_jobs,
-                        "gpu": 1 if self.use_gpu else 0
-                    }
-            else:
-                resources_per_trial = {
-                    "cpu": 1,
-                    "gpu": 1 if self.use_gpu else 0
-                }
-
-            X_id = ray.put(X)
-            y_id = ray.put(y)
-
-            config = {}
-            config["early_stopping"] = self.early_stopping
-            config["X_id"] = X_id
-            config["y_id"] = y_id
-            config["groups"] = groups
-            config["cv"] = cv
-            config["fit_params"] = fit_params
-            config["scoring"] = self.scoring
-            config["max_iters"] = self.max_iters
-            config["return_train_score"] = self.return_train_score
-
-            self._fill_config_hyperparam(config)
-            analysis = self._tune_run(config, resources_per_trial)
-
-            self.cv_results_ = self._format_results(self.n_splits, analysis)
-
-            if self.refit:
-                best_config = analysis.get_best_config(
-                    metric="average_test_score", mode="max")
-                self.best_params = self._clean_config_dict(best_config)
-                self.best_estimator_ = clone(self.estimator)
-                self.best_estimator_.set_params(**self.best_params)
-                self.best_estimator_.fit(X, y, **fit_params)
-
-                df = analysis.dataframe(
-                    metric="average_test_score", mode="max")
-                self.best_score = df["average_test_score"].iloc[df[
-                    "average_test_score"].idxmax()]
+            result = self._fit(X, y, groups, **fit_params)
 
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
 
-            return self
+            return result
+
         except Exception:
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
