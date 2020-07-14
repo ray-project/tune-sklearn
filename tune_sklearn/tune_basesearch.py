@@ -26,8 +26,6 @@ from ray.tune.schedulers import (
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
-import traceback
-import logging
 import multiprocessing
 
 
@@ -349,9 +347,9 @@ class TuneBaseSearchCV(BaseEstimator):
 
             return self
         except Exception:
-            logging.error(traceback.format_exc())
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
+            raise
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.
