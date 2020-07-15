@@ -5,14 +5,16 @@ matrix:
   include:
     - os: linux
       python: 3.6
-      env: PYTHON=3.6
+      env: PYTHON=3.6 OS=LINUX
+      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp36-cp36m-manylinux1_x86_64.whl
     - os: osx
       osx_image: xcode9.4
       language: generic
       env: PYTHON=3.6 PYTHONWARNINGS=ignore OS=MAC
     - os: linux
       python: 3.7
-      env: PYTHON=3.7
+      env: PYTHON=3.7 OS=LINUX
+      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp37-cp37m-manylinux1_x86_64.whl
     - os: osx
       osx_image: xcode10.2
       language: generic
@@ -30,11 +32,10 @@ notifications:
   email: false
 
 install:
-  - pip3 install -U pip
+  - pip3 install -U -q pip
   - pip3 install -r requirements.txt
-  - pip3 install -U ray
-  - pip3 install --upgrade keras
-  - pip3 install -U scikit-learn
+  - pip3 install --upgrade -q keras
+  - pip3 install -U -q scikit-learn
   # Nightly wheel installation
   # - pip3 install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple -U scikit-learn
 
@@ -45,14 +46,8 @@ script:
   - python3 -m unittest test_randomizedsearch.py
   - python3 -m unittest test_gridsearch.py
   - cd ../examples
-  - python3 random_forest.py
-  - python3 sgd.py
-  - python3 torch_nn.py
-  - python3 lgbm.py
-  - python3 xgbclassifier.py
-  - python3 keras_example.py
-  - python3 sklearn_pipeline.py
-  - python3 bayesian_sgd.py
+  - for f in *.py; do python3 "$f"; done
+  - if [ "$OS" == "LINUX" ]; then cd ~/ && git clone https://github.com/ray-project/ray && python ray/python/ray/setup-dev.py --yes && python3 ray/doc/source/tune/_tutorials/tune-sklearn.py; fi
 
 cache:
   directories:

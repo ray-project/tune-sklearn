@@ -566,11 +566,7 @@ class GridSearchTest(unittest.TestCase):
             "C": [1, 10, 100, 1000]
         }
 
-        tune_search = TuneGridSearchCV(
-            SVC(),
-            tuned_parameters,
-            early_stopping="MedianStoppingRule",
-            max_iters=20)
+        tune_search = TuneGridSearchCV(SVC(), tuned_parameters, max_iters=20)
         tune_search.fit(X_train, y_train)
 
         pred = tune_search.predict(X_test)
@@ -595,7 +591,6 @@ class GridSearchTest(unittest.TestCase):
         tune_search = TuneGridSearchCV(
             model,
             param_grid,
-            early_stopping="MedianStoppingRule",
         )
         tune_search.fit(X_train, y_train)
 
