@@ -5,22 +5,20 @@ matrix:
   include:
     - os: linux
       python: 3.6
-      env: PYTHON=3.6
+      env: PYTHON=3.6 OS=LINUX
       before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp36-cp36m-manylinux1_x86_64.whl
     - os: osx
       osx_image: xcode9.4
       language: generic
       env: PYTHON=3.6 PYTHONWARNINGS=ignore OS=MAC
-      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_intel.whl
     - os: linux
       python: 3.7
-      env: PYTHON=3.7
+      env: PYTHON=3.7 OS=LINUX
       before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp37-cp37m-manylinux1_x86_64.whl
     - os: osx
       osx_image: xcode10.2
       language: generic
       env: PYTHON=3.7 PYTHONWARNINGS=ignore OS=MAC
-      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp37-cp37m-macosx_10_13_intel.whl
     - os: linux
       env: LINT=1 PYTHONWARNINGS=ignore
       # before_install:
@@ -49,7 +47,7 @@ script:
   - python3 -m unittest test_gridsearch.py
   - cd ../examples
   - for f in *.py; do python3 "$f"; done
-  - cd ~/ && git clone https://github.com/ray-project/ray && python ray/python/ray/setup-dev.py --yes && python3 ray/doc/source/tune/_tutorials/tune-sklearn.py
+  - if [ "$OS" == "LINUX" ]; then cd ~/ && git clone https://github.com/ray-project/ray && python ray/python/ray/setup-dev.py --yes && python3 ray/doc/source/tune/_tutorials/tune-sklearn.py; fi
 
 cache:
   directories:
