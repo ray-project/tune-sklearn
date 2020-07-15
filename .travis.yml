@@ -35,7 +35,7 @@ notifications:
 
 install:
   - pip3 install -U -q pip
-  - pip3 install -r -q requirements.txt
+  - pip3 install -r requirements.txt
   - pip3 install --upgrade -q keras
   - pip3 install -U -q scikit-learn
   # Nightly wheel installation
