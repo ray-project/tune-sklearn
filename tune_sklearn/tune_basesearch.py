@@ -262,10 +262,8 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.use_gpu = use_gpu
 
-    def fit(self, X, y=None, groups=None, **fit_params):
-        """Run fit with all sets of parameters.
-
-        ``tune.run`` is used to perform the fit procedure.
+    def _fit(self, X, y=None, groups=None, **fit_params):
+        """Helper method to run fit procedure
 
         Args:
             X (:obj:`array-like` (shape = [n_samples, n_features])):
@@ -283,9 +281,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         Returns:
             :obj:`TuneBaseSearchCV` child instance, after fitting.
-
         """
-        ray.init(ignore_reinit_error=True, configure_logging=False)
 
         self._check_params()
         classifier = is_classifier(self.estimator)
@@ -339,9 +335,47 @@ class TuneBaseSearchCV(BaseEstimator):
             self.best_score = df["average_test_score"].iloc[df[
                 "average_test_score"].idxmax()]
 
-        ray.shutdown()
+            return self
 
-        return self
+    def fit(self, X, y=None, groups=None, **fit_params):
+        """Run fit with all sets of parameters.
+
+        ``tune.run`` is used to perform the fit procedure.
+
+        Args:
+            X (:obj:`array-like` (shape = [n_samples, n_features])):
+                Training vector, where n_samples is the number of samples and
+                n_features is the number of features.
+            y (:obj:`array-like`): Shape of array expected to be [n_samples]
+                or [n_samples, n_output]). Target relative to X for
+                classification or regression; None for unsupervised learning.
+            groups (:obj:`array-like` (shape (n_samples,)), optional):
+                Group labels for the samples used while splitting the dataset
+                into train/test set. Only used in conjunction with a "Group"
+                `cv` instance (e.g., `GroupKFold`).
+            **fit_params (:obj:`dict` of str): Parameters passed to
+                the ``fit`` method of the estimator.
+
+        Returns:
+            :obj:`TuneBaseSearchCV` child instance, after fitting.
+
+        """
+        try:
+            ray_init = ray.is_initialized()
+            if not ray_init:
+                ray.init(ignore_reinit_error=True, configure_logging=False)
+
+            result = self._fit(X, y, groups, **fit_params)
+
+            if not ray_init and ray.is_initialized():
+                ray.shutdown()
+
+            return result
+
+        except Exception:
+            if not ray_init and ray.is_initialized():
+                ray.shutdown()
+            raise
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.
