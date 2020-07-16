@@ -12,6 +12,8 @@ from pickle import PicklingError
 import ray.cloudpickle as cpickle
 import warnings
 from joblib import Parallel, delayed
+from ray.util.joblib import register_ray
+import joblib
 
 
 class _Trainable(Trainable):
@@ -89,10 +91,12 @@ class _Trainable(Trainable):
 
         """
         if self.early_stopping is not None:
-            Parallel(n_jobs=-1)(
-                delayed(self._partial_fit)(i, train, test)
-                for i, (train,
-                        test) in enumerate(self.cv.split(self.X, self.y)))
+            register_ray()
+            with joblib.parallel_backend('ray'):
+                Parallel(n_jobs=1)(
+                    delayed(self._partial_fit)(i, train, test)
+                    for i, (train,
+                            test) in enumerate(self.cv.split(self.X, self.y)))
 
             ret = {}
             total = 0
