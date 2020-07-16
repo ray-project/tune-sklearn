@@ -92,7 +92,7 @@ class _Trainable(Trainable):
         """
         if self.early_stopping is not None:
             register_ray()
-            with joblib.parallel_backend('ray'):
+            with joblib.parallel_backend("ray"):
                 Parallel(n_jobs=1)(
                     delayed(self._partial_fit)(i, train, test)
                     for i, (train,
