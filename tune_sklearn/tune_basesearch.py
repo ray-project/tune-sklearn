@@ -23,6 +23,7 @@ import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler)
+import ray.cloudpickle as cpickle
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
@@ -54,7 +55,7 @@ class TuneBaseSearchCV(BaseEstimator):
         specified.
 
         """
-        self._check_if_refit("best_params_")
+        self._check_is_fitted("best_params", "best_params_")
         return self.best_params
 
     @property
@@ -65,13 +66,13 @@ class TuneBaseSearchCV(BaseEstimator):
         is specified.
 
         """
-        self._check_if_refit("best_score_")
+        self._check_is_fitted("best_score", "best_score_")
         return self.best_score
 
     @property
     def classes_(self):
         """list: Get the list of unique classes found in the target `y`."""
-        self._check_is_fitted("classes_")
+        self._check_is_fitted("best_estimator_", "classes_")
         return self.best_estimator_.classes_
 
     @property
@@ -83,7 +84,7 @@ class TuneBaseSearchCV(BaseEstimator):
         ``decision_function``.
 
         """
-        self._check_is_fitted("decision_function")
+        self._check_is_fitted("best_estimator_", "decision_function")
         return self.best_estimator_.decision_function
 
     @property
@@ -95,7 +96,7 @@ class TuneBaseSearchCV(BaseEstimator):
         ``inverse_transform`` and ``refit=True``.
 
         """
-        self._check_is_fitted("inverse_transform")
+        self._check_is_fitted("best_estimator_", "inverse_transform")
         return self.best_estimator_.inverse_transform
 
     @property
@@ -107,7 +108,7 @@ class TuneBaseSearchCV(BaseEstimator):
         ``predict``.
 
         """
-        self._check_is_fitted("predict")
+        self._check_is_fitted("best_estimator_", "predict")
         return self.best_estimator_.predict
 
     @property
@@ -119,7 +120,7 @@ class TuneBaseSearchCV(BaseEstimator):
         ``predict_log_proba``.
 
         """
-        self._check_is_fitted("predict_log_proba")
+        self._check_is_fitted("best_estimator_", "predict_log_proba")
         return self.best_estimator_.predict_log_proba
 
     @property
@@ -131,7 +132,7 @@ class TuneBaseSearchCV(BaseEstimator):
         ``predict_proba``.
 
         """
-        self._check_is_fitted("predict_proba")
+        self._check_is_fitted("best_estimator_", "predict_proba")
         return self.best_estimator_.predict_proba
 
     @property
@@ -143,7 +144,7 @@ class TuneBaseSearchCV(BaseEstimator):
         ``refit=True``.
 
         """
-        self._check_is_fitted("transform")
+        self._check_is_fitted("best_estimator_", "transform")
         return self.best_estimator_.transform
 
     def _check_params(self):
@@ -156,22 +157,7 @@ class TuneBaseSearchCV(BaseEstimator):
         if not hasattr(self.estimator, "fit"):
             raise ValueError("estimator must be a scikit-learn estimator.")
 
-    def _check_if_refit(self, attr):
-        """Helper method to see if the requested property is available based
-        on the `refit` argument.
-
-        Args:
-            attr (str): Attribute requested by the user.
-
-        Raises:
-            AttributeError: If `self.refit` is False.
-
-        """
-        if not self.refit:
-            raise AttributeError("'{}' is not a valid attribute with "
-                                 "'refit=False'.".format(attr))
-
-    def _check_is_fitted(self, method_name):
+    def _check_is_fitted(self, attributes, method_name):
         """Helper method to see if the estimator has been fitted.
 
         Args:
@@ -183,13 +169,10 @@ class TuneBaseSearchCV(BaseEstimator):
                 the sklearn estimator interface).
 
         """
-        if not self.refit:
-            msg = ("This {0} instance was initialized with refit=False. {1} "
-                   "is available only after refitting on the best "
-                   "parameters.").format(type(self).__name__, method_name)
-            raise NotFittedError(msg)
-        else:
-            check_is_fitted(self)
+        msg = ("This {0} instance is not fitted yet. {1} "
+               "is available only after calling "
+               "fit").format(type(self).__name__, method_name)
+        check_is_fitted(self, attributes=attributes, msg=msg)
 
     def __init__(self,
                  estimator,
@@ -197,7 +180,6 @@ class TuneBaseSearchCV(BaseEstimator):
                  scoring=None,
                  n_jobs=None,
                  cv=5,
-                 refit=True,
                  verbose=0,
                  error_score="raise",
                  return_train_score=False,
@@ -256,7 +238,6 @@ class TuneBaseSearchCV(BaseEstimator):
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
-        self.refit = refit
         self.verbose = verbose
         self.error_score = error_score
         self.return_train_score = return_train_score
@@ -323,19 +304,18 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
-        if self.refit:
-            best_config = analysis.get_best_config(
-                metric="average_test_score", mode="max")
-            self.best_params = self._clean_config_dict(best_config)
-            self.best_estimator_ = clone(self.estimator)
-            self.best_estimator_.set_params(**self.best_params)
-            self.best_estimator_.fit(X, y, **fit_params)
+        best_config = analysis.get_best_config(
+            metric="average_test_score", mode="max")
+        self.best_params = self._clean_config_dict(best_config)
+        best_path = os.path.join(analysis.get_best_logdir(metric="average_test_score", mode="max"), "checkpoint")
+        with open(best_path, "rb") as f:
+            self.best_estimator_ = cpickle.load(f)
 
-            df = analysis.dataframe(metric="average_test_score", mode="max")
-            self.best_score = df["average_test_score"].iloc[df[
-                "average_test_score"].idxmax()]
+        df = analysis.dataframe(metric="average_test_score", mode="max")
+        self.best_score = df["average_test_score"].iloc[df[
+            "average_test_score"].idxmax()]
 
-            return self
+        return self
 
     def fit(self, X, y=None, groups=None, **fit_params):
         """Run fit with all sets of parameters.
