@@ -47,7 +47,7 @@ class _Trainable(Trainable):
         self.return_train_score = config.pop("return_train_score")
         self.estimator_config = config
 
-        if self.early_stopping is not None:
+        if self.early_stopping:
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
@@ -76,7 +76,7 @@ class _Trainable(Trainable):
                 ``cv_results_`` for one of the cross-validation interfaces.
 
         """
-        if self.early_stopping is not None:
+        if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
                 X_train, y_train = _safe_split(self.estimator[i], self.X,
                                                self.y, train)
