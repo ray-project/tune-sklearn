@@ -309,7 +309,9 @@ class TuneBaseSearchCV(BaseEstimator):
         self.best_params = self._clean_config_dict(best_config)
         best_dir = analysis.get_best_logdir(
             metric="average_test_score", mode="max")
-        best_path = max(glob.glob(os.path.join(best_dir, "checkpoint_[0-9]*")))
+        best_path = os.path.join(
+            max(glob.glob(os.path.join(best_dir, "checkpoint_[0-9]*"))),
+            "checkpoint")
         with open(best_path, "rb") as f:
             self.best_estimator_ = cpickle.load(f)
 
