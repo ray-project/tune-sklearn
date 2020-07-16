@@ -11,7 +11,7 @@ import os
 from pickle import PicklingError
 import ray.cloudpickle as cpickle
 import warnings
-
+from joblib import Parallel, delayed
 
 class _Trainable(Trainable):
     """Class to be passed in as the first argument of tune.run to train models.
@@ -20,6 +20,23 @@ class _Trainable(Trainable):
     and restore routines.
 
     """
+
+    def _partial_fit(self, i, train, test)
+        X_train, y_train = _safe_split(self.estimator[i], self.X,
+                                       self.y, train)
+        X_test, y_test = _safe_split(
+            self.estimator[i],
+            self.X,
+            self.y,
+            test,
+            train_indices=train)
+        self.estimator[i].partial_fit(X_train, y_train,
+                                      np.unique(self.y))
+        if self.return_train_score:
+            self.fold_train_scores[i] = self.scoring(
+                self.estimator[i], X_train, y_train)
+        self.fold_scores[i] = self.scoring(self.estimator[i], X_test,
+                                           y_test)
 
     def _setup(self, config):
         """Sets up Trainable attributes during initialization.
@@ -77,22 +94,7 @@ class _Trainable(Trainable):
 
         """
         if self.early_stopping is not None:
-            for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
-                X_train, y_train = _safe_split(self.estimator[i], self.X,
-                                               self.y, train)
-                X_test, y_test = _safe_split(
-                    self.estimator[i],
-                    self.X,
-                    self.y,
-                    test,
-                    train_indices=train)
-                self.estimator[i].partial_fit(X_train, y_train,
-                                              np.unique(self.y))
-                if self.return_train_score:
-                    self.fold_train_scores[i] = self.scoring(
-                        self.estimator[i], X_train, y_train)
-                self.fold_scores[i] = self.scoring(self.estimator[i], X_test,
-                                                   y_test)
+            Parallel(n_jobs=-1)(delayed(self._partial_fit)(i, train, test) for i, (train, test) in enumerate(self.cv.split(self.X, self.y)))
 
             ret = {}
             total = 0
