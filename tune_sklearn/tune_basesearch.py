@@ -17,8 +17,6 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import check_cv
 from sklearn.metrics import check_scoring
 from sklearn.base import is_classifier
-from sklearn.base import clone
-from sklearn.exceptions import NotFittedError
 import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
@@ -28,6 +26,7 @@ import numpy as np
 from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
+import os
 
 
 class TuneBaseSearchCV(BaseEstimator):
@@ -307,7 +306,9 @@ class TuneBaseSearchCV(BaseEstimator):
         best_config = analysis.get_best_config(
             metric="average_test_score", mode="max")
         self.best_params = self._clean_config_dict(best_config)
-        best_path = os.path.join(analysis.get_best_logdir(metric="average_test_score", mode="max"), "checkpoint")
+        best_path = os.path.join(
+            analysis.get_best_logdir(metric="average_test_score", mode="max"),
+            "checkpoint")
         with open(best_path, "rb") as f:
             self.best_estimator_ = cpickle.load(f)
 
