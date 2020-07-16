@@ -126,6 +126,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             max_iters=max_iters,
+            verbose=verbose,
             use_gpu=use_gpu)
 
         _check_param_grid(param_grid)
