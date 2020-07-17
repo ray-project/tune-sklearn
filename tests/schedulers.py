@@ -11,7 +11,6 @@ from tune_sklearn import TuneGridSearchCV
 from sklearn.linear_model import SGDClassifier
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
-from ray.tune.schedulers import MedianStoppingRule
 import numpy as np
 import argparse
 
@@ -26,7 +25,6 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.2)
 
 clf = SGDClassifier()
 parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
-
 
 tune_search = TuneGridSearchCV(
     clf,
