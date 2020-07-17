@@ -45,6 +45,7 @@ script:
   - cd tests
   - python3 -m unittest test_randomizedsearch.py
   - python3 -m unittest test_gridsearch.py
+  - declare -a arr=("AsyncHyperBandScheduler" "HyperBandScheduler" "MedianStoppingRule" "ASHAScheduler"); for s in "${arr[@]}"; do python tests/scheduler.py --scheduler "$s"; done
   - cd ../examples
   - for f in *.py; do python3 "$f"; done
   - if [ "$OS" == "LINUX" ]; then cd ~/ && git clone https://github.com/ray-project/ray && python ray/python/ray/setup-dev.py --yes && python3 ray/doc/source/tune/_tutorials/tune-sklearn.py; fi
