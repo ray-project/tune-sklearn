@@ -405,7 +405,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
         return (hasattr(self.estimator, "partial_fit")
-                and callable(getattr(self.estimator, "partial_fit", None)))
+                and callable(getattr(self.estimator, "partial_fit", None))) or (hasattr(self.estimator, "warm_start") and hasattr(self.estimator, "max_iter"))
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.

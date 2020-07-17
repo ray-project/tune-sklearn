@@ -11,6 +11,8 @@ import os
 from pickle import PicklingError
 import ray.cloudpickle as cpickle
 import warnings
+from warnings import simplefilter
+from sklearn.exceptions import ConvergenceWarning
 
 
 class _Trainable(Trainable):
@@ -51,6 +53,9 @@ class _Trainable(Trainable):
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
+            if not hasattr(self.estimator, "partial_fit"):
+                self.estimator_config["warm_start"] = True
+                self.estimator_config["max_iter"] = 1
             for i in range(n_splits):
                 self.estimator[i].set_params(**self.estimator_config)
         else:
@@ -86,8 +91,13 @@ class _Trainable(Trainable):
                     self.y,
                     test,
                     train_indices=train)
-                self.estimator[i].partial_fit(X_train, y_train,
-                                              np.unique(self.y))
+                if hasattr(self.estimator, "partial_fit"):
+                    self.estimator[i].partial_fit(X_train, y_train,
+                                                  np.unique(self.y))
+                else:
+                    simplefilter("ignore", category=ConvergenceWarning)
+                    self.estimator[i].fit(X_train, y_train)
+
                 if self.return_train_score:
                     self.fold_train_scores[i] = self.scoring(
                         self.estimator[i], X_train, y_train)
