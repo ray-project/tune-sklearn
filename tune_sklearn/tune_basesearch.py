@@ -308,7 +308,7 @@ class TuneBaseSearchCV(BaseEstimator):
         y_id = ray.put(y)
 
         config = {}
-        config["early_stopping"] = self.early_stopping
+        config["early_stopping"] = bool(self.early_stopping)
         config["X_id"] = X_id
         config["y_id"] = y_id
         config["groups"] = groups

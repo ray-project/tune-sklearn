@@ -126,6 +126,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             max_iters=max_iters,
+            verbose=verbose,
             use_gpu=use_gpu)
 
         _check_param_grid(param_grid)
@@ -191,6 +192,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 verbose=self.verbose,
                 stop={"training_iteration": self.max_iters},
                 config=config,
+                fail_fast=True,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial)
         else:
@@ -201,6 +203,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 verbose=self.verbose,
                 stop={"training_iteration": self.max_iters},
                 config=config,
+                fail_fast=True,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial)
 

@@ -303,6 +303,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     stop={"training_iteration": self.max_iters},
                     num_samples=self.num_samples,
                     config=config,
+                    fail_fast=True,
                     checkpoint_at_end=True,
                     resources_per_trial=resources_per_trial)
             else:
@@ -314,6 +315,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     stop={"training_iteration": self.max_iters},
                     num_samples=self.num_samples,
                     config=config,
+                    fail_fast=True,
                     checkpoint_at_end=True,
                     resources_per_trial=resources_per_trial)
         else:
@@ -332,6 +334,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 num_samples=self.num_samples,
                 config=config,
+                fail_fast=True,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial)
 
