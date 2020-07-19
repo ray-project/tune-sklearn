@@ -27,6 +27,7 @@ import numpy as np
 from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
+import logging
 
 
 class TuneBaseSearchCV(BaseEstimator):
@@ -363,7 +364,8 @@ class TuneBaseSearchCV(BaseEstimator):
         try:
             ray_init = ray.is_initialized()
             if not ray_init:
-                ray.init(ignore_reinit_error=True, configure_logging=False)
+                ray.init(ignore_reinit_error=True, configure_logging=False, log_to_driver=False)
+                warnings.warn("Hiding process output by default. To show process output, set verbose=2.")
 
             result = self._fit(X, y, groups, **fit_params)
 
