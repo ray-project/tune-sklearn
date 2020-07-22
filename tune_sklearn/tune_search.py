@@ -222,6 +222,13 @@ class TuneSearchCV(TuneBaseSearchCV):
             self.random_state = random_state
         self.search_optimization = search_optimization
 
+    @property
+    def _n_trials(self):
+        """Calculate the num_samples for `tune.run`.
+        """
+
+        return self.num_samples
+
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
 
