@@ -291,7 +291,6 @@ class TuneBaseSearchCV(BaseEstimator):
 
         if self.n_jobs is not None:
             if self.n_jobs < 0:
-                available_cpus = multiprocessing.cpu_count()
                 resources_per_trial = {
                     "cpu": 1,
                     "gpu": 1 if self.use_gpu else 0
@@ -299,6 +298,7 @@ class TuneBaseSearchCV(BaseEstimator):
                 warnings.warn("`self.n_jobs` is automatically set "
                               "-1 for any negative values.")
             else:
+                available_cpus = multiprocessing.cpu_count()
                 resources_per_trial = {
                     "cpu": available_cpus / self.n_jobs,
                     "gpu": 1 if self.use_gpu else 0
