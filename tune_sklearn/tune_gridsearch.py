@@ -132,13 +132,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         _check_param_grid(param_grid)
         self.param_grid = param_grid
 
-    @property
-    def _n_trials(self):
-        """Calculate the num_samples for `tune.run`.
-        """
-
-        return self._list_grid_num_samples()
-
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
 

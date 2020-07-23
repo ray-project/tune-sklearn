@@ -146,13 +146,6 @@ class TuneBaseSearchCV(BaseEstimator):
         self._check_is_fitted("transform")
         return self.best_estimator_.transform
 
-    @property
-    def _n_trials(self):
-        """Calculate the num_samples for `tune.run`.
-        """
-
-        raise NotImplementedError("Define in child class")
-
     def _check_params(self):
         """Helper method to see if parameters passed in are valid.
 
@@ -298,14 +291,14 @@ class TuneBaseSearchCV(BaseEstimator):
 
         if self.n_jobs is not None:
             if self.n_jobs < 0:
+                available_cpus = multiprocessing.cpu_count()
                 resources_per_trial = {
-                    "cpu": max((multiprocessing.cpu_count() + 1 + self.n_jobs)/self._n_trials,
-                               1/self._n_trials),
+                    "cpu": available_cpus/(available_cpus + 1 + self.n_jobs),
                     "gpu": 1 if self.use_gpu else 0
                 }
             else:
                 resources_per_trial = {
-                    "cpu": self.n_jobs/self._n_trials,
+                    "cpu": available_cpus/self.n_jobs
                     "gpu": 1 if self.use_gpu else 0
                 }
         else:
