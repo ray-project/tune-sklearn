@@ -143,6 +143,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             However computing the scores on the training set can be
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
+        local_dir (str): A string that defines where checkpoints will
+            be stored. Defaults to "~/ray_results"
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
@@ -152,6 +154,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             Bayesian optimization from scikit-optimize
             (https://scikit-optimize.github.io/stable/index.html)
             to search for hyperparameters.
+        use_gpu (bool): Indicates whether to use gpu for fitting.
+            Defaults to False. If True, training will use 1 gpu
+            for `resources_per_trial`.
 
     """
 
