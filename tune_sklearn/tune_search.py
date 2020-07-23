@@ -168,6 +168,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  random_state=None,
                  error_score=np.nan,
                  return_train_score=False,
+                 local_dir="~/ray_results",
                  max_iters=10,
                  search_optimization="random",
                  use_gpu=False):
@@ -213,6 +214,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
+            local_dir=local_dir,
             max_iters=max_iters,
         )
 
@@ -305,7 +307,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                     config=config,
                     fail_fast=True,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial)
+                    resources_per_trial=resources_per_trial,
+                    local_dir=self.local_dir)
             else:
                 analysis = tune.run(
                     _Trainable,
@@ -317,7 +320,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                     config=config,
                     fail_fast=True,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial)
+                    resources_per_trial=resources_per_trial,
+                    local_dir=self.local_dir)
         else:
             hyperparameter_names, spaces = self._get_skopt_params()
             search_algo = SkOptSearch(
@@ -336,6 +340,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial)
+                resources_per_trial=resources_per_trial,
+                local_dir=self.local_dir)
 
         return analysis

@@ -4,6 +4,10 @@ from numpy.testing import assert_array_equal
 from sklearn.datasets import make_classification
 from scipy.stats import expon
 from sklearn.svm import SVC
+from sklearn.linear_model import SGDClassifier
+from sklearn import datasets
+from skopt.space.space import Real
+from ray.tune.schedulers import MedianStoppingRule
 import unittest
 
 
@@ -83,6 +87,28 @@ class RandomizedSearchTest(unittest.TestCase):
         self.assertFalse(
             any(cv_results["param_C"].mask)
             or any(cv_results["param_gamma"].mask))
+
+    def test_local_dir(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+
+        clf = SGDClassifier()
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1), "epsilon": Real(0.01, 0.1)}
+
+        scheduler = MedianStoppingRule(grace_period=10.0)
+
+        tune_search = TuneSearchCV(
+            clf,
+            parameter_grid,
+            early_stopping=scheduler,
+            max_iters=10,
+            local_dir="./test-result"
+        )
+        tune_search.fit(x, y)
+
+        self.assertTrue(len(os.listdir("./test-result")) != 0)
+
 
 
 if __name__ == "__main__":
