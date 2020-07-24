@@ -9,6 +9,7 @@ from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
+import os
 
 
 class TuneGridSearchCV(TuneBaseSearchCV):
@@ -202,7 +203,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 fail_fast=True,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
-                local_dir=self.local_dir)
+                local_dir=os.path.expanduser(self.local_dir))
         else:
             analysis = tune.run(
                 _Trainable,
@@ -214,6 +215,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 fail_fast=True,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
-                local_dir=self.local_dir)
+                local_dir=os.path.expanduser(self.local_dir))
 
         return analysis

@@ -9,6 +9,7 @@ from sklearn import datasets
 from skopt.space.space import Real
 from ray.tune.schedulers import MedianStoppingRule
 import unittest
+import os
 
 
 class RandomizedSearchTest(unittest.TestCase):

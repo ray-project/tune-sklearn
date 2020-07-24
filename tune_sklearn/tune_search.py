@@ -12,6 +12,7 @@ import warnings
 import skopt
 from skopt import Optimizer
 from ray.tune.suggest.skopt import SkOptSearch
+import os
 
 
 class TuneSearchCV(TuneBaseSearchCV):
@@ -313,7 +314,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     fail_fast=True,
                     checkpoint_at_end=True,
                     resources_per_trial=resources_per_trial,
-                    local_dir=self.local_dir)
+                    local_dir=os.path.expanduser(self.local_dir))
             else:
                 analysis = tune.run(
                     _Trainable,
@@ -326,7 +327,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     fail_fast=True,
                     checkpoint_at_end=True,
                     resources_per_trial=resources_per_trial,
-                    local_dir=self.local_dir)
+                    local_dir=os.path.expanduser(self.local_dir))
         else:
             hyperparameter_names, spaces = self._get_skopt_params()
             search_algo = SkOptSearch(
@@ -346,6 +347,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 fail_fast=True,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
-                local_dir=self.local_dir)
+                local_dir=os.path.expanduser(self.local_dir))
 
         return analysis
