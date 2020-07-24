@@ -206,12 +206,6 @@ class TuneBaseSearchCV(BaseEstimator):
                  max_iters=10,
                  use_gpu=False):
 
-        '''
-        logger = logging.getLogger("ray.tune")
-        if logger.level == logging.NOTSET:
-            logger.setLevel(logging.CRITICAL)
-        '''
-
         self.estimator = estimator
 
         if early_stopping and self._can_early_stop():
