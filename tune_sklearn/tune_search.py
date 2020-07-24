@@ -80,10 +80,10 @@ class TuneSearchCV(TuneBaseSearchCV):
         n_iter (int): Number of parameter settings that are sampled.
             n_iter trades off runtime vs quality of the solution.
             Defaults to 10.
-        scoring (str, `callable`, or None): A single string (see 
-            Scikit-Learn documentation on `scoring_parameter`) or a callable
-            to evaluate the predictions on the test set.
-            
+        scoring (str, `callable`, or None): A single string or a callable to
+            evaluate the predictions on the test set.
+            See https://scikit-learn.org/stable/modules/model_evaluation.html
+            #scoring-parameter for all options.
             If None, the estimator's score method is used. Defaults to None.
         n_jobs (int): Number of jobs to run in parallel. None or -1 means
             using all processors. Defaults to None.
