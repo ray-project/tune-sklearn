@@ -305,8 +305,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     config=config,
                     fail_fast=True,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    raise_on_failed_trial=False)
+                    resources_per_trial=resources_per_trial)
             else:
                 analysis = tune.run(
                     _Trainable,
@@ -318,8 +317,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     config=config,
                     fail_fast=True,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    raise_on_failed_trial=False)
+                    resources_per_trial=resources_per_trial)
         else:
             hyperparameter_names, spaces = self._get_skopt_params()
             search_algo = SkOptSearch(
@@ -338,7 +336,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-                raise_on_failed_trial=False)
+                resources_per_trial=resources_per_trial)
 
         return analysis

@@ -23,6 +23,7 @@ import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler)
+from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
@@ -205,6 +206,12 @@ class TuneBaseSearchCV(BaseEstimator):
                  max_iters=10,
                  use_gpu=False):
 
+        '''
+        logger = logging.getLogger("ray.tune")
+        if logger.level == logging.NOTSET:
+            logger.setLevel(logging.CRITICAL)
+        '''
+
         self.estimator = estimator
 
         if early_stopping and self._can_early_stop():
@@ -374,10 +381,11 @@ class TuneBaseSearchCV(BaseEstimator):
 
             return result
 
-        except Exception:
+        except Exception as e:
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
-            raise
+            if type(e) != TuneError:
+                raise
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.
