@@ -8,6 +8,9 @@ from tune_sklearn import TuneSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
+import ray
+
+ray.init(num_cpus=1)
 
 warnings.filterwarnings("ignore")
 
@@ -34,8 +37,9 @@ xgb = XGBClassifier(
 )
 
 digit_search = TuneSearchCV(
-    xgb, param_distributions=params, n_iter=3, use_gpu=True, n_jobs=2)
+    xgb, param_distributions=params, n_iter=3, use_gpu=True)
 
 digit_search.fit(x_train, y_train)
 print(digit_search.best_params_)
 print(digit_search.cv_results_)
+ray.shutdown()

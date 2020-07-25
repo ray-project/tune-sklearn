@@ -4,6 +4,9 @@ from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from ray.tune.schedulers import MedianStoppingRule
 import numpy as np
+import ray
+
+ray.init(num_cpus=1)
 
 digits = datasets.load_digits()
 x = digits.data
@@ -22,11 +25,10 @@ tune_search = TuneSearchCV(
     n_iter=3,
     early_stopping=scheduler,
     max_iters=10,
-    n_jobs=2
 )
 tune_search.fit(x_train, y_train)
 
 pred = tune_search.predict(x_test)
 accuracy = np.count_nonzero(np.array(pred) == np.array(y_test)) / len(pred)
 print(accuracy)
-
+ray.shutdown()
