@@ -45,7 +45,8 @@ from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
 #         all(
 #             isinstance(cv_results[param], np.ma.MaskedArray)
 #             for param in param_keys))
-#     self.assertTrue(all(cv_results[key].dtype == object for key in param_keys))
+#     self.assertTrue(
+#         all(cv_results[key].dtype == object for key in param_keys))
 #     self.assertFalse(
 #         any(
 #             isinstance(cv_results[key], np.ma.MaskedArray)
