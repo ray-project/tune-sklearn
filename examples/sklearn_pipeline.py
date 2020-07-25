@@ -12,6 +12,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 from sklearn.decomposition import PCA, NMF
 from sklearn.feature_selection import SelectKBest, chi2
+import ray
+
+ray.init(
+    redis_max_memory=1024*1024*100,
+    object_store_memory=1024*1024*100,
+)
 
 pipe = Pipeline([
     # the reduce_dim stage is populated by the param_grid
@@ -42,3 +48,4 @@ print(random.cv_results_)
 grid = TuneGridSearchCV(pipe, param_grid=param_grid)
 grid.fit(X, y)
 print(grid.cv_results_)
+ray.shutdown()

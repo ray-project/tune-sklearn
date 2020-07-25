@@ -9,6 +9,12 @@ from keras.models import Sequential
 from keras.utils import np_utils
 from keras.wrappers.scikit_learn import KerasClassifier
 from tune_sklearn import TuneGridSearchCV
+import ray
+
+ray.init(
+    redis_max_memory=1024*1024*100,
+    object_store_memory=1024*1024*100,
+)
 
 nb_classes = 10
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
@@ -54,3 +60,4 @@ grid = TuneGridSearchCV(estimator=model, param_grid=param_grid)
 grid_result = grid.fit(X_train, Y_train)
 print(grid_result.best_params_)
 print(grid_result.cv_results_)
+ray.shutdown()
