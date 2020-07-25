@@ -8,12 +8,6 @@ from tune_sklearn import TuneSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
-import ray
-
-ray.init(
-    redis_max_memory=1024*1024*100,
-    object_store_memory=1024*1024*100,
-)
 
 warnings.filterwarnings("ignore")
 
@@ -40,9 +34,8 @@ xgb = XGBClassifier(
 )
 
 digit_search = TuneSearchCV(
-    xgb, param_distributions=params, n_iter=3, use_gpu=True)
+    xgb, param_distributions=params, n_iter=3, use_gpu=True, n_jobs=2)
 
 digit_search.fit(x_train, y_train)
 print(digit_search.best_params_)
 print(digit_search.cv_results_)
-ray.shutdown()

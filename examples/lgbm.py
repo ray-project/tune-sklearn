@@ -7,12 +7,6 @@ from tune_sklearn import TuneSearchCV
 import lightgbm as lgb
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
-import ray
-
-ray.init(
-    redis_max_memory=1024*1024*100,
-    object_store_memory=1024*1024*100,
-)
 
 # Load breast cancer dataset
 cancer = load_breast_cancer()
@@ -35,7 +29,7 @@ param_dists = {
     "subsample_freq": [20]
 }
 
-gs = TuneSearchCV(model, param_dists, n_iter=5, scoring="accuracy")
+gs = TuneSearchCV(model, param_dists, n_iter=5, scoring="accuracy", n_jobs=2)
 gs.fit(X_train, y_train)
 print(gs.cv_results_)
 
@@ -45,4 +39,3 @@ for i in range(len(y_test)):
     if pred[i] == y_test[i]:
         correct += 1
 print("Accuracy:", correct / len(pred))
-ray.shutdown()

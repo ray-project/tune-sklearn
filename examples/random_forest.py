@@ -9,12 +9,6 @@ from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from scipy.stats import randint
 import numpy as np
-import ray
-
-ray.init(
-    redis_max_memory=1024*1024*100,
-    object_store_memory=1024*1024*100,
-)
 
 digits = datasets.load_digits()
 x = digits.data
@@ -31,6 +25,7 @@ tune_search = TuneSearchCV(
     clf,
     param_distributions,
     n_iter=3,
+    n_jobs=2
 )
 
 tune_search.fit(x_train, y_train)
@@ -38,4 +33,3 @@ tune_search.fit(x_train, y_train)
 pred = tune_search.predict(x_test)
 accuracy = np.count_nonzero(np.array(pred) == np.array(y_test)) / len(pred)
 print(accuracy)
-ray.shutdown()
