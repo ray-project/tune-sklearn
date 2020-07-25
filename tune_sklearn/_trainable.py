@@ -120,7 +120,7 @@ class _Trainable(Trainable):
                     self.X,
                     self.y,
                     cv=self.cv,
-                    n_jobs=-1,
+                    n_jobs=1,
                     fit_params=self.fit_params,
                     groups=self.groups,
                     scoring=self.scoring,
