@@ -28,7 +28,7 @@ import numpy as np
 from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
-import logging
+import os
 
 
 class TuneBaseSearchCV(BaseEstimator):
@@ -198,6 +198,7 @@ class TuneBaseSearchCV(BaseEstimator):
                  early_stopping=None,
                  scoring=None,
                  n_jobs=None,
+                 sk_n_jobs=-1,
                  cv=5,
                  refit=True,
                  verbose=0,
@@ -258,6 +259,10 @@ class TuneBaseSearchCV(BaseEstimator):
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
+        if os.environ.get("SKLEARN_N_JOBS") is not None:
+            self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
+        else:
+            self.sk_n_jobs = sk_n_jobs
         self.refit = refit
         self.verbose = verbose
         self.error_score = error_score
@@ -319,6 +324,7 @@ class TuneBaseSearchCV(BaseEstimator):
         config["scoring"] = self.scoring
         config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
+        config["n_jobs"] = self.sk_n_jobs
 
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)
@@ -457,16 +463,9 @@ class TuneBaseSearchCV(BaseEstimator):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "estimator",
-                "early_stopping",
-                "X_id",
-                "y_id",
-                "groups",
-                "cv",
-                "fit_params",
-                "scoring",
-                "max_iters",
-                "return_train_score",
+                "estimator", "early_stopping", "X_id", "y_id", "groups", "cv",
+                "fit_params", "scoring", "max_iters", "return_train_score",
+                "n_jobs"
         ]:
             config.pop(key, None)
         return config

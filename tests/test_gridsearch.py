@@ -1,3 +1,4 @@
+import ray
 from tune_sklearn import TuneGridSearchCV
 from tune_sklearn import TuneSearchCV
 import numpy as np
@@ -36,34 +37,33 @@ import unittest
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
                         MockDataFrame)
 
+# def test_check_cv_results_array_types(self, cv_results, param_keys,
+#                                       score_keys):
+#     # Check if the search `cv_results`'s array are of correct types
+#     self.assertTrue(
+#         all(
+#             isinstance(cv_results[param], np.ma.MaskedArray)
+#             for param in param_keys))
+#     self.assertTrue(
+#         all(cv_results[key].dtype == object for key in param_keys))
+#     self.assertFalse(
+#         any(
+#             isinstance(cv_results[key], np.ma.MaskedArray)
+#             for key in score_keys))
+#     self.assertTrue(
+#         all(cv_results[key].dtype == np.float64 for key in score_keys
+#             if not key.startswith("rank")))
+#     self.assertEquals(cv_results["rank_test_score"].dtype, np.int32)
 
-def test_check_cv_results_array_types(self, cv_results, param_keys,
-                                      score_keys):
-    # Check if the search `cv_results`'s array are of correct types
-    self.assertTrue(
-        all(
-            isinstance(cv_results[param], np.ma.MaskedArray)
-            for param in param_keys))
-    self.assertTrue(all(cv_results[key].dtype == object for key in param_keys))
-    self.assertFalse(
-        any(
-            isinstance(cv_results[key], np.ma.MaskedArray)
-            for key in score_keys))
-    self.assertTrue(
-        all(cv_results[key].dtype == np.float64 for key in score_keys
-            if not key.startswith("rank")))
-    self.assertEquals(cv_results["rank_test_score"].dtype, np.int32)
-
-
-def test_check_cv_results_keys(self, cv_results, param_keys, score_keys,
-                               n_cand):
-    # Test the search.cv_results_ contains all the required results
-    assert_array_equal(
-        sorted(cv_results.keys()),
-        sorted(param_keys + score_keys + ("params", )))
-    self.assertTrue(
-        all(cv_results[key].shape == (n_cand, )
-            for key in param_keys + score_keys))
+# def test_check_cv_results_keys(self, cv_results, param_keys, score_keys,
+#                                n_cand):
+#     # Test the search.cv_results_ contains all the required results
+#     assert_array_equal(
+#         sorted(cv_results.keys()),
+#         sorted(param_keys + score_keys + ("params", )))
+#     self.assertTrue(
+#         all(cv_results[key].shape == (n_cand, )
+#             for key in param_keys + score_keys))
 
 
 class LinearSVCNoScore(LinearSVC):
@@ -79,6 +79,9 @@ y = np.array([1, 1, 2, 2])
 
 
 class GridSearchTest(unittest.TestCase):
+    def tearDown(self):
+        ray.shutdown()
+
     def test_grid_search(self):
         # Test that the best estimator contains the right value for foo_param
         clf = MockClassifier()
