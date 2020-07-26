@@ -92,6 +92,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             If None, the estimator's score method is used. Defaults to None.
         n_jobs (int): Number of jobs to run in parallel. None or -1 means
             using all processors. Defaults to None.
+        sk_n_jobs (int): Number of jobs to run in parallel for cross validating
+            each hyperparameter set; the ``n_jobs`` parameter for
+            ``cross_validate`` call to sklearn when early stopping isn't used.
         refit (bool, str, or `callable`): Refit an estimator using the
             best found parameters on the whole dataset.
             For multiple metric evaluation, this needs to be a string denoting
@@ -162,6 +165,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  n_iter=10,
                  scoring=None,
                  n_jobs=None,
+                 sk_n_jobs=-1,
                  refit=True,
                  cv=None,
                  verbose=0,
@@ -208,6 +212,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             early_stopping=early_stopping,
             scoring=scoring,
             n_jobs=n_jobs,
+            sk_n_jobs=sk_n_jobs,
             cv=cv,
             verbose=verbose,
             refit=refit,
