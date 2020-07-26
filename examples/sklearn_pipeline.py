@@ -34,8 +34,7 @@ param_grid = [
     },
 ]
 
-random = TuneSearchCV(
-    pipe, param_grid, search_optimization="random")
+random = TuneSearchCV(pipe, param_grid, search_optimization="random")
 X, y = load_digits(return_X_y=True)
 random.fit(X, y)
 print(random.cv_results_)

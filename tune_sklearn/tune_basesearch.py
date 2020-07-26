@@ -27,6 +27,7 @@ import numpy as np
 from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
+import os
 
 
 class TuneBaseSearchCV(BaseEstimator):
