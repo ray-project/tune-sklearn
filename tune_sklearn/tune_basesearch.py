@@ -466,6 +466,7 @@ class TuneBaseSearchCV(BaseEstimator):
                 "scoring",
                 "max_iters",
                 "return_train_score",
+                "n_jobs"
         ]:
             config.pop(key, None)
         return config
