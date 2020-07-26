@@ -21,8 +21,7 @@ tune_search = TuneSearchCV(
     space,
     search_optimization="bayesian",
     n_iter=3,
-    max_iters=10,
-)
+    max_iters=10)
 tune_search.fit(X_train, y_train)
 
 print(tune_search.cv_results_)
