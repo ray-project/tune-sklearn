@@ -219,7 +219,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             max_iters=max_iters,
-        )
+            use_gpu=use_gpu)
 
         self.param_distributions = param_distributions
         self.num_samples = n_iter
