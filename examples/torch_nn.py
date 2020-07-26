@@ -12,9 +12,6 @@ from torch import nn
 import torch.nn.functional as F
 from skorch import NeuralNetClassifier
 from tune_sklearn import TuneGridSearchCV
-import ray
-
-ray.init(num_cpus=1)
 
 X, y = make_classification(1000, 20, n_informative=10, random_state=0)
 X = X.astype(np.float32)
@@ -51,7 +48,6 @@ params = {
     "module__num_units": [10, 20],
 }
 
-gs = TuneGridSearchCV(net, params, scoring="accuracy")
+gs = TuneGridSearchCV(net, params, scoring="accuracy", sk_n_jobs=1)
 gs.fit(X, y)
 print(gs.best_score_, gs.best_params_)
-ray.shutdown()

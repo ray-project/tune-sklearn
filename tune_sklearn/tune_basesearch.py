@@ -196,6 +196,7 @@ class TuneBaseSearchCV(BaseEstimator):
                  early_stopping=None,
                  scoring=None,
                  n_jobs=None,
+                 sk_n_jobs=-1,
                  cv=5,
                  refit=True,
                  verbose=0,
@@ -256,6 +257,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
+        self.sk_n_jobs = sk_n_jobs
         self.refit = refit
         self.verbose = verbose
         self.error_score = error_score
@@ -317,6 +319,7 @@ class TuneBaseSearchCV(BaseEstimator):
         config["scoring"] = self.scoring
         config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
+        config["n_jobs"] = self.sk_n_jobs
 
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)

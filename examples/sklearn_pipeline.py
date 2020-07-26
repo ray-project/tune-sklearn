@@ -12,9 +12,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 from sklearn.decomposition import PCA, NMF
 from sklearn.feature_selection import SelectKBest, chi2
-import ray
-
-ray.init(num_cpus=1)
 
 pipe = Pipeline([
     # the reduce_dim stage is populated by the param_grid
@@ -37,7 +34,8 @@ param_grid = [
     },
 ]
 
-random = TuneSearchCV(pipe, param_grid, search_optimization="random")
+random = TuneSearchCV(
+    pipe, param_grid, search_optimization="random", sk_n_jobs=1)
 X, y = load_digits(return_X_y=True)
 random.fit(X, y)
 print(random.cv_results_)
@@ -45,4 +43,3 @@ print(random.cv_results_)
 grid = TuneGridSearchCV(pipe, param_grid=param_grid)
 grid.fit(X, y)
 print(grid.cv_results_)
-ray.shutdown()

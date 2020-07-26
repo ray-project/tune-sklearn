@@ -26,8 +26,7 @@ class RandomizedSearchTest(unittest.TestCase):
             cv=n_splits,
             param_distributions=params,
             return_train_score=True,
-            n_jobs=2
-        )
+            n_jobs=2)
         random_search.fit(X, y)
 
         param_keys = ("param_C", "param_gamma")

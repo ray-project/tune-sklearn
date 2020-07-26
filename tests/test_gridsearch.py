@@ -37,7 +37,6 @@ import unittest
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
                         MockDataFrame)
 
-
 # def test_check_cv_results_array_types(self, cv_results, param_keys,
 #                                       score_keys):
 #     # Check if the search `cv_results`'s array are of correct types
@@ -55,7 +54,6 @@ from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
 #         all(cv_results[key].dtype == np.float64 for key in score_keys
 #             if not key.startswith("rank")))
 #     self.assertEquals(cv_results["rank_test_score"].dtype, np.int32)
-
 
 # def test_check_cv_results_keys(self, cv_results, param_keys, score_keys,
 #                                n_cand):

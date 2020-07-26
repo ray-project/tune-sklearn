@@ -3,9 +3,6 @@ from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from skopt.space.space import Real
-import ray
-
-ray.init(num_cpus=1)
 
 digits = datasets.load_digits()
 X = digits.data
@@ -25,9 +22,8 @@ tune_search = TuneSearchCV(
     search_optimization="bayesian",
     n_iter=3,
     max_iters=10,
-)
+    sk_n_jobs=1)
 tune_search.fit(X_train, y_train)
 
 print(tune_search.cv_results_)
 print(tune_search.best_params_)
-ray.shutdown()

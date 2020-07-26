@@ -9,9 +9,6 @@ from keras.models import Sequential
 from keras.utils import np_utils
 from keras.wrappers.scikit_learn import KerasClassifier
 from tune_sklearn import TuneGridSearchCV
-import ray
-
-ray.init(num_cpus=1)
 
 nb_classes = 10
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
@@ -53,8 +50,7 @@ param_grid = dict(
     optimizer=optimizers,
     nb_epoch=epochs,
     kernel_initializer=kernel_initializer)
-grid = TuneGridSearchCV(estimator=model, param_grid=param_grid)
+grid = TuneGridSearchCV(estimator=model, param_grid=param_grid, sk_n_jobs=1)
 grid_result = grid.fit(X_train, Y_train)
 print(grid_result.best_params_)
 print(grid_result.cv_results_)
-ray.shutdown()

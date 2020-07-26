@@ -45,6 +45,7 @@ class _Trainable(Trainable):
         self.max_iters = config.pop("max_iters")
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
+        self.n_jobs = config.pop("n_jobs")
         self.estimator_config = config
 
         if self.early_stopping:
@@ -120,7 +121,7 @@ class _Trainable(Trainable):
                     self.X,
                     self.y,
                     cv=self.cv,
-                    n_jobs=1,
+                    n_jobs=self.n_jobs,
                     fit_params=self.fit_params,
                     groups=self.groups,
                     scoring=self.scoring,
