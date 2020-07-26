@@ -259,7 +259,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.scoring = scoring
         self.n_jobs = n_jobs
         if os.environ.get("sk_n_jobs") is not None:
-            self.sk_n_jobs = int(os.environ.get("sk_n_jobs"))
+            self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
         else:
             self.sk_n_jobs = sk_n_jobs
         self.refit = refit
