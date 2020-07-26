@@ -257,7 +257,10 @@ class TuneBaseSearchCV(BaseEstimator):
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
-        self.sk_n_jobs = sk_n_jobs
+        if os.environ.get("sk_n_jobs") is not None:
+            self.sk_n_jobs = os.environ.get("sk_n_jobs")
+        else:
+            self.sk_n_jobs = sk_n_jobs
         self.refit = refit
         self.verbose = verbose
         self.error_score = error_score
@@ -456,16 +459,8 @@ class TuneBaseSearchCV(BaseEstimator):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "estimator",
-                "early_stopping",
-                "X_id",
-                "y_id",
-                "groups",
-                "cv",
-                "fit_params",
-                "scoring",
-                "max_iters",
-                "return_train_score",
+                "estimator", "early_stopping", "X_id", "y_id", "groups", "cv",
+                "fit_params", "scoring", "max_iters", "return_train_score",
                 "n_jobs"
         ]:
             config.pop(key, None)

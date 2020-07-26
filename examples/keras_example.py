@@ -50,7 +50,7 @@ param_grid = dict(
     optimizer=optimizers,
     nb_epoch=epochs,
     kernel_initializer=kernel_initializer)
-grid = TuneGridSearchCV(estimator=model, param_grid=param_grid, sk_n_jobs=1)
+grid = TuneGridSearchCV(estimator=model, param_grid=param_grid)
 grid_result = grid.fit(X_train, Y_train)
 print(grid_result.best_params_)
 print(grid_result.cv_results_)

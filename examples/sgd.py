@@ -25,7 +25,7 @@ parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
 scheduler = MedianStoppingRule(grace_period=10.0)
 
 tune_search = TuneGridSearchCV(
-    clf, parameter_grid, early_stopping=scheduler, max_iters=10, sk_n_jobs=1)
+    clf, parameter_grid, early_stopping=scheduler, max_iters=10)
 tune_search.fit(x_train, y_train)
 
 pred = tune_search.predict(x_test)

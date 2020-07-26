@@ -30,7 +30,7 @@ param_dists = {
 }
 
 gs = TuneSearchCV(
-    model, param_dists, n_iter=5, scoring="accuracy", sk_n_jobs=1)
+    model, param_dists, n_iter=5, scoring="accuracy")
 gs.fit(X_train, y_train)
 print(gs.cv_results_)
 

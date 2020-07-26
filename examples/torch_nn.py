@@ -48,6 +48,6 @@ params = {
     "module__num_units": [10, 20],
 }
 
-gs = TuneGridSearchCV(net, params, scoring="accuracy", sk_n_jobs=1)
+gs = TuneGridSearchCV(net, params, scoring="accuracy")
 gs.fit(X, y)
 print(gs.best_score_, gs.best_params_)
