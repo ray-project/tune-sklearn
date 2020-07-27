@@ -371,8 +371,12 @@ class TuneBaseSearchCV(BaseEstimator):
         try:
             ray_init = ray.is_initialized()
             if not ray_init:
-                ray.init(ignore_reinit_error=True, configure_logging=False, log_to_driver=False)
-                warnings.warn("Hiding process output by default. To show process output, set verbose=2.")
+                ray.init(
+                    ignore_reinit_error=True,
+                    configure_logging=False,
+                    log_to_driver=False)
+                warnings.warn("Hiding process output by default. "
+                              "To show process output, set verbose=2.")
 
             result = self._fit(X, y, groups, **fit_params)
 
