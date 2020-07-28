@@ -46,13 +46,10 @@ class TuneGridSearchCV(TuneBaseSearchCV):
               used if the estimator supports partial fitting
             - If None or False, early stopping will not be used.
 
-        scoring (str, `callable`, `list`, `tuple`, `dict` or None): A single
+        scoring (str, `callable`, or None): A single
             string or a callable to evaluate the predictions on the test set.
-            For evaluating multiple metrics, either give a list of (unique)
-            strings or a dict with names as keys and callables as values.
-            NOTE that when using custom scorers, each scorer should return a
-            single value. Metric functions returning a list/array of values can
-            be wrapped into multiple scorers that return one value each.
+            See https://scikit-learn.org/stable/modules/model_evaluation.html
+            #scoring-parameter for all options.
             If None, the estimator's score method is used. Defaults to None.
         n_jobs (int): Number of jobs to run in parallel. None or -1 means
             using all processors. Defaults to None.
