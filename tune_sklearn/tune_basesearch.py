@@ -16,6 +16,7 @@ from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import check_cv
 from sklearn.metrics import check_scoring
+from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.base import is_classifier
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
@@ -193,6 +194,18 @@ class TuneBaseSearchCV(BaseEstimator):
         else:
             check_is_fitted(self)
 
+    def _is_multimetric(self, scoring):
+        """Helper method to see if multimetric scoring is
+        being used
+
+        Args:
+            scoring (str, callable, list, tuple, or dict):
+                the scoring being used
+        """
+
+        return isinstance(scoring, (list, tuple, dict))
+
+
     def __init__(self,
                  estimator,
                  early_stopping=None,
@@ -258,7 +271,13 @@ class TuneBaseSearchCV(BaseEstimator):
                              "the estimator does not have `partial_fit`")
 
         self.cv = cv
-        self.scoring = scoring
+        self.scoring, self.is_multi = _check_multimetric_scoring(estimator, scoring)
+        if is_multi:
+            if refit and (not isinstance(refit, str) or refit not in self.scoring):
+                raise ValueError("When using multimetric scoring, refit "
+                                 "must be the name of the scorer used to "
+                                 "pick the best parameters. If not needed, "
+                                 "set refit to False")
         self.n_jobs = n_jobs
         if os.environ.get("SKLEARN_N_JOBS") is not None:
             self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
@@ -296,7 +315,6 @@ class TuneBaseSearchCV(BaseEstimator):
         classifier = is_classifier(self.estimator)
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
-        self.scoring = check_scoring(self.estimator, scoring=self.scoring)
 
         if self.n_jobs is not None:
             if self.n_jobs < 0:
@@ -335,17 +353,23 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
+        if self.is_multi:
+            scoring_name = refit
+        else:
+            scoring_name = "score"
+
+
         if self.refit:
             best_config = analysis.get_best_config(
-                metric="average_test_score", mode="max")
+                metric="average_test_%s" % scoring_name, mode="max")
             self.best_params = self._clean_config_dict(best_config)
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
 
-            df = analysis.dataframe(metric="average_test_score", mode="max")
-            self.best_score = df["average_test_score"].iloc[df[
-                "average_test_score"].idxmax()]
+            df = analysis.dataframe(metric="average_test_%s" % scoring_name, mode="max")
+            self.best_score = df["average_test_%s" % scoring_name].iloc[df[
+                "average_test_%s" % scoring_name].idxmax()]
 
             return self
 
@@ -493,21 +517,24 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         dfs = list(out.fetch_trial_dataframes().values())
         finished = [df[df["done"]] for df in dfs]
-        test_scores = [
-            df[[
-                col for col in dfs[0].columns
-                if "split" in col and "test_score" in col
-            ]].to_numpy() for df in finished
-        ]
-        if self.return_train_score:
-            train_scores = [
+        test_scores = []
+        train_scores = []
+        for name in self.scoring:
+            test_scores.append([
                 df[[
                     col for col in dfs[0].columns
-                    if "split" in col and "train_score" in col
+                    if "split" in col and "test_%s" % name in col
                 ]].to_numpy() for df in finished
-            ]
-        else:
-            train_scores = None
+            ])
+            if self.return_train_score:
+                train_scores.append([
+                    df[[
+                        col for col in dfs[0].columns
+                        if "split" in col and "train_%s" % name in col
+                    ]].to_numpy() for df in finished
+                ])
+            else:
+                train_scores = None
 
         configs = out.get_all_configs()
         candidate_params = [
@@ -551,25 +578,27 @@ class TuneBaseSearchCV(BaseEstimator):
                 results["rank_%s" % key_name] = np.asarray(
                     rankdata(-array_means, method="min"), dtype=np.int32)
 
-        _store(
-            results,
-            "test_score",
-            test_scores,
-            n_splits,
-            n_candidates,
-            splits=True,
-            rank=True,
-        )
-        if self.return_train_score:
+        for name in self.scoring:
             _store(
                 results,
-                "train_score",
-                train_scores,
+                "test_%s" % name,
+                test_scores,
                 n_splits,
                 n_candidates,
                 splits=True,
                 rank=True,
             )
+        if self.return_train_score:
+            for name in self.scoring:
+                _store(
+                    results,
+                    "train_%s" % name,
+                    train_scores,
+                    n_splits,
+                    n_candidates,
+                    splits=True,
+                    rank=True,
+                )
 
         results["time_total_s"] = np.array(
             [df["time_total_s"].to_numpy() for df in finished]).flatten()

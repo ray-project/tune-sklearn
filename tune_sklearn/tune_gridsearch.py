@@ -51,6 +51,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             string or a callable to evaluate the predictions on the test set.
             See https://scikit-learn.org/stable/modules/model_evaluation.html
             #scoring-parameter for all options.
+            For evaluating multiple metrics, either give a list of (unique)
+            strings or a dict with names as keys and callables as values.
             If None, the estimator's score method is used. Defaults to None.
         n_jobs (int): Number of jobs to run in parallel. None or -1 means
             using all processors. Defaults to None.
@@ -67,7 +69,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             For integer/None inputs, if the estimator is a classifier and ``y``
             is either binary or multiclass, :class:`StratifiedKFold` is used.
             In all other cases, :class:`KFold` is used. Defaults to None.
-        refit (bool, str, or `callable`):
+        refit (bool or str):
             Refit an estimator using the best found parameters on the whole
             dataset.
             For multiple metric evaluation, this needs to be a string denoting
@@ -79,8 +81,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             Also for multiple metric evaluation, the attributes
             ``best_index_``, ``best_score_`` and ``best_params_`` will only be
             available if ``refit`` is set and all of them will be determined
-            w.r.t this specific scorer. ``best_score_`` is not returned if
-            refit is callable.
+            w.r.t this specific scorer. If refit not needed, set to False.
             See ``scoring`` parameter to know more about multiple metric
             evaluation.
             Defaults to True.

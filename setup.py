@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name="tune_sklearn",
     packages=["tune_sklearn"],
-    version="0.0.6",
+    version="0.0.7",
     author="Michael Chau/Anthony Yu",
     description="An experimental scikit-learn API on Tune",
     long_description="An API enabling faster scikit-learn training using Tune "
