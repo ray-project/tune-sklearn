@@ -15,7 +15,6 @@ from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import check_cv
-from sklearn.metrics import check_scoring
 from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.base import is_classifier
 from sklearn.base import clone
@@ -205,7 +204,6 @@ class TuneBaseSearchCV(BaseEstimator):
 
         return isinstance(scoring, (list, tuple, dict))
 
-
     def __init__(self,
                  estimator,
                  early_stopping=None,
@@ -271,9 +269,11 @@ class TuneBaseSearchCV(BaseEstimator):
                              "the estimator does not have `partial_fit`")
 
         self.cv = cv
-        self.scoring, self.is_multi = _check_multimetric_scoring(estimator, scoring)
-        if is_multi:
-            if refit and (not isinstance(refit, str) or refit not in self.scoring):
+        self.scoring, self.is_multi = _check_multimetric_scoring(
+            estimator, scoring)
+        if self.is_multi:
+            if refit and (not isinstance(refit, str)
+                          or refit not in self.scoring):
                 raise ValueError("When using multimetric scoring, refit "
                                  "must be the name of the scorer used to "
                                  "pick the best parameters. If not needed, "
@@ -354,10 +354,9 @@ class TuneBaseSearchCV(BaseEstimator):
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
         if self.is_multi:
-            scoring_name = refit
+            scoring_name = self.refit
         else:
             scoring_name = "score"
-
 
         if self.refit:
             best_config = analysis.get_best_config(
@@ -367,7 +366,8 @@ class TuneBaseSearchCV(BaseEstimator):
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
 
-            df = analysis.dataframe(metric="average_test_%s" % scoring_name, mode="max")
+            df = analysis.dataframe(
+                metric="average_test_%s" % scoring_name, mode="max")
             self.best_score = df["average_test_%s" % scoring_name].iloc[df[
                 "average_test_%s" % scoring_name].idxmax()]
 

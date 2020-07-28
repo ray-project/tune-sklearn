@@ -91,9 +91,14 @@ class _Trainable(Trainable):
                 self.estimator[i].partial_fit(X_train, y_train,
                                               np.unique(self.y))
                 if self.return_train_score:
-                    self.fold_train_scores[i] = {name: score(self.estimator[i], X_train, y_train) for name, score in self.scoring.items()}
-                self.fold_scores[i] = {name: score(self.estimator[i], X_test,
-                                                   y_test) for name, score in self.scoring.items()}
+                    self.fold_train_scores[i] = {
+                        name: score(self.estimator[i], X_train, y_train)
+                        for name, score in self.scoring.items()
+                    }
+                self.fold_scores[i] = {
+                    name: score(self.estimator[i], X_test, y_test)
+                    for name, score in self.scoring.items()
+                }
 
             ret = {}
             agg_fold_scores = _aggregate_score_dicts(self.fold_scores)
@@ -107,7 +112,8 @@ class _Trainable(Trainable):
                 ret["average_test_%s" % name] = self.mean_score
 
             if self.return_train_score:
-                agg_fold_train_scores = _aggregate_score_dicts(self.fold_train_scores)
+                agg_fold_train_scores = _aggregate_score_dicts(
+                    self.fold_train_scores)
                 for name, scores in agg_fold_train_scores:
                     total = 0
                     for i, score in enumerate(scores):
