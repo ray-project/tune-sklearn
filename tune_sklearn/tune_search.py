@@ -12,6 +12,7 @@ import warnings
 import skopt
 from skopt import Optimizer
 from ray.tune.suggest.skopt import SkOptSearch
+import os
 
 
 class TuneSearchCV(TuneBaseSearchCV):
@@ -141,6 +142,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             However computing the scores on the training set can be
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
+        local_dir (str): A string that defines where checkpoints will
+            be stored. Defaults to "~/ray_results"
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
@@ -150,6 +153,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             Bayesian optimization from scikit-optimize
             (https://scikit-optimize.github.io/stable/index.html)
             to search for hyperparameters.
+        use_gpu (bool): Indicates whether to use gpu for fitting.
+            Defaults to False. If True, training will use 1 gpu
+            for `resources_per_trial`.
 
     """
 
@@ -167,6 +173,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  random_state=None,
                  error_score=np.nan,
                  return_train_score=False,
+                 local_dir="~/ray_results",
                  max_iters=10,
                  search_optimization="random",
                  use_gpu=False):
@@ -213,6 +220,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
+            local_dir=local_dir,
             max_iters=max_iters,
             use_gpu=use_gpu)
 
@@ -305,7 +313,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                     config=config,
                     fail_fast=True,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial)
+                    resources_per_trial=resources_per_trial,
+                    local_dir=os.path.expanduser(self.local_dir))
             else:
                 analysis = tune.run(
                     _Trainable,
@@ -317,7 +326,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                     config=config,
                     fail_fast=True,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial)
+                    resources_per_trial=resources_per_trial,
+                    local_dir=os.path.expanduser(self.local_dir))
         else:
             hyperparameter_names, spaces = self._get_skopt_params()
             search_algo = SkOptSearch(
@@ -336,6 +346,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial)
+                resources_per_trial=resources_per_trial,
+                local_dir=os.path.expanduser(self.local_dir))
 
         return analysis

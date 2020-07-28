@@ -204,6 +204,7 @@ class TuneBaseSearchCV(BaseEstimator):
                  verbose=0,
                  error_score="raise",
                  return_train_score=False,
+                 local_dir="~/ray_results",
                  max_iters=10,
                  use_gpu=False):
 
@@ -267,6 +268,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.verbose = verbose
         self.error_score = error_score
         self.return_train_score = return_train_score
+        self.local_dir = local_dir
         self.use_gpu = use_gpu
 
     def _fit(self, X, y=None, groups=None, **fit_params):
