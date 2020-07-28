@@ -17,7 +17,7 @@ class RandomizedSearchTest(unittest.TestCase):
         # Make a dataset with a lot of noise to get various kind of prediction
         # errors across CV folds and parameter settings
         X, y = make_classification(
-            n_samples=200, n_features=100, n_informative=3, random_state=0)
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
 
         # scipy.stats dists now supports `seed` but we still support scipy 0.12
         # which doesn't support the seed. Hence the assertions in the test for
@@ -31,7 +31,7 @@ class RandomizedSearchTest(unittest.TestCase):
             cv=n_splits,
             param_distributions=params,
             return_train_score=True,
-        )
+            n_jobs=2)
         random_search.fit(X, y)
 
         param_keys = ("param_C", "param_gamma")

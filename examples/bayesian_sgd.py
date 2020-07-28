@@ -21,8 +21,7 @@ tune_search = TuneSearchCV(
     search_optimization="bayesian",
     n_iter=3,
     early_stopping=scheduler,
-    max_iters=10,
-)
+    max_iters=10)
 tune_search.fit(x_train, y_train)
 
 pred = tune_search.predict(x_test)
