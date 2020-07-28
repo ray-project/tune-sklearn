@@ -95,7 +95,10 @@ class RandomizedSearchTest(unittest.TestCase):
         y = digits.target
 
         clf = SGDClassifier()
-        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1), "epsilon": Real(0.01, 0.1)}
+        parameter_grid = {
+            "alpha": Real(1e-4, 1e-1, 1),
+            "epsilon": Real(0.01, 0.1)
+        }
 
         scheduler = MedianStoppingRule(grace_period=10.0)
 
@@ -104,12 +107,10 @@ class RandomizedSearchTest(unittest.TestCase):
             parameter_grid,
             early_stopping=scheduler,
             max_iters=10,
-            local_dir="./test-result"
-        )
+            local_dir="./test-result")
         tune_search.fit(x, y)
 
         self.assertTrue(len(os.listdir("./test-result")) != 0)
-
 
 
 if __name__ == "__main__":
