@@ -12,6 +12,7 @@ import warnings
 import skopt
 from skopt import Optimizer
 from ray.tune.suggest.skopt import SkOptSearch
+import os
 
 
 class TuneSearchCV(TuneBaseSearchCV):
@@ -80,18 +81,16 @@ class TuneSearchCV(TuneBaseSearchCV):
         n_iter (int): Number of parameter settings that are sampled.
             n_iter trades off runtime vs quality of the solution.
             Defaults to 10.
-        scoring (str, `callable`, `list`, `tuple`, `dict`
-            or None): A single string (see Scikit-Learn documentation
-            on `scoring_parameter`) or a callable
-            to evaluate the predictions on the test set.
-            For evaluating multiple metrics, either give a list of (unique)
-            strings or a dict with names as keys and callables as values.
-            NOTE that when using custom scorers, each scorer should return a
-            single value. Metric functions returning a list/array of values
-            can be wrapped into multiple scorers that return one value each.
+        scoring (str, `callable`, or None): A single string or a callable to
+            evaluate the predictions on the test set.
+            See https://scikit-learn.org/stable/modules/model_evaluation.html
+            #scoring-parameter for all options.
             If None, the estimator's score method is used. Defaults to None.
         n_jobs (int): Number of jobs to run in parallel. None or -1 means
             using all processors. Defaults to None.
+        sk_n_jobs (int): Number of jobs to run in parallel for cross validating
+            each hyperparameter set; the ``n_jobs`` parameter for
+            ``cross_validate`` call to sklearn when early stopping isn't used.
         refit (bool, str, or `callable`): Refit an estimator using the
             best found parameters on the whole dataset.
             For multiple metric evaluation, this needs to be a string denoting
@@ -143,6 +142,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             However computing the scores on the training set can be
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
+        local_dir (str): A string that defines where checkpoints will
+            be stored. Defaults to "~/ray_results"
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
@@ -152,6 +153,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             Bayesian optimization from scikit-optimize
             (https://scikit-optimize.github.io/stable/index.html)
             to search for hyperparameters.
+        use_gpu (bool): Indicates whether to use gpu for fitting.
+            Defaults to False. If True, training will use 1 gpu
+            for `resources_per_trial`.
 
     """
 
@@ -162,12 +166,14 @@ class TuneSearchCV(TuneBaseSearchCV):
                  n_iter=10,
                  scoring=None,
                  n_jobs=None,
+                 sk_n_jobs=-1,
                  refit=True,
                  cv=None,
                  verbose=0,
                  random_state=None,
                  error_score=np.nan,
                  return_train_score=False,
+                 local_dir="~/ray_results",
                  max_iters=10,
                  search_optimization="random",
                  use_gpu=False):
@@ -208,13 +214,15 @@ class TuneSearchCV(TuneBaseSearchCV):
             early_stopping=early_stopping,
             scoring=scoring,
             n_jobs=n_jobs,
+            sk_n_jobs=sk_n_jobs,
             cv=cv,
             verbose=verbose,
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
+            local_dir=local_dir,
             max_iters=max_iters,
-        )
+            use_gpu=use_gpu)
 
         self.param_distributions = param_distributions
         self.num_samples = n_iter
@@ -305,7 +313,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                     config=config,
                     fail_fast=True,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial)
+                    resources_per_trial=resources_per_trial,
+                    local_dir=os.path.expanduser(self.local_dir))
             else:
                 analysis = tune.run(
                     _Trainable,
@@ -317,7 +326,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                     config=config,
                     fail_fast=True,
                     checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial)
+                    resources_per_trial=resources_per_trial,
+                    local_dir=os.path.expanduser(self.local_dir))
         else:
             hyperparameter_names, spaces = self._get_skopt_params()
             search_algo = SkOptSearch(
@@ -336,6 +346,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial)
+                resources_per_trial=resources_per_trial,
+                local_dir=os.path.expanduser(self.local_dir))
 
         return analysis

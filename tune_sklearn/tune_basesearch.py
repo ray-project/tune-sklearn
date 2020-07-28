@@ -23,10 +23,12 @@ import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler)
+from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
+import os
 
 
 class TuneBaseSearchCV(BaseEstimator):
@@ -196,11 +198,13 @@ class TuneBaseSearchCV(BaseEstimator):
                  early_stopping=None,
                  scoring=None,
                  n_jobs=None,
+                 sk_n_jobs=-1,
                  cv=5,
                  refit=True,
                  verbose=0,
                  error_score="raise",
                  return_train_score=False,
+                 local_dir="~/ray_results",
                  max_iters=10,
                  use_gpu=False):
 
@@ -256,10 +260,15 @@ class TuneBaseSearchCV(BaseEstimator):
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = n_jobs
+        if os.environ.get("SKLEARN_N_JOBS") is not None:
+            self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
+        else:
+            self.sk_n_jobs = sk_n_jobs
         self.refit = refit
         self.verbose = verbose
         self.error_score = error_score
         self.return_train_score = return_train_score
+        self.local_dir = local_dir
         self.use_gpu = use_gpu
 
     def _fit(self, X, y=None, groups=None, **fit_params):
@@ -317,6 +326,7 @@ class TuneBaseSearchCV(BaseEstimator):
         config["scoring"] = self.scoring
         config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
+        config["n_jobs"] = self.sk_n_jobs
 
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)
@@ -363,7 +373,12 @@ class TuneBaseSearchCV(BaseEstimator):
         try:
             ray_init = ray.is_initialized()
             if not ray_init:
-                ray.init(ignore_reinit_error=True, configure_logging=False)
+                ray.init(
+                    ignore_reinit_error=True,
+                    configure_logging=False,
+                    log_to_driver=False)
+                warnings.warn("Hiding process output by default. "
+                              "To show process output, set verbose=2.")
 
             result = self._fit(X, y, groups, **fit_params)
 
@@ -372,10 +387,11 @@ class TuneBaseSearchCV(BaseEstimator):
 
             return result
 
-        except Exception:
+        except Exception as e:
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
-            raise
+            if type(e) != TuneError:
+                raise
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.
@@ -453,16 +469,9 @@ class TuneBaseSearchCV(BaseEstimator):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "estimator",
-                "early_stopping",
-                "X_id",
-                "y_id",
-                "groups",
-                "cv",
-                "fit_params",
-                "scoring",
-                "max_iters",
-                "return_train_score",
+                "estimator", "early_stopping", "X_id", "y_id", "groups", "cv",
+                "fit_params", "scoring", "max_iters", "return_train_score",
+                "n_jobs"
         ]:
             config.pop(key, None)
         return config
