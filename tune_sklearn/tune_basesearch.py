@@ -435,7 +435,12 @@ class TuneBaseSearchCV(BaseEstimator):
             float: computed score
 
         """
-        return self.scoring(self.best_estimator_, X, y)
+        self.check_is_fitted("score")
+        if self.is_multi:
+            scorer_name = self.refit
+        else:
+            scorer_name = "score"
+        return self.scoring[scorer_name](self.best_estimator_, X, y)
 
     def _can_early_stop(self):
         """Helper method to determine if it is possible to do early stopping.
