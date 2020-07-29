@@ -523,22 +523,22 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         dfs = list(out.fetch_trial_dataframes().values())
         finished = [df[df["done"]] for df in dfs]
-        test_scores = []
-        train_scores = []
+        test_scores = {}
+        train_scores = {}
         for name in self.scoring:
-            test_scores.append([
+            test_scores[name] = [
                 df[[
                     col for col in dfs[0].columns
                     if "split" in col and "test_%s" % name in col
                 ]].to_numpy() for df in finished
-            ])
+            ]
             if self.return_train_score:
-                train_scores.append([
+                train_scores[name] = [
                     df[[
                         col for col in dfs[0].columns
                         if "split" in col and "train_%s" % name in col
                     ]].to_numpy() for df in finished
-                ])
+                ]
             else:
                 train_scores = None
 
@@ -588,7 +588,7 @@ class TuneBaseSearchCV(BaseEstimator):
             _store(
                 results,
                 "test_%s" % name,
-                test_scores,
+                test_scores[name],
                 n_splits,
                 n_candidates,
                 splits=True,
@@ -599,7 +599,7 @@ class TuneBaseSearchCV(BaseEstimator):
                 _store(
                     results,
                     "train_%s" % name,
-                    train_scores,
+                    train_scores[name],
                     n_splits,
                     n_candidates,
                     splits=True,
