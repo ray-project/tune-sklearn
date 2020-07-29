@@ -51,8 +51,8 @@ class _Trainable(Trainable):
 
         if self.early_stopping:
             n_splits = self.cv.get_n_splits(self.X, self.y)
-            self.fold_scores = np.zeros(n_splits)
-            self.fold_train_scores = np.zeros(n_splits)
+            self.fold_scores = np.empty(n_splits, dtype=dict)
+            self.fold_train_scores = np.empty(n_splits, dtype=dict)
             for i in range(n_splits):
                 self.estimator[i].set_params(**self.estimator_config)
         else:
