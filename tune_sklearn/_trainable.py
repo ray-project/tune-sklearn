@@ -102,7 +102,7 @@ class _Trainable(Trainable):
 
             ret = {}
             agg_fold_scores = _aggregate_score_dicts(self.fold_scores)
-            for name, scores in agg_fold_scores:
+            for name, scores in agg_fold_scores.items():
                 total = 0
                 for i, score in enumerate(scores):
                     total += score
@@ -114,7 +114,7 @@ class _Trainable(Trainable):
             if self.return_train_score:
                 agg_fold_train_scores = _aggregate_score_dicts(
                     self.fold_train_scores)
-                for name, scores in agg_fold_train_scores:
+                for name, scores in agg_fold_train_scores.items():
                     total = 0
                     for i, score in enumerate(scores):
                         total += score
