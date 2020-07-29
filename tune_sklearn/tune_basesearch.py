@@ -435,7 +435,7 @@ class TuneBaseSearchCV(BaseEstimator):
             float: computed score
 
         """
-        self.check_is_fitted("score")
+        self._check_is_fitted("score")
         if self.is_multi:
             scorer_name = self.refit
         else:
