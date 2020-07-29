@@ -315,6 +315,7 @@ class TuneBaseSearchCV(BaseEstimator):
         classifier = is_classifier(self.estimator)
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
+        _check_multimetric_scoring(self.estimator, self.scoring)
 
         if self.n_jobs is not None:
             if self.n_jobs < 0:

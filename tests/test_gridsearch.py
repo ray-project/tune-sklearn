@@ -100,10 +100,8 @@ class GridSearchTest(unittest.TestCase):
 
         # Test exception handling on scoring
         grid_search.scoring = "sklearn"
-        # with self.assertRaises(ValueError):
-        with self.assertLogs("ray.tune") as cm:
+        with self.assertRaises((KeyError, ValueError)):
             grid_search.fit(X, y)
-        self.assertTrue(("is not a valid scoring value") in str(cm.output))
 
     def test_grid_search_no_score(self):
         # Test grid-search on classifier that has no score function.
@@ -300,7 +298,6 @@ class GridSearchTest(unittest.TestCase):
 
         clf = LinearSVC()
         cv = TuneGridSearchCV(clf, {"C": [0.1, 1.0]})
-        # with self.assertRaises(ValueError):
         with self.assertLogs("ray.tune") as cm:
             cv.fit(X_[:180], y_)
         self.assertTrue(("ValueError: Found input variables with inconsistent "
