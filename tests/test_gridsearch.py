@@ -100,7 +100,7 @@ class GridSearchTest(unittest.TestCase):
 
         # Test exception handling on scoring
         grid_search.scoring = "sklearn"
-        with self.assertRaises((KeyError, ValueError)):
+        with self.assertRaises(ValueError):
             grid_search.fit(X, y)
 
     def test_grid_search_no_score(self):
@@ -130,8 +130,9 @@ class GridSearchTest(unittest.TestCase):
             grid_search.score(X, y), grid_search_no_score.score(X, y))
 
         # giving no scoring function raises an error
+        grid_search_no_score = TuneGridSearchCV(clf_no_score, {"C": Cs})
         with self.assertRaises(TypeError) as exc:
-            grid_search_no_score = TuneGridSearchCV(clf_no_score, {"C": Cs})
+            grid_search_no_score.fit([[1]])
 
         self.assertTrue("no scoring" in str(exc.exception))
 

@@ -269,15 +269,7 @@ class TuneBaseSearchCV(BaseEstimator):
                              "the estimator does not have `partial_fit`")
 
         self.cv = cv
-        self.scoring, self.is_multi = _check_multimetric_scoring(
-            estimator, scoring)
-        if self.is_multi:
-            if refit and (not isinstance(refit, str)
-                          or refit not in self.scoring):
-                raise ValueError("When using multimetric scoring, refit "
-                                 "must be the name of the scorer used to "
-                                 "pick the best parameters. If not needed, "
-                                 "set refit to False")
+        self.scoring = scoring
         self.n_jobs = n_jobs
         if os.environ.get("SKLEARN_N_JOBS") is not None:
             self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
@@ -315,7 +307,15 @@ class TuneBaseSearchCV(BaseEstimator):
         classifier = is_classifier(self.estimator)
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
-        _check_multimetric_scoring(self.estimator, self.scoring)
+        self.scoring, self.is_multi = _check_multimetric_scoring(
+            self.estimator, self.scoring)
+        if self.is_multi:
+            if self.refit and (not isinstance(self.refit, str)
+                          or self.refit not in self.scoring):
+                raise ValueError("When using multimetric scoring, refit "
+                                 "must be the name of the scorer used to "
+                                 "pick the best parameters. If not needed, "
+                                 "set refit to False")
 
         if self.n_jobs is not None:
             if self.n_jobs < 0:
