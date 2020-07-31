@@ -98,8 +98,9 @@ class _Trainable(Trainable):
                     self.saved_models[i] = self.estimator[i].fit(
                         X_train, y_train, init_model=self.saved_models[i])
                 elif self.is_xgb:
-                    self.saved_models[i] = self.estimator[i].fit(
+                    self.estimator[i].fit(
                         X_train, y_train, xgb_model=self.saved_models[i])
+                    self.saved_models[i] = self.estimator[i].get_booster()
                 else:
                     self.estimator[i].partial_fit(X_train, y_train,
                                                   np.unique(self.y))
