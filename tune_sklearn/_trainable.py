@@ -7,6 +7,7 @@ from sklearn.base import clone
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
 from lightgbm import LGBMModel
+from xgboost.sklearn import XGBModel
 import numpy as np
 import os
 from pickle import PicklingError
@@ -57,7 +58,8 @@ class _Trainable(Trainable):
                 self.estimator[i].set_params(**self.estimator_config)
 
             self.is_lgbm = isinstance(self.estimator[0], LGBMModel)
-            if self.is_lgbm:
+            self.is_xgb = isinstance(self.estimator[0], XGBModel)
+            if self.is_lgbm or self.is_xgb:
                 self.saved_models = [None for _ in range(n_splits)]
         else:
             self.estimator.set_params(**self.estimator_config)
@@ -95,6 +97,9 @@ class _Trainable(Trainable):
                 if self.is_lgbm:
                     self.saved_models[i] = self.estimator[i].fit(
                         X_train, y_train, init_model=self.saved_models[i])
+                elif self.is_xgb:
+                    self.saved_models[i] = self.estimator[i].fit(
+                        X_train, y_train, xgb_model=self.saved_models[i])
                 else:
                     self.estimator[i].partial_fit(X_train, y_train,
                                                   np.unique(self.y))
