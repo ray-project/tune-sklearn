@@ -307,8 +307,9 @@ class TuneBaseSearchCV(BaseEstimator):
         classifier = is_classifier(self.estimator)
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
-        self.scoring, self.is_multi = _check_multimetric_scoring(
-            self.estimator, self.scoring)
+        if not hasattr(self, "is_multi"):
+            self.scoring, self.is_multi = _check_multimetric_scoring(
+                self.estimator, self.scoring)
         if self.is_multi:
             if self.refit and (not isinstance(self.refit, str)
                           or self.refit not in self.scoring):
