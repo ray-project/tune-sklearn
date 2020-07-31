@@ -316,7 +316,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         if self.is_multi:
             if self.refit and (not isinstance(self.refit, str)
-                          or self.refit not in self.scoring):
+                               or self.refit not in self.scoring):
                 raise ValueError("When using multimetric scoring, refit "
                                  "must be the name of the scorer used to "
                                  "pick the best parameters. If not needed, "
