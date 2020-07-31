@@ -6,6 +6,7 @@ from ray.tune import Trainable
 from sklearn.base import clone
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
+from lightgbm import LGBMModel
 import numpy as np
 import os
 from pickle import PicklingError
@@ -54,6 +55,10 @@ class _Trainable(Trainable):
             self.fold_train_scores = np.zeros(n_splits)
             for i in range(n_splits):
                 self.estimator[i].set_params(**self.estimator_config)
+
+            self.is_lgbm = isinstance(self.estimator[0], LGBMModel)
+            if self.is_lgbm:
+                self.saved_models = [None for _ in range(n_splits)]
         else:
             self.estimator.set_params(**self.estimator_config)
 
@@ -87,8 +92,12 @@ class _Trainable(Trainable):
                     self.y,
                     test,
                     train_indices=train)
-                self.estimator[i].partial_fit(X_train, y_train,
-                                              np.unique(self.y))
+                if self.is_lgbm:
+                    self.saved_models[i] = self.estimator[i].fit(
+                        X_train, y_train, self.saved_models[i])
+                else:
+                    self.estimator[i].partial_fit(X_train, y_train,
+                                                  np.unique(self.y))
                 if self.return_train_score:
                     self.fold_train_scores[i] = self.scoring(
                         self.estimator[i], X_train, y_train)

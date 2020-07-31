@@ -19,6 +19,7 @@ from sklearn.metrics import check_scoring
 from sklearn.base import is_classifier
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
+from lightgbm import LGBMModel
 import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
@@ -422,8 +423,9 @@ class TuneBaseSearchCV(BaseEstimator):
             bool: if the estimator can early stop
 
         """
-        return (hasattr(self.estimator, "partial_fit")
-                and callable(getattr(self.estimator, "partial_fit", None)))
+        return (hasattr(self.estimator, "partial_fit") and callable(
+            getattr(self.estimator, "partial_fit", None))) or (isinstance(
+                self.estimator, LGBMModel))
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
