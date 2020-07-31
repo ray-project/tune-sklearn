@@ -94,7 +94,7 @@ class _Trainable(Trainable):
                     train_indices=train)
                 if self.is_lgbm:
                     self.saved_models[i] = self.estimator[i].fit(
-                        X_train, y_train, self.saved_models[i])
+                        X_train, y_train, init_model=self.saved_models[i])
                 else:
                     self.estimator[i].partial_fit(X_train, y_train,
                                                   np.unique(self.y))
