@@ -310,6 +310,10 @@ class TuneBaseSearchCV(BaseEstimator):
         if not hasattr(self, "is_multi"):
             self.scoring, self.is_multi = _check_multimetric_scoring(
                 self.estimator, self.scoring)
+        else:
+            self.scoring, _ = _check_multimetric_scoring(
+                self.estimator, self.scoring)
+
         if self.is_multi:
             if self.refit and (not isinstance(self.refit, str)
                           or self.refit not in self.scoring):
