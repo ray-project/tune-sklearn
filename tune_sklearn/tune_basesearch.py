@@ -426,8 +426,8 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         return (hasattr(self.estimator, "partial_fit") and callable(
             getattr(self.estimator, "partial_fit", None))) or isinstance(
-                self.estimator, LGBMModel)
-            or isinstance(self.estimator, XGBModel)
+                self.estimator, LGBMModel) or isinstance(
+                    self.estimator, XGBModel)
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
