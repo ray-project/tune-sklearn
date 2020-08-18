@@ -10,6 +10,8 @@ from tune_sklearn.list_searcher import RandomListSearcher
 import numpy as np
 import warnings
 import os
+import sys
+import traceback
 
 
 class TuneSearchCV(TuneBaseSearchCV):
@@ -210,18 +212,43 @@ class TuneSearchCV(TuneBaseSearchCV):
                 "random state is ignored when not using Random optimization")
 
         if search_optimization == "bayesian":
-            import skopt
-            from skopt import Optimizer
-            from ray.tune.suggest.skopt import SkOptSearch
+            try:
+                import skopt
+                from skopt import Optimizer
+                from ray.tune.suggest.skopt import SkOptSearch
+            except:
+                traceback.print_exc(file=sys.stderr)
+                print(
+                    "It appears that scikit-optimize is not installed. Do: pip install scikit-optimize",
+                    file=sys.stderr)
         elif search_optimization == "bohb":
-            from ray.tune.suggest.bohb import TuneBOHB
-            from ray.tune.schedulers import HyperBandForBOHB
-            import ConfigSpace as CS
+            try:
+                from ray.tune.suggest.bohb import TuneBOHB
+                from ray.tune.schedulers import HyperBandForBOHB
+                import ConfigSpace as CS
+            except:
+                traceback.print_exc(file=sys.stderr)
+                print(
+                    "It appears that either HpBandSter or ConfigSpace is not installed. Do: pip install hpbandster ConfigSpace",
+                    file=sys.stderr)
         elif search_optimization == "hyperopt":
-            from ray.tune.suggest.hyperopt import HyperOptSearch
-            from hyperopt import hp
+            try:
+                from ray.tune.suggest.hyperopt import HyperOptSearch
+                from hyperopt import hp
+            except:
+                traceback.print_exc(file=sys.stderr)
+                print(
+                    "It appears that hyperopt is not installed. Do: pip install hyperopt",
+                    file=sys.stderr)
         elif search_optimization == "optuna":
-            from ray.tune.suggest.optuna import OptunaSearch, param
+            try:
+                from ray.tune.suggest.optuna import OptunaSearch, param
+                import optuna
+            except:
+                traceback.print_exc(file=sys.stderr)
+                print(
+                    "It appears that optuna is not installed. Do: pip install optuna",
+                    file=sys.stderr)
 
         if isinstance(param_distributions, list):
             if search_optimization != "random":
