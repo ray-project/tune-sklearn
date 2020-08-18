@@ -225,16 +225,16 @@ class TuneBaseSearchCV(BaseEstimator):
                             metric="average_test_score")
                     elif early_stopping == "AsyncHyperBandScheduler":
                         self.early_stopping = AsyncHyperBandScheduler(
-                            metric="average_test_score")
+                            metric="average_test_score", max_t=max_iters)
                     elif early_stopping == "HyperBandScheduler":
                         self.early_stopping = HyperBandScheduler(
-                            metric="average_test_score")
+                            metric="average_test_score", max_t=max_iters)
                     elif early_stopping == "MedianStoppingRule":
                         self.early_stopping = MedianStoppingRule(
                             metric="average_test_score")
                     elif early_stopping == "ASHAScheduler":
                         self.early_stopping = ASHAScheduler(
-                            metric="average_test_score")
+                            metric="average_test_score", max_t=max_iters)
                 else:
                     raise ValueError("{} is not a defined scheduler. "
                                      "Check the list of available schedulers."
