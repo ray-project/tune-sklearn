@@ -492,7 +492,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
         dfs = list(out.fetch_trial_dataframes().values())
-        finished = [df[df["done"]] for df in dfs]
+        finished = [df.iloc[[-1]] for df in dfs]
         test_scores = [
             df[[
                 col for col in dfs[0].columns
