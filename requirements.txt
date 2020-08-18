@@ -3,7 +3,7 @@ scikit-learn
 pandas
 tabulate
 ray
-scikit-optimize
+#scikit-optimize
 parameterized
 pytest
 xgboost
