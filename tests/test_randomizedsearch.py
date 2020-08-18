@@ -6,7 +6,7 @@ from scipy.stats import expon
 from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn import datasets
-#from skopt.space.space import Real
+from skopt.space.space import Real
 from ray.tune.schedulers import MedianStoppingRule
 import unittest
 import os
@@ -96,10 +96,8 @@ class RandomizedSearchTest(unittest.TestCase):
 
         clf = SGDClassifier()
         parameter_grid = {
-            #"alpha": Real(1e-4, 1e-1, 1),
-            #"epsilon": Real(0.01, 0.1)
-            "alpha": [1e-4, 1e-1, 1],
-            "epsilon": [0.01, 0.1]
+            "alpha": Real(1e-4, 1e-1, 1),
+            "epsilon": Real(0.01, 0.1)
         }
 
         scheduler = MedianStoppingRule(grace_period=10.0)
