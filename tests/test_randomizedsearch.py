@@ -98,8 +98,8 @@ class RandomizedSearchTest(unittest.TestCase):
         parameter_grid = {
             #"alpha": Real(1e-4, 1e-1, 1),
             #"epsilon": Real(0.01, 0.1)
-            "alpha": (1e-4, 1e-1, 1),
-            "epsilon": (0.01, 0.1)
+            "alpha": [1e-4, 1e-1, 1],
+            "epsilon": [0.01, 0.1]
         }
 
         scheduler = MedianStoppingRule(grace_period=10.0)
