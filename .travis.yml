@@ -33,10 +33,10 @@ notifications:
 
 install:
   - pip3 install -U -q pip
+  - pip3 install -U -q scikit-optimize
   - pip3 install -q -r requirements.txt
   - pip3 install --upgrade -q keras
   - pip3 install -U -q scikit-learn pytest
-  - pip3 install -U -q scikit-optimize
   # Nightly wheel installation
   # - pip3 install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple -U scikit-learn
 
