@@ -233,7 +233,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 raise ValueError("list of dictionaries for parameters "
                                  "is not supported for non-random search")
 
-        if isinstance(param_distributions, dict):
+        elif isinstance(param_distributions, dict):
             check_param_distributions = [param_distributions]
         else:
             check_param_distributions = param_distributions
