@@ -24,7 +24,7 @@ If the estimator does not support `partial_fit`, a warning will be shown saying 
 #### TuneGridSearchCV
 To start out, it’s as easy as changing our import statement to get Tune’s grid search cross validation interface, and the rest is almost identical!
 
-`TuneGridSearchCV` accepts dictionaries in the format `{ param_name:str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `GridSearchCV`.
+`TuneGridSearchCV` accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `GridSearchCV`.
 
 ```python
 # from sklearn.model_selection import GridSearchCV
