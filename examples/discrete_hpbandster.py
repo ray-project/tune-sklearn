@@ -13,7 +13,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 space = {
     "n_estimators": CS.UniformIntegerHyperparameter("n_estimators", 100, 200),
     "min_weight_fraction_leaf": (0.0, 0.5),
-    "min_samples_leaf": CS.UniformIntegerHyperparameter('min_samples_leaf', 1, 5)
+    "min_samples_leaf": CS.UniformIntegerHyperparameter(
+        "min_samples_leaf", 1, 5)
 }
 
 tune_search = TuneSearchCV(
