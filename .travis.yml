@@ -33,7 +33,7 @@ notifications:
 
 install:
   - pip3 install -U -q pip
-  - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace 
+  - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace
   - pip3 install -q -r requirements.txt
   - pip3 install --upgrade -q keras
   - pip3 install -U -q scikit-learn pytest
@@ -41,8 +41,8 @@ install:
   # - pip3 install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple -U scikit-learn
 
 script:
-  - if [ "$OS" == "MAC" ]; then brew install libomp; fi
-  - python3 setup.py -q install
+  - if [ "$OS" == "MAC" ]; then brew install -q libomp; fi
+  - python3 setup.py install
   - cd tests
   - pytest -v --durations=0 -x test_randomizedsearch.py
   - pytest -v --durations=0 -x test_gridsearch.py
