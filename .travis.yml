@@ -42,7 +42,7 @@ install:
 
 script:
   - if [ "$OS" == "MAC" ]; then brew install -q libomp; fi
-  - python3 setup.py install
+  - pip3 install -e .
   - cd tests
   - pytest -v --durations=0 -x test_randomizedsearch.py
   - pytest -v --durations=0 -x test_gridsearch.py
