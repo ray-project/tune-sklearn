@@ -211,44 +211,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             warnings.warn(
                 "random state is ignored when not using Random optimization")
 
-        if search_optimization == "bayesian":
-            try:
-                import skopt
-                from skopt import Optimizer
-                from ray.tune.suggest.skopt import SkOptSearch
-            except:
-                traceback.print_exc(file=sys.stderr)
-                print(
-                    "It appears that scikit-optimize is not installed. Do: pip install scikit-optimize",
-                    file=sys.stderr)
-        elif search_optimization == "bohb":
-            try:
-                from ray.tune.suggest.bohb import TuneBOHB
-                from ray.tune.schedulers import HyperBandForBOHB
-                import ConfigSpace as CS
-            except:
-                traceback.print_exc(file=sys.stderr)
-                print(
-                    "It appears that either HpBandSter or ConfigSpace is not installed. Do: pip install hpbandster ConfigSpace",
-                    file=sys.stderr)
-        elif search_optimization == "hyperopt":
-            try:
-                from ray.tune.suggest.hyperopt import HyperOptSearch
-                from hyperopt import hp
-            except:
-                traceback.print_exc(file=sys.stderr)
-                print(
-                    "It appears that hyperopt is not installed. Do: pip install hyperopt",
-                    file=sys.stderr)
-        elif search_optimization == "optuna":
-            try:
-                from ray.tune.suggest.optuna import OptunaSearch, param
-                import optuna
-            except:
-                traceback.print_exc(file=sys.stderr)
-                print(
-                    "It appears that optuna is not installed. Do: pip install optuna",
-                    file=sys.stderr)
+        self._try_import_required_libraries(search_optimization)
 
         if isinstance(param_distributions, list):
             if search_optimization != "random":
@@ -282,9 +245,10 @@ class TuneSearchCV(TuneBaseSearchCV):
                             " instance when using "
                             "bohb, hyperopt")
 
-        if search_optimization == 'bohb' and not isinstance(
-                early_stopping, HyperBandForBOHB):
-            early_stopping = None
+        if search_optimization == 'bohb':
+            from ray.tune.schedulers import HyperBandForBOHB
+            if not isinstance(early_stopping, HyperBandForBOHB):
+                early_stopping = True
 
         super(TuneSearchCV, self).__init__(
             estimator=estimator,
@@ -457,6 +421,46 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space[param_name] = hp.choice(param_name, space)
         return config_space
 
+    def _try_import_required_libraries(self, search_optimization):
+        if search_optimization == "bayesian":
+            try:
+                import skopt
+                from skopt import Optimizer
+                from ray.tune.suggest.skopt import SkOptSearch
+            except:
+                traceback.print_exc(file=sys.stderr)
+                print(
+                    "It appears that scikit-optimize is not installed. Do: pip install scikit-optimize",
+                    file=sys.stderr)
+        elif search_optimization == "bohb":
+            try:
+                from ray.tune.suggest.bohb import TuneBOHB
+                from ray.tune.schedulers import HyperBandForBOHB
+                import ConfigSpace as CS
+            except:
+                traceback.print_exc(file=sys.stderr)
+                print(
+                    "It appears that either HpBandSter or ConfigSpace is not installed. Do: pip install hpbandster ConfigSpace",
+                    file=sys.stderr)
+        elif search_optimization == "hyperopt":
+            try:
+                from ray.tune.suggest.hyperopt import HyperOptSearch
+                from hyperopt import hp
+            except:
+                traceback.print_exc(file=sys.stderr)
+                print(
+                    "It appears that hyperopt is not installed. Do: pip install hyperopt",
+                    file=sys.stderr)
+        elif search_optimization == "optuna":
+            try:
+                from ray.tune.suggest.optuna import OptunaSearch, param
+                import optuna
+            except:
+                traceback.print_exc(file=sys.stderr)
+                print(
+                    "It appears that optuna is not installed. Do: pip install optuna",
+                    file=sys.stderr)
+
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
@@ -517,6 +521,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     checkpoint_at_end=True,
                     resources_per_trial=resources_per_trial,
                     local_dir=os.path.expanduser(self.local_dir))
+            return analysis
 
         elif self.search_optimization == "bayesian":
             import skopt
@@ -529,20 +534,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 metric="average_test_score",
                 **self.kwargs)
 
-            analysis = tune.run(
-                _Trainable,
-                search_alg=search_algo,
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.max_iters},
-                num_samples=self.num_samples,
-                config=config,
-                fail_fast=True,
-                checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
-
         elif self.search_optimization == "bohb":
             from ray.tune.suggest.bohb import TuneBOHB
             config_space = self._get_bohb_config_space()
@@ -551,19 +542,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 metric='average_test_score',
                 mode='max',
                 **self.kwargs)
-            analysis = tune.run(
-                _Trainable,
-                search_alg=search_algo,
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop=stop_condition,
-                num_samples=self.num_samples,
-                config=config,
-                fail_fast=True,
-                checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
 
         elif self.search_optimization == "optuna":
             from ray.tune.suggest.optuna import OptunaSearch
@@ -573,19 +551,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 metric='average_test_score',
                 mode='max',
                 **self.kwargs)
-            analysis = tune.run(
-                _Trainable,
-                search_alg=search_algo,
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop=stop_condition,
-                num_samples=self.num_samples,
-                config=config,
-                fail_fast=True,
-                checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
 
         elif self.search_optimization == "hyperopt":
             from ray.tune.suggest.hyperopt import HyperOptSearch
@@ -595,18 +560,19 @@ class TuneSearchCV(TuneBaseSearchCV):
                 metric='average_test_score',
                 mode='max',
                 **self.kwargs)
-            analysis = tune.run(
-                _Trainable,
-                search_alg=search_algo,
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop=stop_condition,
-                num_samples=self.num_samples,
-                config=config,
-                fail_fast=True,
-                checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
+
+        analysis = tune.run(
+            _Trainable,
+            search_alg=search_algo,
+            scheduler=self.early_stopping,
+            reuse_actors=True,
+            verbose=self.verbose,
+            stop=stop_condition,
+            num_samples=self.num_samples,
+            config=config,
+            fail_fast=True,
+            checkpoint_at_end=True,
+            resources_per_trial=resources_per_trial,
+            local_dir=os.path.expanduser(self.local_dir))
 
         return analysis
