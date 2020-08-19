@@ -197,5 +197,5 @@ class _Trainable(Trainable):
             warnings.warn("No estimator restored")
 
     def reset_config(self, new_config):
-        self.config = new_config
+        self._setup(new_config)
         return True
