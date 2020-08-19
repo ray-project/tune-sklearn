@@ -20,8 +20,11 @@ If the estimator does not support `partial_fit`, a warning will be shown saying 
 `pip install tune-sklearn ray[tune]`
 
 ## Examples
+
 #### TuneGridSearchCV
 To start out, it’s as easy as changing our import statement to get Tune’s grid search cross validation interface, and the rest is almost identical!
+
+`TuneGridSearchCV` accepts dictionaries in the format `{ param_name:str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `GridSearchCV`.
 
 ```python
 # from sklearn.model_selection import GridSearchCV
@@ -82,7 +85,18 @@ print("Sklearn Accuracy:", accuracy)
 
 #### TuneSearchCV
 
-`TuneSearchCV` uses randomized search over the distribution by default, but can do Bayesian search as well by specifying the `search_optimization` parameter as shown here. You need to run `pip install scikit-optimize` for this to work. More details in [Tune Documentation] (https://docs.ray.io/en/master/tune/api_docs/suggestion.html?highlight=bayesian#scikit-optimize-tune-suggest-skopt-skoptsearch).
+`TuneSearchCV` acts as a wrapper for several search algorithms from Tune's [`tune.suggest`](https://docs.ray.io/en/master/tune/api_docs/suggestion.html), which in turn are wrappers for other libraries. The selection of the search algorithm is controlled by the `search_optimization` parameter. The default, built-in search algorithm is randomized search over the distribution (mirroring scikit-learn's `RandomizedSearchCV`). In order to use other algorithms, you need to install the libraries they depend on (`pip install` column). The search algorithms are as follows:
+
+| Algorithm          | `search_optimization` value | Summary                | Website                                                 | `pip install`              |
+|--------------------|-----------------------------|------------------------|---------------------------------------------------------|--------------------------|
+| RandomListSearcher | `"random"`                  | Randomized Search      |                                                         | built-in                 |
+| SkoptSearch        | `"bayesian"`                | Bayesian Optimization  | [[Scikit-Optimize](https://scikit-optimize.github.io/)] | `scikit-optimize`        |
+| HyperOptSearch     | `"hyperopt"`                | Tree-Parzen Estimators | [[HyperOpt](http://hyperopt.github.io/hyperopt)]        | `hyperopt`               |
+| TuneBOHB           | `"bohb"`                    | Bayesian Opt/HyperBand | [[BOHB](https://github.com/automl/HpBandSter)]          | `hpbandster ConfigSpace` |
+
+All algorithms other than RandomListSearcher accept parameter distributions in the form of dictionaries in the format `{ param_name: str : distribution: tuple or list }`. Tuples represent real distributions and should be two-element or three-element, in the format `(lower_bound: float, upper_bound: float, Optional: "uniform" (default) or "log-uniform")`. Lists represent categorical distributions. Furthermore, each algorithm accepts parameters in their own specific format. More information in [Tune documentation](https://docs.ray.io/en/master/tune/api_docs/suggestion.html).
+
+RandomListSearcher accepts dictionaries in the format `{ param_name:str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `RandomizedSearchCV`.
 
 ```python
 from tune_sklearn import TuneSearchCV
@@ -98,21 +112,30 @@ X, y = make_classification(n_samples=11000, n_features=1000, n_informative=50, n
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1000)
 
 # Example parameter distributions to tune from SGDClassifier
-# Note the use of tuples instead if Bayesian optimization is desired
+# Note the use of tuples instead if non-random optimization is desired
 param_dists = {
     'alpha': (1e-4, 1e-1),
     'epsilon': (1e-2, 1e-1)
 }
 
-tune_search = TuneSearchCV(SGDClassifier(),
+bohb_tune_search = TuneSearchCV(SGDClassifier(),
     param_distributions=param_dists,
     n_iter=2,
-    early_stopping="MedianStoppingRule",
     max_iters=10,
-    search_optimization="bayesian"
+    search_optimization="bohb"
 )
 
-tune_search.fit(X_train, y_train)
+bohb_tune_search.fit(X_train, y_train)
+
+hyperopt_tune_search = TuneSearchCV(SGDClassifier(),
+    param_distributions=param_dists,
+    n_iter=2,
+    early_stopping=True, # uses ASHAScheduler if set to True
+    max_iters=10,
+    search_optimization="hyperopt"
+)
+
+hyperopt_tune_search.fit(X_train, y_train)
 ```
 
 ### Other Machine Learning Libraries and Examples
