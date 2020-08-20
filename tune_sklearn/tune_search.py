@@ -300,7 +300,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             estimator=estimator,
             early_stopping=early_stopping,
             scoring=scoring,
-            n_jobs=n_jobs,
+            n_jobs=n_jobs or -1,
             sk_n_jobs=sk_n_jobs,
             cv=cv,
             verbose=verbose,

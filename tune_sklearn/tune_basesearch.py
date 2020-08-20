@@ -259,7 +259,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.cv = cv
         self.scoring = scoring
-        self.n_jobs = n_jobs
+        self.n_jobs = int(n_jobs or -1)
         if os.environ.get("SKLEARN_N_JOBS") is not None:
             self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
         else:
@@ -270,6 +270,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.local_dir = local_dir
         self.use_gpu = use_gpu
+        assert isinstance(self.n_jobs, int)
 
     def _fit(self, X, y=None, groups=None, **fit_params):
         """Helper method to run fit procedure
@@ -298,25 +299,27 @@ class TuneBaseSearchCV(BaseEstimator):
         self.n_splits = cv.get_n_splits(X, y, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
 
-        if self.n_jobs is not None:
-            if self.n_jobs < 0:
-                resources_per_trial = {
-                    "cpu": 1,
-                    "gpu": 1 if self.use_gpu else 0
-                }
+        assert isinstance(self.n_jobs, int), (
+            "Internal error: self.n_jobs must be an integer.")
+        if self.n_jobs < 0:
+            resources_per_trial = {
+                "cpu": 1,
+                "gpu": 1 if self.use_gpu else 0
+            }
+            if self.n_jobs < -1:
                 warnings.warn("`self.n_jobs` is automatically set "
                               "-1 for any negative values.")
-            else:
-                available_cpus = multiprocessing.cpu_count()
-                cpu_fraction = available_cpus / self.n_jobs
-                if cpu_fraction > 1:
-                    cpu_fraction = int(np.ceil(cpu_fraction))
-                resources_per_trial = {
-                    "cpu": cpu_fraction,
-                    "gpu": 1 if self.use_gpu else 0
-                }
         else:
-            resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
+            available_cpus = multiprocessing.cpu_count()
+            if ray.is_initialized():
+                available_cpus = ray.cluster_resources()["CPU"]
+            cpu_fraction = available_cpus / self.n_jobs
+            if cpu_fraction > 1:
+                cpu_fraction = int(np.ceil(cpu_fraction))
+            resources_per_trial = {
+                "cpu": cpu_fraction,
+                "gpu": 1 if self.use_gpu else 0
+            }
 
         X_id = ray.put(X)
         y_id = ray.put(y)
