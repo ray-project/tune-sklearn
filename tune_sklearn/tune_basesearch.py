@@ -299,13 +299,11 @@ class TuneBaseSearchCV(BaseEstimator):
         self.n_splits = cv.get_n_splits(X, y, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
 
-        assert isinstance(self.n_jobs, int), (
-            "Internal error: self.n_jobs must be an integer.")
+        assert isinstance(
+            self.n_jobs,
+            int), ("Internal error: self.n_jobs must be an integer.")
         if self.n_jobs < 0:
-            resources_per_trial = {
-                "cpu": 1,
-                "gpu": 1 if self.use_gpu else 0
-            }
+            resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
             if self.n_jobs < -1:
                 warnings.warn("`self.n_jobs` is automatically set "
                               "-1 for any negative values.")
