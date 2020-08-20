@@ -9,6 +9,7 @@ from sklearn import datasets
 from skopt.space.space import Real
 from ray.tune.schedulers import MedianStoppingRule
 import unittest
+from unittest.mock import patch
 import os
 
 
@@ -111,6 +112,27 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search.fit(x, y)
 
         self.assertTrue(len(os.listdir("./test-result")) != 0)
+
+    def test_local_mode(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+
+        clf = SGDClassifier()
+        parameter_grid = {
+            "alpha": Real(1e-4, 1e-1, 1),
+            "epsilon": Real(0.01, 0.1)
+        }
+        tune_search = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        import ray
+        with patch.object(ray, "init", wraps=ray.init) as wrapped_init:
+            tune_search.fit(x, y)
+        self.assertTrue(wrapped_init.call_args[1]["local_mode"])
 
 
 if __name__ == "__main__":
