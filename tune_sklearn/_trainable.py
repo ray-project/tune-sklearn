@@ -21,6 +21,10 @@ class _Trainable(Trainable):
 
     """
 
+    def setup(self, config):
+        # forward-compatbility
+        self._setup(config)
+
     def _setup(self, config):
         """Sets up Trainable attributes during initialization.
 
@@ -57,6 +61,10 @@ class _Trainable(Trainable):
                 self.estimator[i].set_params(**self.estimator_config)
         else:
             self.estimator.set_params(**self.estimator_config)
+
+    def step(self):
+        # forward-compatbility
+        return self._train()
 
     def _train(self):
         """Trains one iteration of the model called when ``tune.run`` is called.
@@ -161,6 +169,10 @@ class _Trainable(Trainable):
 
             return ret
 
+    def save_checkpoint(self, checkpoint_dir):
+        # forward-compatbility
+        return self._save(checkpoint_dir)
+
     def _save(self, checkpoint_dir):
         """Creates a checkpoint in ``checkpoint_dir``, creating a pickle file.
 
@@ -182,6 +194,10 @@ class _Trainable(Trainable):
                               "Restoring estimators may run into issues."
                               .format(self.estimator))
         return path
+
+    def load_checkpoint(self, checkpoint):
+        # forward-compatbility
+        return self._restore(checkpoint)
 
     def _restore(self, checkpoint):
         """Loads a checkpoint created from `save`.

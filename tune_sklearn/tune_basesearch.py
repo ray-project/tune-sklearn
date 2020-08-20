@@ -308,8 +308,11 @@ class TuneBaseSearchCV(BaseEstimator):
                               "-1 for any negative values.")
             else:
                 available_cpus = multiprocessing.cpu_count()
+                cpu_fraction = available_cpus / self.n_jobs
+                if cpu_fraction > 1:
+                    cpu_fraction = int(np.ceil(cpu_fraction))
                 resources_per_trial = {
-                    "cpu": available_cpus / self.n_jobs,
+                    "cpu": cpu_fraction,
                     "gpu": 1 if self.use_gpu else 0
                 }
         else:
@@ -372,15 +375,22 @@ class TuneBaseSearchCV(BaseEstimator):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
+        ray_init = ray.is_initialized()
         try:
-            ray_init = ray.is_initialized()
             if not ray_init:
-                ray.init(
-                    ignore_reinit_error=True,
-                    configure_logging=False,
-                    log_to_driver=False)
-                warnings.warn("Hiding process output by default. "
-                              "To show process output, set verbose=2.")
+                if self.n_jobs == 1:
+                    ray.init(
+                        local_mode=True,
+                        configure_logging=False,
+                        ignore_reinit_error=True)
+                else:
+                    ray.init(
+                        ignore_reinit_error=True,
+                        configure_logging=False,
+                        log_to_driver=self.verbose == 2)
+                    if self.verbose != 2:
+                        warnings.warn("Hiding process output by default. "
+                                      "To show process output, set verbose=2.")
 
             result = self._fit(X, y, groups, **fit_params)
 

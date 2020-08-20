@@ -6,6 +6,7 @@ from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from sklearn.base import clone
 from ray import tune
+from ray.tune.suggest import ConcurrencyLimiter
 from tune_sklearn.list_searcher import RandomListSearcher
 import numpy as np
 import warnings
@@ -151,7 +152,10 @@ class TuneSearchCV(TuneBaseSearchCV):
             #scoring-parameter for all options.
             If None, the estimator's score method is used. Defaults to None.
         n_jobs (int): Number of jobs to run in parallel. None or -1 means
-            using all processors. Defaults to None.
+            using all processors. Defaults to None. If set to 1, jobs
+            will be run using Ray's 'local mode'. This can
+            lead to significant speedups if the model takes < 10 seconds
+            to fit due to removing inter-process communication overheads.
         sk_n_jobs (int): Number of jobs to run in parallel for cross validating
             each hyperparameter set; the ``n_jobs`` parameter for
             ``cross_validate`` call to sklearn when early stopping isn't used.
@@ -537,33 +541,23 @@ class TuneSearchCV(TuneBaseSearchCV):
             config["estimator"] = self.estimator
 
         if self.search_optimization == "random":
+            run_args = dict(
+                scheduler=self.early_stopping,
+                reuse_actors=True,
+                verbose=self.verbose,
+                stop=stop_condition,
+                num_samples=self.num_samples,
+                config=config,
+                fail_fast=True,
+                checkpoint_at_end=True,
+                resources_per_trial=resources_per_trial,
+                local_dir=os.path.expanduser(self.local_dir))
+
             if isinstance(self.param_distributions, list):
-                analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.early_stopping,
-                    search_alg=RandomListSearcher(self.param_distributions),
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop=stop_condition,
-                    num_samples=self.num_samples,
-                    config=config,
-                    fail_fast=True,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    local_dir=os.path.expanduser(self.local_dir))
-            else:
-                analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.early_stopping,
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop=stop_condition,
-                    num_samples=self.num_samples,
-                    config=config,
-                    fail_fast=True,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    local_dir=os.path.expanduser(self.local_dir))
+                run_args["search_alg"] = RandomListSearcher(
+                    self.param_distributions)
+
+            analysis = tune.run(_Trainable, **run_args)
             return analysis
 
         elif self.search_optimization == "bayesian":
@@ -602,6 +596,10 @@ class TuneSearchCV(TuneBaseSearchCV):
                 metric="average_test_score",
                 mode="max",
                 **self.kwargs)
+
+        if isinstance(self.n_jobs, int) and self.n_jobs > 0:
+            search_algo = ConcurrencyLimiter(
+                search_algo, max_concurrent=self.n_jobs)
 
         analysis = tune.run(
             _Trainable,
