@@ -49,6 +49,7 @@ class _Trainable(Trainable):
         self.return_train_score = config.pop("return_train_score")
         self.n_jobs = config.pop("n_jobs")
         self.estimator_config = config
+        self.pickled = False
 
         if self.early_stopping:
             n_splits = self.cv.get_n_splits(self.X, self.y)
@@ -211,4 +212,6 @@ class _Trainable(Trainable):
             warnings.warn("No estimator restored")
 
     def reset_config(self, new_config):
-        return False
+        self.config = new_config
+        self._setup(new_config)
+        return True
