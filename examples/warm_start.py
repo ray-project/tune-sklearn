@@ -1,5 +1,5 @@
 """
-An example training an SGDClassifier, performing grid search
+An example training a LogisticRegression model, performing grid search
 using TuneGridSearchCV.
 
 This example uses early stopping to further improve runtimes
