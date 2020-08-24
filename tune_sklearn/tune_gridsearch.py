@@ -9,6 +9,7 @@ from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
+import os
 
 
 class TuneGridSearchCV(TuneBaseSearchCV):
@@ -46,16 +47,19 @@ class TuneGridSearchCV(TuneBaseSearchCV):
               used if the estimator supports partial fitting
             - If None or False, early stopping will not be used.
 
-        scoring (str, `callable`, `list`, `tuple`, `dict` or None): A single
+        scoring (str, `callable`, or None): A single
             string or a callable to evaluate the predictions on the test set.
-            For evaluating multiple metrics, either give a list of (unique)
-            strings or a dict with names as keys and callables as values.
-            NOTE that when using custom scorers, each scorer should return a
-            single value. Metric functions returning a list/array of values can
-            be wrapped into multiple scorers that return one value each.
+            See https://scikit-learn.org/stable/modules/model_evaluation.html
+            #scoring-parameter for all options.
             If None, the estimator's score method is used. Defaults to None.
         n_jobs (int): Number of jobs to run in parallel. None or -1 means
-            using all processors. Defaults to None.
+            using all processors. Defaults to None. If set to 1, jobs
+            will be run using Ray's 'local mode'. This can
+            lead to significant speedups if the model takes < 10 seconds
+            to fit due to removing inter-process communication overheads.
+        sk_n_jobs (int): Number of jobs to run in parallel for cross validating
+            each hyperparameter set; the ``n_jobs`` parameter for
+            ``cross_validate`` call to sklearn when early stopping isn't used.
         cv (int, `cross-validation generator` or `iterable`): Determines the
             cross-validation splitting strategy. Possible inputs for cv are:
 
@@ -98,9 +102,14 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             However computing the scores on the training set can be
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
+        local_dir (str): A string that defines where checkpoints will
+            be stored. Defaults to "~/ray_results"
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled.
             This parameter is used for early stopping. Defaults to 10.
+        use_gpu (bool): Indicates whether to use gpu for fitting.
+            Defaults to False. If True, training will use 1 gpu
+            for `resources_per_trial`.
     """
 
     def __init__(self,
@@ -109,23 +118,28 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  early_stopping=None,
                  scoring=None,
                  n_jobs=None,
+                 sk_n_jobs=-1,
                  cv=5,
                  refit=True,
                  verbose=0,
                  error_score="raise",
                  return_train_score=False,
+                 local_dir="~/ray_results",
                  max_iters=10,
                  use_gpu=False):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
             scoring=scoring,
-            n_jobs=n_jobs,
+            n_jobs=n_jobs or -1,
+            sk_n_jobs=sk_n_jobs,
             cv=cv,
             refit=refit,
             error_score=error_score,
             return_train_score=return_train_score,
+            local_dir=local_dir,
             max_iters=max_iters,
+            verbose=verbose,
             use_gpu=use_gpu)
 
         _check_param_grid(param_grid)
@@ -191,8 +205,10 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 verbose=self.verbose,
                 stop={"training_iteration": self.max_iters},
                 config=config,
+                fail_fast=True,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial)
+                resources_per_trial=resources_per_trial,
+                local_dir=os.path.expanduser(self.local_dir))
         else:
             analysis = tune.run(
                 _Trainable,
@@ -201,7 +217,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 verbose=self.verbose,
                 stop={"training_iteration": self.max_iters},
                 config=config,
+                fail_fast=True,
                 checkpoint_at_end=True,
-                resources_per_trial=resources_per_trial)
+                resources_per_trial=resources_per_trial,
+                local_dir=os.path.expanduser(self.local_dir))
 
         return analysis

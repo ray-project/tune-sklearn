@@ -1,3 +1,4 @@
+import ray
 from tune_sklearn import TuneGridSearchCV
 from tune_sklearn import TuneSearchCV
 import numpy as np
@@ -31,39 +32,38 @@ from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KernelDensity
-from ray.tune.error import TuneError
 import unittest
+from unittest.mock import patch
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
                         MockDataFrame)
 
+# def test_check_cv_results_array_types(self, cv_results, param_keys,
+#                                       score_keys):
+#     # Check if the search `cv_results`'s array are of correct types
+#     self.assertTrue(
+#         all(
+#             isinstance(cv_results[param], np.ma.MaskedArray)
+#             for param in param_keys))
+#     self.assertTrue(
+#         all(cv_results[key].dtype == object for key in param_keys))
+#     self.assertFalse(
+#         any(
+#             isinstance(cv_results[key], np.ma.MaskedArray)
+#             for key in score_keys))
+#     self.assertTrue(
+#         all(cv_results[key].dtype == np.float64 for key in score_keys
+#             if not key.startswith("rank")))
+#     self.assertEquals(cv_results["rank_test_score"].dtype, np.int32)
 
-def test_check_cv_results_array_types(self, cv_results, param_keys,
-                                      score_keys):
-    # Check if the search `cv_results`'s array are of correct types
-    self.assertTrue(
-        all(
-            isinstance(cv_results[param], np.ma.MaskedArray)
-            for param in param_keys))
-    self.assertTrue(all(cv_results[key].dtype == object for key in param_keys))
-    self.assertFalse(
-        any(
-            isinstance(cv_results[key], np.ma.MaskedArray)
-            for key in score_keys))
-    self.assertTrue(
-        all(cv_results[key].dtype == np.float64 for key in score_keys
-            if not key.startswith("rank")))
-    self.assertEquals(cv_results["rank_test_score"].dtype, np.int32)
-
-
-def test_check_cv_results_keys(self, cv_results, param_keys, score_keys,
-                               n_cand):
-    # Test the search.cv_results_ contains all the required results
-    assert_array_equal(
-        sorted(cv_results.keys()),
-        sorted(param_keys + score_keys + ("params", )))
-    self.assertTrue(
-        all(cv_results[key].shape == (n_cand, )
-            for key in param_keys + score_keys))
+# def test_check_cv_results_keys(self, cv_results, param_keys, score_keys,
+#                                n_cand):
+#     # Test the search.cv_results_ contains all the required results
+#     assert_array_equal(
+#         sorted(cv_results.keys()),
+#         sorted(param_keys + score_keys + ("params", )))
+#     self.assertTrue(
+#         all(cv_results[key].shape == (n_cand, )
+#             for key in param_keys + score_keys))
 
 
 class LinearSVCNoScore(LinearSVC):
@@ -79,6 +79,9 @@ y = np.array([1, 1, 2, 2])
 
 
 class GridSearchTest(unittest.TestCase):
+    def tearDown(self):
+        ray.shutdown()
+
     def test_grid_search(self):
         # Test that the best estimator contains the right value for foo_param
         clf = MockClassifier()
@@ -202,12 +205,13 @@ class GridSearchTest(unittest.TestCase):
         ]
         for cv in group_cvs:
             gs = TuneGridSearchCV(clf, grid, cv=cv)
-
-            with self.assertRaises((ValueError, TuneError)) as exc:
-                gs.fit(X, y)
-            if isinstance(exc, ValueError):
-                self.assertTrue(
-                    "parameter should not be None" in str(exc.exception))
+            try:
+                with self.assertLogs("ray.tune") as cm:
+                    gs.fit(X, y)
+                self.assertTrue((
+                    "parameter should not be None.") in str(cm.output))
+            except ValueError as exc:
+                self.assertTrue("parameter should not be None" in str(exc))
 
             gs.fit(X, y, groups=groups)
 
@@ -295,8 +299,11 @@ class GridSearchTest(unittest.TestCase):
 
         clf = LinearSVC()
         cv = TuneGridSearchCV(clf, {"C": [0.1, 1.0]})
-        with self.assertRaises(TuneError):
+        # with self.assertRaises(ValueError):
+        with self.assertLogs("ray.tune") as cm:
             cv.fit(X_[:180], y_)
+        self.assertTrue(("ValueError: Found input variables with inconsistent "
+                         "numbers of samples: [180, 200]") in str(cm.output))
 
     def test_grid_search_one_grid_point(self):
         X_, y_ = make_classification(
@@ -423,8 +430,12 @@ class GridSearchTest(unittest.TestCase):
 
         # test error is raised when the precomputed kernel is not array-like
         # or sparse
-        with self.assertRaises(TuneError):
+        # with self.assertRaises(TuneError):
+        with self.assertLogs("ray.tune") as cm:
             cv.fit(K_train.tolist(), y_train)
+        self.assertTrue((
+            "ValueError: Precomputed kernels or affinity matrices have "
+            "to be passed as arrays or sparse matrices.") in str(cm.output))
 
     def test_grid_search_precomputed_kernel_error_nonsquare(self):
         # Test that grid search returns an error with a non-square precomputed
@@ -433,8 +444,11 @@ class GridSearchTest(unittest.TestCase):
         y_train = np.ones((10, ))
         clf = SVC(kernel="precomputed")
         cv = TuneGridSearchCV(clf, {"C": [0.1, 1.0]})
-        with self.assertRaises(TuneError):
+        # with self.assertRaises(TuneError):
+        with self.assertLogs("ray.tune") as cm:
             cv.fit(K_train, y_train)
+        self.assertTrue(("ValueError: X should be a square kernel matrix"
+                         ) in str(cm.output))
 
     def test_refit(self):
         # Regression test for bug in refitting
@@ -598,6 +612,21 @@ class GridSearchTest(unittest.TestCase):
         print(pred)
         error = sum(np.array(pred) - np.array(y_test)) / len(pred)
         print(error)
+
+    def test_local_mode(self):
+        # Pass X as list in dcv.GridSearchCV
+        X = np.arange(100).reshape(10, 10)
+        y = np.array([0] * 5 + [1] * 5)
+
+        clf = CheckingClassifier(check_X=lambda x: isinstance(x, list))
+        cv = KFold(n_splits=3)
+        with patch.object(ray, "init", wraps=ray.init) as wrapped_init:
+            grid_search = TuneGridSearchCV(
+                clf, {"foo_param": [1, 2, 3]}, n_jobs=1, cv=cv)
+            grid_search.fit(X.tolist(), y).score(X, y)
+
+        self.assertTrue(hasattr(grid_search, "cv_results_"))
+        self.assertTrue(wrapped_init.call_args[1]["local_mode"])
 
 
 if __name__ == "__main__":
