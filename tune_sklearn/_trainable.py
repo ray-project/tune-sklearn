@@ -52,16 +52,21 @@ class _Trainable(Trainable):
         self.pickled = False
 
         if self.early_stopping:
+            self.is_lgbm = isinstance(self.estimator[0], LGBMModel)
+            self.is_xgb = isinstance(self.estimator[0], XGBModel)
+
+            if self.is_xgb:
+                self.estimator_config["n_estimators"] = 1
+
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
             for i in range(n_splits):
                 self.estimator[i].set_params(**self.estimator_config)
 
-            self.is_lgbm = isinstance(self.estimator[0], LGBMModel)
-            self.is_xgb = isinstance(self.estimator[0], XGBModel)
             if self.is_lgbm or self.is_xgb:
                 self.saved_models = [None for _ in range(n_splits)]
+
         else:
             self.estimator.set_params(**self.estimator_config)
 
