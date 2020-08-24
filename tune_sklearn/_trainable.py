@@ -11,8 +11,6 @@ import os
 from pickle import PicklingError
 import ray.cloudpickle as cpickle
 import warnings
-from warnings import simplefilter
-from sklearn.exceptions import ConvergenceWarning
 
 
 class _Trainable(Trainable):
@@ -95,7 +93,6 @@ class _Trainable(Trainable):
                     self.estimator[i].partial_fit(X_train, y_train,
                                                   np.unique(self.y))
                 else:
-                    simplefilter("ignore", category=ConvergenceWarning)
                     self.estimator[i].fit(X_train, y_train)
 
                 if self.return_train_score:

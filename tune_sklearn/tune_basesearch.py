@@ -406,12 +406,15 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         sklearn_module = ".".join(
             getattr(self.estimator, "__module__", None).split(".")[:-1])
-        return (hasattr(self.estimator, "partial_fit") and callable(
-            getattr(self.estimator, "partial_fit",
-                    None))) or (hasattr(self.estimator, "warm_start")
-                                and hasattr(self.estimator, "max_iter")
-                                and sklearn_module != "sklearn.tree"
-                                and sklearn_module != "sklearn.ensemble")
+
+        can_partial_fit = hasattr(self.estimator, "partial_fit") and callable(
+            getattr(self.estimator, "partial_fit", None))
+        can_warm_start = (hasattr(self.estimator, "warm_start")
+                          and hasattr(self.estimator, "max_iter")
+                          and sklearn_module != "sklearn.tree"
+                          and sklearn_module != "sklearn.ensemble")
+
+        return can_partial_fit or can_warm_start
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.

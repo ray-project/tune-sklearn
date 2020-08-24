@@ -11,7 +11,6 @@ from tune_sklearn import TuneGridSearchCV
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
-from ray.tune.schedulers import MedianStoppingRule
 import numpy as np
 
 x, y = load_iris(return_X_y=True)
@@ -20,12 +19,10 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.2)
 clf = LogisticRegression()
 parameter_grid = {"C": [1e-4, 1e-1, 1, 2]}
 
-scheduler = MedianStoppingRule(grace_period=10.0)
-
 tune_search = TuneGridSearchCV(
     clf,
     parameter_grid,
-    early_stopping=scheduler,
+    early_stopping="MedianStoppingRule",
     max_iters=10,
 )
 tune_search.fit(x_train, y_train)
