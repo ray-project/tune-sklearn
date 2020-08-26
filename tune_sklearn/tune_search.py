@@ -331,7 +331,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
-        if (self.search_optimization == "bayesian"):
+        if self.search_optimization != "random":
             return
 
         if isinstance(self.param_distributions, list):
