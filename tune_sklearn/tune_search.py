@@ -1,18 +1,53 @@
 """Class for cross-validation over distributions of hyperparameters
     -- Anthony Yu and Michael Chau
 """
-
+import logging
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from sklearn.base import clone
 from ray import tune
+from ray.tune.suggest import ConcurrencyLimiter
 from tune_sklearn.list_searcher import RandomListSearcher
 import numpy as np
 import warnings
-import skopt
-from skopt import Optimizer
-from ray.tune.suggest.skopt import SkOptSearch
 import os
+
+logger = logging.getLogger(__name__)
+
+
+def _check_distribution(dist, search_optimization):
+    if search_optimization == "random":
+        if not (isinstance(dist, list) or hasattr(dist, "rvs")):
+            raise ValueError("distribution must be a list or scipy "
+                             "distribution when using randomized search")
+    elif not isinstance(dist, tuple) and not isinstance(dist, list):
+        if search_optimization == "bayesian":
+            import skopt
+            if not isinstance(dist, skopt.space.Dimension):
+                raise ValueError("distribution must be a tuple, list, or "
+                                 "`skopt.space.Dimension` instance when using "
+                                 "bayesian search")
+        elif search_optimization == "hyperopt":
+            import hyperopt.pyll
+            if not isinstance(dist, hyperopt.pyll.base.Apply):
+                raise ValueError(
+                    "distribution must be a tuple, list, or "
+                    "`hyperopt.pyll.base.Apply` instance when using "
+                    "hyperopt search")
+        elif search_optimization == "optuna":
+            import optuna.distributions
+            if not isinstance(dist, optuna.distributions.BaseDistribution):
+                raise ValueError("distribution must be a tuple, list, or "
+                                 "`optuna.distributions.BaseDistribution`"
+                                 "instance when using optuna search")
+        elif search_optimization == "bohb":
+            import ConfigSpace.hyperparameters
+            if not isinstance(dist,
+                              ConfigSpace.hyperparameters.Hyperparameter):
+                raise ValueError(
+                    "distribution must be a tuple, list, or "
+                    "`ConfigSpace.hyperparameters.Hyperparameter` "
+                    "instance when using bohb search")
 
 
 class TuneSearchCV(TuneBaseSearchCV):
@@ -21,8 +56,16 @@ class TuneSearchCV(TuneBaseSearchCV):
     Randomized search is invoked with ``search_optimization`` set to
     ``"random"`` and behaves like scikit-learn's ``RandomizedSearchCV``.
 
-    Bayesian search is invoked with ``search_optimization`` set to
-    ``"bayesian"`` and behaves like scikit-learn's ``BayesSearchCV``.
+    Bayesian search can be invoked with several values of
+    ``search_optimization``.
+        - ``"bayesian"``, using https://scikit-optimize.github.io/stable/
+        - ``"bohb"``, using HpBandSter - https://github.com/automl/HpBandSter
+
+    Tree-Parzen Estimators search is invoked with ``search_optimization``
+    set to ``"hyperopt"``, using HyperOpt - http://hyperopt.github.io/hyperopt
+
+    All types of search aside from Randomized search require parent
+    libraries to be installed.
 
     TuneSearchCV implements a "fit" and a "score" method.
     It also implements "predict", "predict_proba", "decision_function",
@@ -41,8 +84,8 @@ class TuneSearchCV(TuneBaseSearchCV):
         estimator (`estimator`): This is assumed to implement the
             scikit-learn estimator interface. Either estimator needs to
             provide a ``score`` function, or ``scoring`` must be passed.
-        param_distributions (`dict` or `list`): Serves as the
-            ``param_distributions`` parameter in scikit-learn's
+        param_distributions (`dict` or `list` or `ConfigurationSpace`): Serves
+             as the ``param_distributions`` parameter in scikit-learn's
             ``RandomizedSearchCV`` or as the ``search_space`` parameter in
             ``BayesSearchCV``.
             For randomized search: dictionary with parameters names (string)
@@ -53,15 +96,33 @@ class TuneSearchCV(TuneBaseSearchCV):
             If a list is given, it is sampled uniformly. If a list of dicts is
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
-            For Bayesian search: dictionary with parameter names (string)
+            For other types of search: dictionary with parameter names (string)
             as keys. Values can be
 
             - a (lower_bound, upper_bound) tuple (for Real
               or Integer dimensions),
             - a (lower_bound, upper_bound, "prior") tuple
               (for Real dimensions),
-            - as a list of categories (for Categorical dimensions), or
-            - an instance of a Dimension object (Real, Integer or Categorical).
+            - as a list of categories (for Categorical dimensions),
+
+            ``"bayesian"`` (scikit-optimize) also accepts
+
+            - skopt.space.Dimension instance (Real, Integer or Categorical).
+
+            ``"hyperopt"`` (HyperOpt) also accepts
+
+            - an instance of a hyperopt.pyll.base.Apply object.
+
+            ``"bohb"`` (HpBandSter) also accepts
+
+            - ConfigSpace.hyperparameters.Hyperparameter instance.
+
+            ``"optuna"`` (Optuna) also accepts
+
+            - an instance of a optuna.distributions.BaseDistribution object.
+
+            For ``"bohb"`` (HpBandSter) it is also possible to pass a
+            `ConfigSpace.ConfigurationSpace` object instead of dict or a list.
 
             https://scikit-optimize.github.io/stable/modules/
             classes.html#module-skopt.space.space
@@ -78,6 +139,10 @@ class TuneSearchCV(TuneBaseSearchCV):
               used if the estimator supports partial fitting
             - If None or False, early stopping will not be used.
 
+            Unless a ``HyperBandForBOHB`` object is passed,
+            this parameter is ignored for ``"bohb"``, as it requires
+            ``HyperBandForBOHB``.
+
         n_iter (int): Number of parameter settings that are sampled.
             n_iter trades off runtime vs quality of the solution.
             Defaults to 10.
@@ -90,7 +155,10 @@ class TuneSearchCV(TuneBaseSearchCV):
             values.
             If None, the estimator's score method is used. Defaults to None.
         n_jobs (int): Number of jobs to run in parallel. None or -1 means
-            using all processors. Defaults to None.
+            using all processors. Defaults to None. If set to 1, jobs
+            will be run using Ray's 'local mode'. This can
+            lead to significant speedups if the model takes < 10 seconds
+            to fit due to removing inter-process communication overheads.
         sk_n_jobs (int): Number of jobs to run in parallel for cross validating
             each hyperparameter set; the ``n_jobs`` parameter for
             ``cross_validate`` call to sklearn when early stopping isn't used.
@@ -160,6 +228,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.
+        **kwargs (Any):
+            Additional arguments to pass to the SearchAlgorithms (tune.suggest)
+            objects.
 
     """
 
@@ -180,44 +251,60 @@ class TuneSearchCV(TuneBaseSearchCV):
                  local_dir="~/ray_results",
                  max_iters=10,
                  search_optimization="random",
-                 use_gpu=False):
+                 use_gpu=False,
+                 **kwargs):
 
-        if (search_optimization not in ["random", "bayesian"]):
-            raise ValueError("Search optimization must be random or bayesian")
-        if (search_optimization == "bayesian" and random_state is not None):
+        search_optimization = search_optimization.lower()
+        available_optimizations = [
+            "random",
+            "bayesian",  # scikit-optimize/SkOpt
+            "bohb",
+            "hyperopt",
+            # "optuna",  # optuna is not yet in stable ray.tune
+        ]
+        if (search_optimization not in available_optimizations):
+            raise ValueError("Search optimization must be one of "
+                             f"{', '.join(available_optimizations)}")
+        if (search_optimization != "random" and random_state is not None):
             warnings.warn(
-                "random state is ignored when using Bayesian optimization")
+                "random state is ignored when not using Random optimization")
+
+        self._try_import_required_libraries(search_optimization)
 
         if isinstance(param_distributions, list):
-            if search_optimization == "bayesian":
+            if search_optimization != "random":
                 raise ValueError("list of dictionaries for parameters "
-                                 "is not supported for bayesian search")
+                                 "is not supported for non-random search")
 
         if isinstance(param_distributions, dict):
             check_param_distributions = [param_distributions]
         else:
             check_param_distributions = param_distributions
-        for p in check_param_distributions:
-            for dist in p.values():
-                if search_optimization == "random":
-                    if not (isinstance(dist, list) or hasattr(dist, "rvs")):
-                        raise ValueError(
-                            "distribution must be a list or scipy "
-                            "distribution when using randomized search")
-                else:
-                    if not isinstance(
-                            dist, skopt.space.Dimension) and not isinstance(
-                                dist, tuple) and not isinstance(dist, list):
-                        raise ValueError(
-                            "distribution must be a tuple, list, or "
-                            "`skopt.space.Dimension` instance when using "
-                            "bayesian search")
+
+        can_use_param_distributions = False
+
+        if search_optimization == "bohb":
+            import ConfigSpace as CS
+            can_use_param_distributions = isinstance(check_param_distributions,
+                                                     CS.ConfigurationSpace)
+
+        if not can_use_param_distributions:
+            for p in check_param_distributions:
+                for dist in p.values():
+                    _check_distribution(dist, search_optimization)
+
+        if search_optimization == "bohb":
+            from ray.tune.schedulers import HyperBandForBOHB
+            if early_stopping and not isinstance(early_stopping,
+                                                 HyperBandForBOHB):
+                early_stopping = HyperBandForBOHB(
+                    metric="average_test_score", max_t=max_iters)
 
         super(TuneSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
             scoring=scoring,
-            n_jobs=n_jobs,
+            n_jobs=n_jobs or -1,
             sk_n_jobs=sk_n_jobs,
             cv=cv,
             verbose=verbose,
@@ -233,6 +320,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         if search_optimization == "random":
             self.random_state = random_state
         self.search_optimization = search_optimization
+        self.kwargs = kwargs
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -280,6 +368,152 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         return hyperparameter_names, spaces
 
+    def _get_bohb_config_space(self):
+        import ConfigSpace as CS
+        config_space = CS.ConfigurationSpace()
+
+        if isinstance(self.param_distributions, CS.ConfigurationSpace):
+            return self.param_distributions
+
+        for param_name, space in self.param_distributions.items():
+            prior = "uniform"
+            param_name = str(param_name)
+            if isinstance(space,
+                          tuple) and len(space) >= 2 and len(space) <= 3:
+                try:
+                    low = float(space[0])
+                    high = float(space[1])
+                except Exception:
+                    raise ValueError(
+                        "low and high need to be of type float, "
+                        f"are of type {type(low)} and {type(high)}") from None
+                if len(space) == 3:
+                    prior = space[2]
+                    if prior not in ["uniform", "log-uniform"]:
+                        raise ValueError(
+                            "prior needs to be either "
+                            f"'uniform' or 'log-uniform', was {prior}")
+                config_space.add_hyperparameter(
+                    CS.UniformFloatHyperparameter(
+                        name=param_name,
+                        lower=low,
+                        upper=high,
+                        log=prior == "log-uniform"))
+            elif isinstance(space, list):
+                config_space.add_hyperparameter(
+                    CS.CategoricalHyperparameter(
+                        name=param_name, choices=space))
+            else:
+                config_space.add_hyperparameter(space)
+        return config_space
+
+    def _get_optuna_params(self):
+        from ray.tune.suggest.optuna import param
+        config_space = []
+
+        for param_name, space in self.param_distributions.items():
+            prior = "uniform"
+            param_name = str(param_name)
+            if isinstance(space,
+                          tuple) and len(space) >= 2 and len(space) <= 3:
+                try:
+                    low = float(space[0])
+                    high = float(space[1])
+                except Exception:
+                    raise ValueError(
+                        "low and high need to be of type float, "
+                        f"are of type {type(low)} and {type(high)}") from None
+                if len(space) == 3:
+                    prior = space[2]
+                    if prior not in ["uniform", "log-uniform"]:
+                        raise ValueError(
+                            "prior needs to be either "
+                            f"'uniform' or 'log-uniform', was {prior}")
+                if prior == "log-uniform":
+                    config_space.append(
+                        param.suggest_loguniform(param_name, low, high))
+                else:
+                    config_space.append(
+                        param.suggest_uniform(param_name, low, high))
+            elif isinstance(space, list):
+                config_space.append(
+                    param.suggest_categorical(param_name, space))
+            else:
+                config_space.append(space)
+        return config_space
+
+    def _get_hyperopt_params(self):
+        from hyperopt import hp
+        config_space = {}
+
+        for param_name, space in self.param_distributions.items():
+            prior = "uniform"
+            param_name = str(param_name)
+            if isinstance(space,
+                          tuple) and len(space) >= 2 and len(space) <= 3:
+                try:
+                    low = float(space[0])
+                    high = float(space[1])
+                except Exception:
+                    raise ValueError(
+                        "low and high need to be of type float, "
+                        f"are of type {type(low)} and {type(high)}") from None
+                if len(space) == 3:
+                    prior = space[2]
+                    if prior not in ["uniform", "log-uniform"]:
+                        raise ValueError("prior needs to be either 'uniform' "
+                                         f"or 'log-uniform', was {prior}")
+                if prior == "log-uniform":
+                    config_space[param_name] = hp.loguniform(
+                        param_name, low, high)
+                else:
+                    config_space[param_name] = hp.uniform(
+                        param_name, low, high)
+            elif isinstance(space, list):
+                config_space[param_name] = hp.choice(param_name, space)
+            else:
+                config_space[param_name] = space
+        return config_space
+
+    def _try_import_required_libraries(self, search_optimization):
+        if search_optimization == "bayesian":
+            try:
+                import skopt  # noqa: F401
+                from skopt import Optimizer  # noqa: F401
+                from ray.tune.suggest.skopt import SkOptSearch  # noqa: F401
+            except ImportError:
+                logger.exception()
+                raise ImportError(
+                    "It appears that scikit-optimize is not installed. "
+                    "Do: pip install scikit-optimize") from None
+        elif search_optimization == "bohb":
+            try:
+                from ray.tune.suggest.bohb import TuneBOHB  # noqa: F401
+                from ray.tune.schedulers import HyperBandForBOHB  # noqa: F401
+                import ConfigSpace as CS  # noqa: F401
+            except ImportError:
+                logger.exception()
+                raise ImportError(
+                    "It appears that either HpBandSter or ConfigSpace "
+                    "is not installed. "
+                    "Do: pip install hpbandster ConfigSpace") from None
+        elif search_optimization == "hyperopt":
+            try:
+                from ray.tune.suggest.hyperopt import HyperOptSearch  # noqa: F401,E501
+                from hyperopt import hp  # noqa: F401
+            except ImportError:
+                logger.exception()
+                raise ImportError("It appears that hyperopt is not installed. "
+                                  "Do: pip install hyperopt") from None
+        elif search_optimization == "optuna":
+            try:
+                from ray.tune.suggest.optuna import OptunaSearch, param  # noqa: F401,E501
+                import optuna  # noqa: F401
+            except ImportError:
+                logger.exception()
+                raise ImportError("It appears that optuna is not installed. "
+                                  "Do: pip install optuna") from None
+
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
@@ -297,60 +531,92 @@ class TuneSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
+        stop_condition = {"training_iteration": self.max_iters}
         if self.early_stopping is not None:
             config["estimator"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
             ]
+            if hasattr(self.early_stopping, "_max_t_attr"):
+                # we want to delegate stopping to schedulers which
+                # support it, but we want it to stop eventually, just in case
+                # the solution is to make the stop condition very big
+                stop_condition = {"training_iteration": self.max_iters * 10}
         else:
             config["estimator"] = self.estimator
 
         if self.search_optimization == "random":
-            if isinstance(self.param_distributions, list):
-                analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.early_stopping,
-                    search_alg=RandomListSearcher(self.param_distributions),
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop={"training_iteration": self.max_iters},
-                    num_samples=self.num_samples,
-                    config=config,
-                    fail_fast=True,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    local_dir=os.path.expanduser(self.local_dir))
-            else:
-                analysis = tune.run(
-                    _Trainable,
-                    scheduler=self.early_stopping,
-                    reuse_actors=True,
-                    verbose=self.verbose,
-                    stop={"training_iteration": self.max_iters},
-                    num_samples=self.num_samples,
-                    config=config,
-                    fail_fast=True,
-                    checkpoint_at_end=True,
-                    resources_per_trial=resources_per_trial,
-                    local_dir=os.path.expanduser(self.local_dir))
-        else:
-            hyperparameter_names, spaces = self._get_skopt_params()
-            search_algo = SkOptSearch(
-                Optimizer(spaces),
-                hyperparameter_names,
-                metric="average_test_score")
-
-            analysis = tune.run(
-                _Trainable,
-                search_alg=search_algo,
+            run_args = dict(
                 scheduler=self.early_stopping,
                 reuse_actors=True,
                 verbose=self.verbose,
-                stop={"training_iteration": self.max_iters},
+                stop=stop_condition,
                 num_samples=self.num_samples,
                 config=config,
                 fail_fast=True,
                 checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
                 local_dir=os.path.expanduser(self.local_dir))
+
+            if isinstance(self.param_distributions, list):
+                run_args["search_alg"] = RandomListSearcher(
+                    self.param_distributions)
+
+            analysis = tune.run(_Trainable, **run_args)
+            return analysis
+
+        elif self.search_optimization == "bayesian":
+            from skopt import Optimizer
+            from ray.tune.suggest.skopt import SkOptSearch
+            hyperparameter_names, spaces = self._get_skopt_params()
+            search_algo = SkOptSearch(
+                Optimizer(spaces),
+                hyperparameter_names,
+                metric="average_test_score",
+                **self.kwargs)
+
+        elif self.search_optimization == "bohb":
+            from ray.tune.suggest.bohb import TuneBOHB
+            config_space = self._get_bohb_config_space()
+            search_algo = TuneBOHB(
+                config_space,
+                metric="average_test_score",
+                mode="max",
+                **self.kwargs)
+
+        elif self.search_optimization == "optuna":
+            from ray.tune.suggest.optuna import OptunaSearch
+            config_space = self._get_optuna_params()
+            search_algo = OptunaSearch(
+                config_space,
+                metric="average_test_score",
+                mode="max",
+                **self.kwargs)
+
+        elif self.search_optimization == "hyperopt":
+            from ray.tune.suggest.hyperopt import HyperOptSearch
+            config_space = self._get_hyperopt_params()
+            search_algo = HyperOptSearch(
+                config_space,
+                metric="average_test_score",
+                mode="max",
+                **self.kwargs)
+
+        if isinstance(self.n_jobs, int) and self.n_jobs > 0:
+            search_algo = ConcurrencyLimiter(
+                search_algo, max_concurrent=self.n_jobs)
+
+        analysis = tune.run(
+            _Trainable,
+            search_alg=search_algo,
+            scheduler=self.early_stopping,
+            reuse_actors=True,
+            verbose=self.verbose,
+            stop=stop_condition,
+            num_samples=self.num_samples,
+            config=config,
+            fail_fast=True,
+            checkpoint_at_end=True,
+            resources_per_trial=resources_per_trial,
+            local_dir=os.path.expanduser(self.local_dir))
 
         return analysis

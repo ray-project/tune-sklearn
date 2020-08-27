@@ -33,6 +33,7 @@ from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KernelDensity
 import unittest
+from unittest.mock import patch
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
                         MockDataFrame)
 
@@ -610,6 +611,21 @@ class GridSearchTest(unittest.TestCase):
         print(pred)
         error = sum(np.array(pred) - np.array(y_test)) / len(pred)
         print(error)
+
+    def test_local_mode(self):
+        # Pass X as list in dcv.GridSearchCV
+        X = np.arange(100).reshape(10, 10)
+        y = np.array([0] * 5 + [1] * 5)
+
+        clf = CheckingClassifier(check_X=lambda x: isinstance(x, list))
+        cv = KFold(n_splits=3)
+        with patch.object(ray, "init", wraps=ray.init) as wrapped_init:
+            grid_search = TuneGridSearchCV(
+                clf, {"foo_param": [1, 2, 3]}, n_jobs=1, cv=cv)
+            grid_search.fit(X.tolist(), y).score(X, y)
+
+        self.assertTrue(hasattr(grid_search, "cv_results_"))
+        self.assertTrue(wrapped_init.call_args[1]["local_mode"])
 
 
 if __name__ == "__main__":

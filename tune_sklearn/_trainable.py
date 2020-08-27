@@ -22,6 +22,10 @@ class _Trainable(Trainable):
 
     """
 
+    def setup(self, config):
+        # forward-compatbility
+        self._setup(config)
+
     def _setup(self, config):
         """Sets up Trainable attributes during initialization.
 
@@ -48,6 +52,7 @@ class _Trainable(Trainable):
         self.return_train_score = config.pop("return_train_score")
         self.n_jobs = config.pop("n_jobs")
         self.estimator_config = config
+        self.pickled = False
 
         if self.early_stopping:
             n_splits = self.cv.get_n_splits(self.X, self.y)
@@ -57,6 +62,10 @@ class _Trainable(Trainable):
                 self.estimator[i].set_params(**self.estimator_config)
         else:
             self.estimator.set_params(**self.estimator_config)
+
+    def step(self):
+        # forward-compatbility
+        return self._train()
 
     def _train(self):
         """Trains one iteration of the model called when ``tune.run`` is called.
@@ -172,6 +181,10 @@ class _Trainable(Trainable):
 
             return ret
 
+    def save_checkpoint(self, checkpoint_dir):
+        # forward-compatbility
+        return self._save(checkpoint_dir)
+
     def _save(self, checkpoint_dir):
         """Creates a checkpoint in ``checkpoint_dir``, creating a pickle file.
 
@@ -194,6 +207,10 @@ class _Trainable(Trainable):
                               .format(self.estimator))
         return path
 
+    def load_checkpoint(self, checkpoint):
+        # forward-compatbility
+        return self._restore(checkpoint)
+
     def _restore(self, checkpoint):
         """Loads a checkpoint created from `save`.
 
@@ -208,4 +225,6 @@ class _Trainable(Trainable):
             warnings.warn("No estimator restored")
 
     def reset_config(self, new_config):
-        return False
+        self.config = new_config
+        self._setup(new_config)
+        return True
