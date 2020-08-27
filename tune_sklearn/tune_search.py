@@ -221,11 +221,12 @@ class TuneSearchCV(TuneBaseSearchCV):
 
             Bayesian search can be invoked with several values of
             ``search_optimization``.
-                - ``"bayesian"``, using https://scikit-optimize.github.io/stable/
-                - ``"bohb"``, using HpBandSter - https://github.com/automl/HpBandSter
+                - ``"bayesian"`` via https://scikit-optimize.github.io/stable/
+                - ``"bohb"`` via HpBandSter: http://github.com/automl/HpBandSter
 
             Tree-Parzen Estimators search is invoked with ``search_optimization``
-            set to ``"hyperopt"``, using HyperOpt - http://hyperopt.github.io/hyperopt
+            set to ``"hyperopt"`` via HyperOpt: 
+            http://hyperopt.github.io/hyperopt
 
             All types of search aside from Randomized search require parent
             libraries to be installed.
