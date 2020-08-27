@@ -4,7 +4,12 @@ using TuneGridSearchCV.
 
 This example uses early stopping to further improve runtimes
 by eliminating worse hyperparameter choices early based off
-of its average test score from cross validation.
+of its average test score from cross validation. Usually
+this will require the estimator to have `partial_fit`, but
+we use sklearn's `warm_start` parameter to do this here.
+We fit the estimator for one epoch, then `warm_start`
+to pick up from where we left off, continuing until the
+trial is early stopped or `max_iters` is reached.
 """
 
 from tune_sklearn import TuneGridSearchCV
@@ -22,7 +27,7 @@ parameter_grid = {"C": [1e-4, 1e-1, 1, 2]}
 tune_search = TuneGridSearchCV(
     clf,
     parameter_grid,
-    early_stopping="MedianStoppingRule",
+    early_stopping=True,
     max_iters=10,
 )
 tune_search.fit(x_train, y_train)

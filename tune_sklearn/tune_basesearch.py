@@ -427,19 +427,23 @@ class TuneBaseSearchCV(BaseEstimator):
     def _can_early_stop(self):
         """Helper method to determine if it is possible to do early stopping.
 
-        Only sklearn estimators with partial_fit can be early stopped.
+        Only sklearn estimators with `partial_fit` or `warm_start` can be early
+        stopped. warm_start works by picking up training from the previous
+        call to `fit`.
 
         Returns:
             bool: if the estimator can early stop
 
         """
-        sklearn_module = ".".join(
-            getattr(self.estimator, "__module__", None).split(".")[:-1])
 
         can_partial_fit = hasattr(self.estimator, "partial_fit") and callable(
             getattr(self.estimator, "partial_fit", None))
+
+        sklearn_module = ".".join(
+            getattr(self.estimator, "__module__", None).split(".")[:-1])
         can_warm_start = (hasattr(self.estimator, "warm_start")
                           and hasattr(self.estimator, "max_iter")
+                          and sklearn_module is not None
                           and sklearn_module != "sklearn.tree"
                           and sklearn_module != "sklearn.ensemble")
 
