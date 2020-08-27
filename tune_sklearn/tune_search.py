@@ -217,15 +217,16 @@ class TuneSearchCV(TuneBaseSearchCV):
             This parameter is used for early stopping. Defaults to 10.
         search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"):
             Randomized search is invoked with ``search_optimization`` set to
-            ``"random"`` and behaves like scikit-learn's ``RandomizedSearchCV``.
+            ``"random"`` and behaves like scikit-learn's
+            ``RandomizedSearchCV``.
 
             Bayesian search can be invoked with several values of
             ``search_optimization``.
                 - ``"bayesian"`` via https://scikit-optimize.github.io/stable/
-                - ``"bohb"`` via HpBandSter: http://github.com/automl/HpBandSter
+                - ``"bohb"`` via http://github.com/automl/HpBandSter
 
-            Tree-Parzen Estimators search is invoked with ``search_optimization``
-            set to ``"hyperopt"`` via HyperOpt: 
+            Tree-Parzen Estimators search is invoked with
+            ``search_optimization`` set to ``"hyperopt"`` via HyperOpt:
             http://hyperopt.github.io/hyperopt
 
             All types of search aside from Randomized search require parent
