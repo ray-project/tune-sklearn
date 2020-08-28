@@ -58,6 +58,10 @@ class _Trainable(Trainable):
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
             if not hasattr(self.estimator, "partial_fit"):
+                # max_iter here is different than the max_iters the user sets.
+                # max_iter is to make sklearn only fit for one epoch,
+                # while max_iters (which the user can set) is the usual max
+                # number of calls to _trainable.
                 self.estimator_config["warm_start"] = True
                 self.estimator_config["max_iter"] = 1
             for i in range(n_splits):

@@ -210,7 +210,11 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.estimator = estimator
 
-        if early_stopping and self._can_early_stop():
+        if early_stopping and not self._can_early_stop():
+            raise ValueError("Early stopping is not supported because "
+                             "the estimator does not have `partial_fit` "
+                             "or does not support warm_start.")
+        elif early_stopping and self._can_early_stop():
             self.max_iters = max_iters
             if early_stopping is True:
                 # Override the early_stopping variable so
@@ -245,7 +249,7 @@ class TuneBaseSearchCV(BaseEstimator):
             else:
                 raise TypeError("`early_stopping` must be a str, boolean, "
                                 "or tune scheduler")
-        elif not early_stopping:
+        else:
             warnings.warn("Early stopping is not enabled. "
                           "To enable early stopping, pass in a supported "
                           "scheduler from Tune and ensure the estimator "
@@ -253,10 +257,6 @@ class TuneBaseSearchCV(BaseEstimator):
 
             self.max_iters = 1
             self.early_stopping = None
-        else:
-            raise ValueError("Early stopping is not supported because "
-                             "the estimator does not have `partial_fit`")
-
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = int(n_jobs or -1)
