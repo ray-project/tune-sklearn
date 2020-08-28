@@ -256,9 +256,8 @@ class TuneBaseSearchCV(BaseEstimator):
                 # the next block
                 early_stopping = "AsyncHyperBandScheduler"
             # Resolve the early stopping object
-            early_stopping = resolve_early_stopping(
+            self.early_stopping = resolve_early_stopping(
                 early_stopping, self.max_iters)
-        self.early_stopping = early_stopping
 
         self.cv = cv
         self.scoring = scoring
