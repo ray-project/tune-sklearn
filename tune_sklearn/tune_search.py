@@ -215,12 +215,22 @@ class TuneSearchCV(TuneBaseSearchCV):
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_iter``).
             This parameter is used for early stopping. Defaults to 10.
-        search_optimization ("random" or "bayesian"):
-            If "random", uses randomized search over the
-            ``param_distributions``. If "bayesian", uses
-            Bayesian optimization from scikit-optimize
-            (https://scikit-optimize.github.io/stable/index.html)
-            to search for hyperparameters.
+        search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"):
+            Randomized search is invoked with ``search_optimization`` set to
+            ``"random"`` and behaves like scikit-learn's
+            ``RandomizedSearchCV``.
+
+            Bayesian search can be invoked with several values of
+            ``search_optimization``.
+                - ``"bayesian"`` via https://scikit-optimize.github.io/stable/
+                - ``"bohb"`` via http://github.com/automl/HpBandSter
+
+            Tree-Parzen Estimators search is invoked with
+            ``search_optimization`` set to ``"hyperopt"`` via HyperOpt:
+            http://hyperopt.github.io/hyperopt
+
+            All types of search aside from Randomized search require parent
+            libraries to be installed.
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.
@@ -331,7 +341,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
-        if (self.search_optimization == "bayesian"):
+        if self.search_optimization != "random":
             return
 
         if isinstance(self.param_distributions, list):
