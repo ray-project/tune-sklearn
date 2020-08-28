@@ -581,7 +581,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 Optimizer(spaces),
                 hyperparameter_names,
                 metric="average_test_score",
-                **self.kwargs)
+                **self.search_kwargs)
 
         elif self.search_optimization == "bohb":
             from ray.tune.suggest.bohb import TuneBOHB
@@ -590,7 +590,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space,
                 metric="average_test_score",
                 mode="max",
-                **self.kwargs)
+                **self.search_kwargs)
 
         elif self.search_optimization == "optuna":
             from ray.tune.suggest.optuna import OptunaSearch
@@ -599,7 +599,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space,
                 metric="average_test_score",
                 mode="max",
-                **self.kwargs)
+                **self.search_kwargs)
 
         elif self.search_optimization == "hyperopt":
             from ray.tune.suggest.hyperopt import HyperOptSearch
@@ -608,7 +608,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space,
                 metric="average_test_score",
                 mode="max",
-                **self.kwargs)
+                **self.search_kwargs)
 
         if isinstance(self.n_jobs, int) and self.n_jobs > 0:
             search_algo = ConcurrencyLimiter(
