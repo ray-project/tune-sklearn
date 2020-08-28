@@ -436,16 +436,20 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
 
-        can_partial_fit = hasattr(self.estimator, "partial_fit") and callable(
-            getattr(self.estimator, "partial_fit", None))
+        from sklearn.tree import BaseDecisionTree
+        from sklearn.ensemble import BaseEnsemble
 
-        sklearn_module = ".".join(
-            getattr(self.estimator, "__module__", None).split(".")[:-1])
+        can_partial_fit = callable(
+            getattr(self.estimator, "partial_fit", None))
+        is_not_tree_subclass = not issubclass(
+            type(self.estimator), BaseDecisionTree)
+        is_not_ensemble_subclass = not issubclass(
+            type(self.estimator), BaseEnsemble)
+
         can_warm_start = (hasattr(self.estimator, "warm_start")
                           and hasattr(self.estimator, "max_iter")
-                          and sklearn_module is not None
-                          and sklearn_module != "sklearn.tree"
-                          and sklearn_module != "sklearn.ensemble")
+                          and is_not_ensemble_subclass
+                          and is_not_tree_subclass)
 
         return can_partial_fit or can_warm_start
 
