@@ -23,7 +23,7 @@ bohb_tune_search = TuneSearchCV(
     SGDClassifier(),
     param_distributions=param_dists,
     n_trials=20,
-    max_iters=10,
+    max_iters=20,
     verbose=2,
     search_optimization="bohb")
 
