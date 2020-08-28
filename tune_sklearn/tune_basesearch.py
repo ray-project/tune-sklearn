@@ -31,6 +31,33 @@ import multiprocessing
 import os
 
 
+def resolve_early_stopping(early_stopping, max_iters):
+    if isinstance(early_stopping, str):
+        if early_stopping in TuneBaseSearchCV.defined_schedulers:
+            if early_stopping == "PopulationBasedTraining":
+                return PopulationBasedTraining(metric="average_test_score")
+            elif early_stopping == "AsyncHyperBandScheduler":
+                return AsyncHyperBandScheduler(
+                    metric="average_test_score", max_t=max_iters)
+            elif early_stopping == "HyperBandScheduler":
+                return HyperBandScheduler(
+                    metric="average_test_score", max_t=max_iters)
+            elif early_stopping == "MedianStoppingRule":
+                return MedianStoppingRule(metric="average_test_score")
+            elif early_stopping == "ASHAScheduler":
+                return ASHAScheduler(
+                    metric="average_test_score", max_t=max_iters)
+        raise ValueError("{} is not a defined scheduler. "
+                         "Check the list of available schedulers."
+                         .format(early_stopping))
+    elif isinstance(early_stopping, TrialScheduler):
+        early_stopping.metric = "average_test_score"
+        return early_stopping
+    else:
+        raise TypeError("`early_stopping` must be a str, boolean, "
+                        f"or tune scheduler. Got {type(early_stopping)}.")
+
+
 class TuneBaseSearchCV(BaseEstimator):
     """Abstract base class for TuneGridSearchCV and TuneSearchCV"""
 
@@ -205,58 +232,33 @@ class TuneBaseSearchCV(BaseEstimator):
                  error_score="raise",
                  return_train_score=False,
                  local_dir="~/ray_results",
-                 max_iters=10,
+                 max_iters=None,
                  use_gpu=False):
 
         self.estimator = estimator
 
-        if early_stopping and not self._can_early_stop():
-            raise ValueError("Early stopping is not supported because "
-                             "the estimator does not have `partial_fit` "
-                             "or does not support warm_start.")
-        elif early_stopping and self._can_early_stop():
-            self.max_iters = max_iters
-            if early_stopping is True:
+        if not self._can_early_stop() and max_iters is not None:
+            warnings.warn("max_iters is set but incremental/partial training "
+                          "is not enabled. To enable partial training, "
+                          "ensure the estimator has `partial_fit` or "
+                          "`warm_start`. Automatically setting max_iters=1.")
+            max_iters = 1
+        self.max_iters = max_iters
+
+        if early_stopping:
+            if not self._can_early_stop():
+                raise ValueError("Early stopping is not supported because "
+                                 "the estimator does not have `partial_fit` "
+                                 "or does not support warm_start.")
+            elif early_stopping is True:
                 # Override the early_stopping variable so
                 # that it is resolved appropriately in
                 # the next block
                 early_stopping = "AsyncHyperBandScheduler"
             # Resolve the early stopping object
-            if isinstance(early_stopping, str):
-                if early_stopping in TuneBaseSearchCV.defined_schedulers:
-                    if early_stopping == "PopulationBasedTraining":
-                        self.early_stopping = PopulationBasedTraining(
-                            metric="average_test_score")
-                    elif early_stopping == "AsyncHyperBandScheduler":
-                        self.early_stopping = AsyncHyperBandScheduler(
-                            metric="average_test_score", max_t=max_iters)
-                    elif early_stopping == "HyperBandScheduler":
-                        self.early_stopping = HyperBandScheduler(
-                            metric="average_test_score", max_t=max_iters)
-                    elif early_stopping == "MedianStoppingRule":
-                        self.early_stopping = MedianStoppingRule(
-                            metric="average_test_score")
-                    elif early_stopping == "ASHAScheduler":
-                        self.early_stopping = ASHAScheduler(
-                            metric="average_test_score", max_t=max_iters)
-                else:
-                    raise ValueError("{} is not a defined scheduler. "
-                                     "Check the list of available schedulers."
-                                     .format(early_stopping))
-            elif isinstance(early_stopping, TrialScheduler):
-                self.early_stopping = early_stopping
-                self.early_stopping.metric = "average_test_score"
-            else:
-                raise TypeError("`early_stopping` must be a str, boolean, "
-                                "or tune scheduler")
-        else:
-            warnings.warn("Early stopping is not enabled. "
-                          "To enable early stopping, pass in a supported "
-                          "scheduler from Tune and ensure the estimator "
-                          "has `partial_fit`.")
+            self.early_stopping = resolve_early_stopping(
+                early_stopping, self.max_iters)
 
-            self.max_iters = 1
-            self.early_stopping = None
         self.cv = cv
         self.scoring = scoring
         self.n_jobs = int(n_jobs or -1)

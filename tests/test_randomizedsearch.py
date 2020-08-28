@@ -167,6 +167,19 @@ class RandomizedSearchTest(unittest.TestCase):
 
         self.assertTrue(tune_search3._can_early_stop())
 
+    def test_warm_start_error(self):
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        from sklearn.ensemble import RandomForestClassifier
+        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        tune_search = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            warm_start=False,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertFalse(tune_search._can_early_stop())
+
 
 if __name__ == "__main__":
     unittest.main()
