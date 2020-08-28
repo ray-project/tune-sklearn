@@ -175,10 +175,18 @@ class RandomizedSearchTest(unittest.TestCase):
             clf,
             parameter_grid,
             n_jobs=1,
-            warm_start=False,
+            early_stopping=False,
             max_iters=10,
             local_dir="./test-result")
         self.assertFalse(tune_search._can_early_stop())
+        with self.assertRaises(ValueError):
+            tune_search = TuneSearchCV(
+                clf,
+                parameter_grid,
+                n_jobs=1,
+                early_stopping=True,
+                max_iters=10,
+                local_dir="./test-result")
 
 
 if __name__ == "__main__":

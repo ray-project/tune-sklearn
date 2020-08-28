@@ -234,7 +234,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.
-        **kwargs (Any):
+        **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
 
@@ -258,7 +258,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  max_iters=10,
                  search_optimization="random",
                  use_gpu=False,
-                 **kwargs):
+                 **search_kwargs):
 
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -325,8 +325,11 @@ class TuneSearchCV(TuneBaseSearchCV):
         self.num_samples = n_iter
         if search_optimization == "random":
             self.random_state = random_state
+            if search_kwargs:
+                raise ValueError("Random search does not support "
+                                 f"extra args: {search_kwargs}")
         self.search_optimization = search_optimization
-        self.kwargs = kwargs
+        self.search_kwargs = search_kwargs
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
