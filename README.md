@@ -1,10 +1,10 @@
 # tune-sklearn
 [![Build Status](https://travis-ci.com/ray-project/tune-sklearn.svg?branch=master)](https://travis-ci.com/ray-project/tune-sklearn)
 
-Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and scikit-learn's models, allowing users to optimize hyerparameter searching for sklearn using Tune's schedulers (more details in the [Tune Documentation](http://tune.io/)). 
+Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and scikit-learn's models, allowing users to optimize hyerparameter searching for sklearn using Tune's schedulers (more details in the [Tune Documentation](http://tune.io/)).
 Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions, such as distributions to sample from.
 
-Tune-sklearn provides additional benefits if specifying a scheduler **with an estimator that supports early stopping**. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data). 
+Tune-sklearn provides additional benefits if specifying a scheduler **with an estimator that supports early stopping**. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data).
 
 If the estimator does not support `partial_fit`, a warning will be shown saying early stopping cannot be done and it will simply run the cross-validation on Ray's parallel back-end.
 
@@ -70,7 +70,7 @@ from sklearn.model_selection import GridSearchCV
 # n_jobs=-1 enables use of all cores like Tune does
 sklearn_search = GridSearchCV(
     SGDClassifier(),
-    parameters, 
+    parameters,
     n_jobs=-1
 )
 
@@ -120,7 +120,7 @@ param_dists = {
 
 bohb_tune_search = TuneSearchCV(SGDClassifier(),
     param_distributions=param_dists,
-    n_iter=2,
+    n_trials=2,
     max_iters=10,
     search_optimization="bohb"
 )
@@ -129,7 +129,7 @@ bohb_tune_search.fit(X_train, y_train)
 
 hyperopt_tune_search = TuneSearchCV(SGDClassifier(),
     param_distributions=param_dists,
-    n_iter=2,
+    n_trials=2,
     early_stopping=True, # uses ASHAScheduler if set to True
     max_iters=10,
     search_optimization="hyperopt"

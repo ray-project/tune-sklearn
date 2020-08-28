@@ -36,7 +36,7 @@ xgb = XGBClassifier(
 digit_search = TuneSearchCV(
     xgb,
     param_distributions=params,
-    n_iter=3,
+    n_trials=3,
     # use_gpu=True # Commented out for testing on travis,
     # but this is how you would use gpu
 )

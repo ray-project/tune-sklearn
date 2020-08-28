@@ -78,7 +78,7 @@ class TuneSearchCV(TuneBaseSearchCV):
     In contrast to GridSearchCV, not all parameter values are tried out, but
     rather a fixed number of parameter settings is sampled from the specified
     distributions. The number of parameter settings that are tried is
-    given by n_iter.
+    given by n_trials.
 
     Args:
         estimator (`estimator`): This is assumed to implement the
@@ -143,8 +143,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             this parameter is ignored for ``"bohb"``, as it requires
             ``HyperBandForBOHB``.
 
-        n_iter (int): Number of parameter settings that are sampled.
-            n_iter trades off runtime vs quality of the solution.
+        n_trials (int): Number of parameter settings that are sampled.
+            n_trials trades off runtime vs quality of the solution.
             Defaults to 10.
         scoring (str, `callable`, or None): A single string or a callable to
             evaluate the predictions on the test set.
@@ -213,7 +213,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         local_dir (str): A string that defines where checkpoints will
             be stored. Defaults to "~/ray_results"
         max_iters (int): Indicates the maximum number of epochs to run for each
-            hyperparameter configuration sampled (specified by ``n_iter``).
+            hyperparameter configuration sampled (specified by ``n_trials``).
             This parameter is used for early stopping. Defaults to 10.
         search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"):
             Randomized search is invoked with ``search_optimization`` set to
@@ -244,7 +244,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  estimator,
                  param_distributions,
                  early_stopping=None,
-                 n_iter=10,
+                 n_trials=10,
                  scoring=None,
                  n_jobs=None,
                  sk_n_jobs=-1,
@@ -322,7 +322,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu)
 
         self.param_distributions = param_distributions
-        self.num_samples = n_iter
+        self.num_samples = n_trials
         if search_optimization == "random":
             self.random_state = random_state
             if search_kwargs:

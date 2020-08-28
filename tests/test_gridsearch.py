@@ -139,7 +139,7 @@ class GridSearchTest(unittest.TestCase):
 
     @parameterized.expand([("grid", TuneGridSearchCV, {}), ("random",
                                                             TuneSearchCV, {
-                                                                "n_iter": 1
+                                                                "n_trials": 1
                                                             })])
     def test_hyperparameter_searcher_with_fit_params(self, name, cls, kwargs):
         X = np.arange(100).reshape(10, 10)
@@ -261,7 +261,7 @@ class GridSearchTest(unittest.TestCase):
         grid_search.fit(X, y)
         self.assertTrue(hasattr(grid_search, "cv_results_"))
 
-        random_search = TuneSearchCV(clf, {"foo_param": [0]}, n_iter=1, cv=3)
+        random_search = TuneSearchCV(clf, {"foo_param": [0]}, n_trials=1, cv=3)
         random_search.fit(X, y)
         self.assertTrue(hasattr(random_search, "cv_results_"))
 

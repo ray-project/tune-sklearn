@@ -28,7 +28,7 @@ class RandomizedSearchTest(unittest.TestCase):
         params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
         random_search = TuneSearchCV(
             SVC(),
-            n_iter=n_search_iter,
+            n_trials=n_search_iter,
             cv=n_splits,
             param_distributions=params,
             return_train_score=True,

@@ -22,8 +22,9 @@ param_dists = {"alpha": (1e-4, 1e-1), "epsilon": (1e-2, 1e-1)}
 bohb_tune_search = TuneSearchCV(
     SGDClassifier(),
     param_distributions=param_dists,
-    n_iter=2,
+    n_trials=20,
     max_iters=10,
+    verbose=2,
     search_optimization="bohb")
 
 bohb_tune_search.fit(X_train, y_train)

@@ -21,7 +21,7 @@ tune_search = TuneSearchCV(
     RandomForestClassifier(),
     space,
     search_optimization="bohb",
-    n_iter=3,
+    n_trials=3,
     max_iters=10)
 tune_search.fit(X_train, y_train)
 
