@@ -391,7 +391,8 @@ class TuneBaseSearchCV(BaseEstimator):
                     ray.init(
                         ignore_reinit_error=True,
                         configure_logging=False,
-                        log_to_driver=self.verbose == 2)
+                        # log_to_driver=self.verbose == 2
+                    )
                     if self.verbose != 2:
                         warnings.warn("Hiding process output by default. "
                                       "To show process output, set verbose=2.")
