@@ -206,7 +206,7 @@ class _Trainable(Trainable):
         try:
             with open(path, "wb") as f:
                 cpickle.dump(self.estimator_list, f)
-        except Exception as e:
+        except Exception:
             warnings.warn("Unable to save estimator.")
         return path
 
