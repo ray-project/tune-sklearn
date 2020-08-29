@@ -386,11 +386,14 @@ class TuneBaseSearchCV(BaseEstimator):
                     ray.init(
                         local_mode=True,
                         configure_logging=False,
-                        ignore_reinit_error=True)
+                        ignore_reinit_error=True,
+                        include_webui=False
+                    )
                 else:
                     ray.init(
                         ignore_reinit_error=True,
                         configure_logging=False,
+                        include_webui=False
                         # log_to_driver=self.verbose == 2
                     )
                     if self.verbose != 2:
