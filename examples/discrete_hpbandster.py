@@ -1,7 +1,7 @@
 from tune_sklearn import TuneSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import SGDClassifier
 import ConfigSpace as CS
 
 digits = datasets.load_digits()
@@ -18,7 +18,7 @@ space = {
 }
 
 tune_search = TuneSearchCV(
-    RandomForestClassifier(),
+    SGDClassifier(),
     space,
     search_optimization="bohb",
     n_trials=3,
