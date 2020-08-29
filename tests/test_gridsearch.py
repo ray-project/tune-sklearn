@@ -29,7 +29,7 @@ from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn import linear_model
 from sklearn.exceptions import NotFittedError
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, SGDClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KernelDensity
 import unittest
