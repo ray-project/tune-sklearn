@@ -24,7 +24,6 @@ bohb_tune_search = TuneSearchCV(
     param_distributions=param_dists,
     n_trials=20,
     max_iters=100,
-    verbose=2,
     search_optimization="bohb",
 )
 
