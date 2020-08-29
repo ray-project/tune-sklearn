@@ -22,7 +22,7 @@ param_dists = {"alpha": (1e-4, 1e-1), "epsilon": (1e-2, 1e-1)}
 bohb_tune_search = TuneSearchCV(
     SGDClassifier(),
     param_distributions=param_dists,
-    n_trials=1,
+    n_trials=20,
     max_iters=100,
     verbose=2,
     search_optimization="bohb",

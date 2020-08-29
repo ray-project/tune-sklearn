@@ -503,9 +503,9 @@ class TuneBaseSearchCV(BaseEstimator):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "estimator", "early_stopping", "X_id", "y_id", "groups", "cv",
-                "fit_params", "scoring", "max_iters", "return_train_score",
-                "n_jobs"
+                "estimator_list", "early_stopping", "X_id", "y_id",
+                "groups", "cv", "fit_params", "scoring", "max_iters",
+                "return_train_score", "n_jobs"
         ]:
             config.pop(key, None)
         return config
