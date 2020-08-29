@@ -57,6 +57,13 @@ class _Trainable(Trainable):
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
+            if not hasattr(self.estimator, "partial_fit"):
+                # max_iter here is different than the max_iters the user sets.
+                # max_iter is to make sklearn only fit for one epoch,
+                # while max_iters (which the user can set) is the usual max
+                # number of calls to _trainable.
+                self.estimator_config["warm_start"] = True
+                self.estimator_config["max_iter"] = 1
             for i in range(n_splits):
                 self.estimator[i].set_params(**self.estimator_config)
         else:
@@ -96,8 +103,12 @@ class _Trainable(Trainable):
                     self.y,
                     test,
                     train_indices=train)
-                self.estimator[i].partial_fit(X_train, y_train,
-                                              np.unique(self.y))
+                if hasattr(self.estimator, "partial_fit"):
+                    self.estimator[i].partial_fit(X_train, y_train,
+                                                  np.unique(self.y))
+                else:
+                    self.estimator[i].fit(X_train, y_train)
+
                 if self.return_train_score:
                     self.fold_train_scores[i] = self.scoring(
                         self.estimator[i], X_train, y_train)
