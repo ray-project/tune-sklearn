@@ -301,8 +301,7 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         if search_optimization == "bohb":
             from ray.tune.schedulers import HyperBandForBOHB
-            if early_stopping and not isinstance(early_stopping,
-                                                 HyperBandForBOHB):
+            if not isinstance(early_stopping, HyperBandForBOHB):
                 early_stopping = HyperBandForBOHB(
                     metric="average_test_score", max_t=max_iters)
 
@@ -526,7 +525,7 @@ class TuneSearchCV(TuneBaseSearchCV):
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
-        generated when  early stopping is not possible.
+        generated when early stopping is not possible.
 
         Args:
             config (dict): Configurations such as hyperparameters to run
@@ -542,7 +541,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         """
         stop_condition = {"training_iteration": self.max_iters}
         if self.early_stopping is not None:
-            config["estimator"] = [
+            config["estimator_list"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
             ]
             if hasattr(self.early_stopping, "_max_t_attr"):
@@ -551,7 +550,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 # the solution is to make the stop condition very big
                 stop_condition = {"training_iteration": self.max_iters * 10}
         else:
-            config["estimator"] = self.estimator
+            config["estimator_list"] = [self.estimator]
 
         if self.search_optimization == "random":
             run_args = dict(
