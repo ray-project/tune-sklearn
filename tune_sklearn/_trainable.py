@@ -203,8 +203,11 @@ class _Trainable(Trainable):
 
         """
         path = os.path.join(checkpoint_dir, "checkpoint")
-        with open(path, "wb") as f:
-            cpickle.dump(self.estimator_list, f)
+        try:
+            with open(path, "wb") as f:
+                cpickle.dump(self.estimator_list, f)
+        except Exception as e:
+            warnings.warn("Unable to save estimator.")
         return path
 
     def load_checkpoint(self, checkpoint):
