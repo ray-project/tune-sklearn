@@ -134,6 +134,20 @@ class RandomizedSearchTest(unittest.TestCase):
             tune_search.fit(x, y)
         self.assertTrue(wrapped_init.call_args[1]["local_mode"])
 
+    def test_multi_best(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+
+        parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
+
+        scoring = ("accuracy", "f1_micro")
+
+        tune_search = TuneGridSearchCV(SGDClassifier(), parameter_grid, scoring=scoring, max_iters=20, refit="accuracy")
+        tune_search.fit(x, y)
+        self.assertEqual(tune_search.best_score_, max(tune_search.cv_results_["mean_test_accuracy"]))
+
+
 
 if __name__ == "__main__":
     unittest.main()
