@@ -387,8 +387,7 @@ class TuneBaseSearchCV(BaseEstimator):
                         local_mode=True,
                         configure_logging=False,
                         ignore_reinit_error=True,
-                        include_dashboard=False
-                    )
+                        include_dashboard=False)
                 else:
                     ray.init(
                         ignore_reinit_error=True,
