@@ -33,6 +33,33 @@ import multiprocessing
 import os
 
 
+def resolve_early_stopping(early_stopping, max_iters):
+    if isinstance(early_stopping, str):
+        if early_stopping in TuneBaseSearchCV.defined_schedulers:
+            if early_stopping == "PopulationBasedTraining":
+                return PopulationBasedTraining(metric="average_test_score")
+            elif early_stopping == "AsyncHyperBandScheduler":
+                return AsyncHyperBandScheduler(
+                    metric="average_test_score", max_t=max_iters)
+            elif early_stopping == "HyperBandScheduler":
+                return HyperBandScheduler(
+                    metric="average_test_score", max_t=max_iters)
+            elif early_stopping == "MedianStoppingRule":
+                return MedianStoppingRule(metric="average_test_score")
+            elif early_stopping == "ASHAScheduler":
+                return ASHAScheduler(
+                    metric="average_test_score", max_t=max_iters)
+        raise ValueError("{} is not a defined scheduler. "
+                         "Check the list of available schedulers."
+                         .format(early_stopping))
+    elif isinstance(early_stopping, TrialScheduler):
+        early_stopping.metric = "average_test_score"
+        return early_stopping
+    else:
+        raise TypeError("`early_stopping` must be a str, boolean, "
+                        f"or tune scheduler. Got {type(early_stopping)}.")
+
+
 class TuneBaseSearchCV(BaseEstimator):
     """Abstract base class for TuneGridSearchCV and TuneSearchCV"""
 
@@ -207,61 +234,38 @@ class TuneBaseSearchCV(BaseEstimator):
                  error_score="raise",
                  return_train_score=False,
                  local_dir="~/ray_results",
-                 max_iters=10,
+                 max_iters=None,
                  use_gpu=False):
 
         self.estimator = estimator
 
-        if early_stopping and self._can_early_stop():
-            self.max_iters = max_iters
-            if early_stopping is True:
+        if not self._can_early_stop() and max_iters is not None:
+            warnings.warn("max_iters is set but incremental/partial training "
+                          "is not enabled. To enable partial training, "
+                          "ensure the estimator has `partial_fit` or "
+                          "`warm_start`. Automatically setting max_iters=1.")
+            max_iters = 1
+        self.max_iters = max_iters
+
+        if early_stopping:
+            if not self._can_early_stop():
+                raise ValueError("Early stopping is not supported because "
+                                 "the estimator does not have `partial_fit` "
+                                 ", does not support warm_start, or is a "
+                                 "tree or ensemble classifier.")
+            elif early_stopping is True:
                 # Override the early_stopping variable so
                 # that it is resolved appropriately in
                 # the next block
                 early_stopping = "AsyncHyperBandScheduler"
             # Resolve the early stopping object
-            if isinstance(early_stopping, str):
-                if early_stopping in TuneBaseSearchCV.defined_schedulers:
-                    if early_stopping == "PopulationBasedTraining":
-                        self.early_stopping = PopulationBasedTraining(
-                            metric="average_test_score")
-                    elif early_stopping == "AsyncHyperBandScheduler":
-                        self.early_stopping = AsyncHyperBandScheduler(
-                            metric="average_test_score", max_t=max_iters)
-                    elif early_stopping == "HyperBandScheduler":
-                        self.early_stopping = HyperBandScheduler(
-                            metric="average_test_score", max_t=max_iters)
-                    elif early_stopping == "MedianStoppingRule":
-                        self.early_stopping = MedianStoppingRule(
-                            metric="average_test_score")
-                    elif early_stopping == "ASHAScheduler":
-                        self.early_stopping = ASHAScheduler(
-                            metric="average_test_score", max_t=max_iters)
-                else:
-                    raise ValueError("{} is not a defined scheduler. "
-                                     "Check the list of available schedulers."
-                                     .format(early_stopping))
-            elif isinstance(early_stopping, TrialScheduler):
-                self.early_stopping = early_stopping
-                self.early_stopping.metric = "average_test_score"
-            else:
-                raise TypeError("`early_stopping` must be a str, boolean, "
-                                "or tune scheduler")
-        elif not early_stopping:
-            warnings.warn("Early stopping is not enabled. "
-                          "To enable early stopping, pass in a supported "
-                          "scheduler from Tune and ensure the estimator "
-                          "has `partial_fit`.")
-
-            self.max_iters = 1
-            self.early_stopping = None
-        else:
-            raise ValueError("Early stopping is not supported because "
-                             "the estimator does not have `partial_fit`")
+            early_stopping = resolve_early_stopping(early_stopping,
+                                                    self.max_iters)
+        self.early_stopping = early_stopping
 
         self.cv = cv
         self.scoring = scoring
-        self.n_jobs = n_jobs
+        self.n_jobs = int(n_jobs or -1)
         if os.environ.get("SKLEARN_N_JOBS") is not None:
             self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
         else:
@@ -272,6 +276,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.local_dir = local_dir
         self.use_gpu = use_gpu
+        assert isinstance(self.n_jobs, int)
 
     def _fit(self, X, y=None, groups=None, **fit_params):
         """Helper method to run fit procedure
@@ -300,22 +305,25 @@ class TuneBaseSearchCV(BaseEstimator):
         self.n_splits = cv.get_n_splits(X, y, groups)
         self.scoring = check_scoring(self.estimator, scoring=self.scoring)
 
-        if self.n_jobs is not None:
-            if self.n_jobs < 0:
-                resources_per_trial = {
-                    "cpu": 1,
-                    "gpu": 1 if self.use_gpu else 0
-                }
+        assert isinstance(
+            self.n_jobs,
+            int), ("Internal error: self.n_jobs must be an integer.")
+        if self.n_jobs < 0:
+            resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
+            if self.n_jobs < -1:
                 warnings.warn("`self.n_jobs` is automatically set "
                               "-1 for any negative values.")
-            else:
-                available_cpus = multiprocessing.cpu_count()
-                resources_per_trial = {
-                    "cpu": available_cpus / self.n_jobs,
-                    "gpu": 1 if self.use_gpu else 0
-                }
         else:
-            resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
+            available_cpus = multiprocessing.cpu_count()
+            if ray.is_initialized():
+                available_cpus = ray.cluster_resources()["CPU"]
+            cpu_fraction = available_cpus / self.n_jobs
+            if cpu_fraction > 1:
+                cpu_fraction = int(np.ceil(cpu_fraction))
+            resources_per_trial = {
+                "cpu": cpu_fraction,
+                "gpu": 1 if self.use_gpu else 0
+            }
 
         X_id = ray.put(X)
         y_id = ray.put(y)
@@ -374,15 +382,23 @@ class TuneBaseSearchCV(BaseEstimator):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
+        ray_init = ray.is_initialized()
         try:
-            ray_init = ray.is_initialized()
             if not ray_init:
-                ray.init(
-                    ignore_reinit_error=True,
-                    configure_logging=False,
-                    log_to_driver=False)
-                warnings.warn("Hiding process output by default. "
-                              "To show process output, set verbose=2.")
+                if self.n_jobs == 1:
+                    ray.init(
+                        local_mode=True,
+                        configure_logging=False,
+                        ignore_reinit_error=True)
+                else:
+                    ray.init(
+                        ignore_reinit_error=True,
+                        configure_logging=False,
+                        # log_to_driver=self.verbose == 2
+                    )
+                    if self.verbose != 2:
+                        warnings.warn("Hiding process output by default. "
+                                      "To show process output, set verbose=2.")
 
             result = self._fit(X, y, groups, **fit_params)
 
@@ -418,16 +434,33 @@ class TuneBaseSearchCV(BaseEstimator):
     def _can_early_stop(self):
         """Helper method to determine if it is possible to do early stopping.
 
-        Only sklearn estimators with partial_fit can be early stopped.
+        Only sklearn estimators with `partial_fit` or `warm_start` can be early
+        stopped. warm_start works by picking up training from the previous
+        call to `fit`.
 
         Returns:
             bool: if the estimator can early stop
 
         """
-        return (hasattr(self.estimator, "partial_fit") and callable(
-            getattr(self.estimator, "partial_fit", None))) or isinstance(
-                self.estimator, LGBMModel) or isinstance(
+        from sklearn.tree import BaseDecisionTree
+        from sklearn.ensemble import BaseEnsemble
+
+        can_partial_fit = callable(
+            getattr(self.estimator, "partial_fit", None))
+        is_not_tree_subclass = not issubclass(
+            type(self.estimator), BaseDecisionTree)
+        is_not_ensemble_subclass = not issubclass(
+            type(self.estimator), BaseEnsemble)
+
+        can_warm_start = (hasattr(self.estimator, "warm_start")
+                          and hasattr(self.estimator, "max_iter")
+                          and is_not_ensemble_subclass
+                          and is_not_tree_subclass)
+
+        is_gbm = isinstance(self.estimator, LGBMModel) or isinstance(
                     self.estimator, XGBModel)
+
+        return can_partial_fit or can_warm_start or is_gbm
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -475,9 +508,9 @@ class TuneBaseSearchCV(BaseEstimator):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "estimator", "early_stopping", "X_id", "y_id", "groups", "cv",
-                "fit_params", "scoring", "max_iters", "return_train_score",
-                "n_jobs"
+                "estimator_list", "early_stopping", "X_id", "y_id", "groups",
+                "cv", "fit_params", "scoring", "max_iters",
+                "return_train_score", "n_jobs"
         ]:
             config.pop(key, None)
         return config

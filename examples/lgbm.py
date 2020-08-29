@@ -29,12 +29,7 @@ param_dists = {
     "subsample_freq": [20]
 }
 
-gs = TuneSearchCV(
-    model,
-    param_dists,
-    n_iter=5,
-    scoring="accuracy",
-    early_stopping="MedianStoppingRule")
+gs = TuneSearchCV(model, param_dists, n_trials=5, scoring="accuracy")
 gs.fit(X_train, y_train)
 print(gs.cv_results_)
 

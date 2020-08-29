@@ -21,7 +21,7 @@ param_distributions = {
     "max_depth": randint(2, 10)
 }
 
-tune_search = TuneSearchCV(clf, param_distributions, n_iter=3)
+tune_search = TuneSearchCV(clf, param_distributions, n_trials=3)
 
 tune_search.fit(x_train, y_train)
 

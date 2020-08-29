@@ -33,7 +33,7 @@ notifications:
 
 install:
   - pip3 install -U -q pip
-  - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace
+  - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace scipy
   - pip3 install -q -r requirements.txt
   - pip3 install --upgrade -q keras
   - pip3 install -U -q scikit-learn pytest
@@ -43,14 +43,14 @@ install:
   # - pip3 install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple -U scikit-learn
 
 script:
-  - if [ "$OS" == "MAC" ]; then brew install -q libomp; fi
+  - if [ "$OS" == "MAC" ]; then brew install -q libomp > /dev/null ; fi
   - pip3 install -e .
   - cd tests
   - pytest -v --durations=0 -x test_randomizedsearch.py
   - pytest -v --durations=0 -x test_gridsearch.py
   - declare -a arr=("AsyncHyperBandScheduler" "HyperBandScheduler" "MedianStoppingRule" "ASHAScheduler"); for s in "${arr[@]}"; do python3 schedulers.py --scheduler "$s"; done
   - cd ../examples
-  - for f in *.py; do python3 "$f"; done
+  - for f in *.py; do if [ "$f" == "bayesian_sgd.py" ]; then continue; fi; echo "running $f" && python3 "$f" || exit 1 ; done
   # temporarily disable as scikit-optimize is broken
   #- if [ "$OS" == "LINUX" ]; then cd ~/ && git clone https://github.com/ray-project/ray && python ray/python/ray/setup-dev.py --yes && python3 ray/doc/#source/tune/_tutorials/tune-sklearn.py; fi
 

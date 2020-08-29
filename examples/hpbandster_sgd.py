@@ -13,7 +13,7 @@ clf = SGDClassifier()
 parameter_grid = {"alpha": (1e-4, 1), "epsilon": (0.01, 0.1)}
 
 tune_search = TuneSearchCV(
-    clf, parameter_grid, search_optimization="bohb", n_iter=3, max_iters=10)
+    clf, parameter_grid, search_optimization="bohb", n_trials=3, max_iters=10)
 tune_search.fit(x_train, y_train)
 
 pred = tune_search.predict(x_test)
