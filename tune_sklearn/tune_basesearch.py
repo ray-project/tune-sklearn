@@ -249,7 +249,8 @@ class TuneBaseSearchCV(BaseEstimator):
             if not self._can_early_stop():
                 raise ValueError("Early stopping is not supported because "
                                  "the estimator does not have `partial_fit` "
-                                 "or does not support warm_start.")
+                                 ", does not support warm_start, or is a "
+                                 "tree or ensemble classifier.")
             elif early_stopping is True:
                 # Override the early_stopping variable so
                 # that it is resolved appropriately in
