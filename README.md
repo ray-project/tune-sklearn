@@ -18,6 +18,9 @@ If the estimator does not support `partial_fit`, a warning will be shown saying 
 #### User Installation
 
 `pip install tune-sklearn ray[tune]`
+or
+
+`pip install -U git+https://github.com/ray-project/tune-sklearn.git && pip install 'ray[tune]'`
 
 ## Examples
 
