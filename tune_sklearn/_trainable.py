@@ -14,6 +14,14 @@ import ray.cloudpickle as cpickle
 import warnings
 
 
+def try_import_xgboost():
+    try:
+        import xgboost  # ignore: F401
+        return True
+    except ImportError:
+        return False
+
+
 class _Trainable(Trainable):
     """Class to be passed in as the first argument of tune.run to train models.
 
@@ -32,8 +40,10 @@ class _Trainable(Trainable):
 
     @property
     def is_xgb(self):
-        from xgboost.sklearn import XGBModel
-        return isinstance(self.main_estimator, XGBModel)
+        if try_import_xgboost():
+            from xgboost.sklearn import XGBModel
+            return isinstance(self.main_estimator, XGBModel)
+        return False
 
 
     def setup(self, config):
@@ -70,6 +80,7 @@ class _Trainable(Trainable):
 
         if self.early_stopping:
             if self.is_xgb:
+                # Does this work?
                 self.estimator_config["n_estimators"] = 1
 
             n_splits = self.cv.get_n_splits(self.X, self.y)

@@ -490,7 +490,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from skopt import Optimizer  # noqa: F401
                 from ray.tune.suggest.skopt import SkOptSearch  # noqa: F401
             except ImportError:
-                logger.exception()
                 raise ImportError(
                     "It appears that scikit-optimize is not installed. "
                     "Do: pip install scikit-optimize") from None
@@ -500,7 +499,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.schedulers import HyperBandForBOHB  # noqa: F401
                 import ConfigSpace as CS  # noqa: F401
             except ImportError:
-                logger.exception()
                 raise ImportError(
                     "It appears that either HpBandSter or ConfigSpace "
                     "is not installed. "
@@ -510,7 +508,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.suggest.hyperopt import HyperOptSearch  # noqa: F401,E501
                 from hyperopt import hp  # noqa: F401
             except ImportError:
-                logger.exception()
                 raise ImportError("It appears that hyperopt is not installed. "
                                   "Do: pip install hyperopt") from None
         elif search_optimization == "optuna":
@@ -518,7 +515,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.suggest.optuna import OptunaSearch, param  # noqa: F401,E501
                 import optuna  # noqa: F401
             except ImportError:
-                logger.exception()
                 raise ImportError("It appears that optuna is not installed. "
                                   "Do: pip install optuna") from None
 
