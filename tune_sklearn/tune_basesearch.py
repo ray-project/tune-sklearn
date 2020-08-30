@@ -19,8 +19,6 @@ from sklearn.metrics import check_scoring
 from sklearn.base import is_classifier
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
-from lightgbm import LGBMModel
-from xgboost.sklearn import XGBModel
 import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
@@ -31,6 +29,8 @@ from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
 import os
+
+from tune_sklearn._detect_xgboost import is_xgboost_model
 
 
 def resolve_early_stopping(early_stopping, max_iters):
@@ -459,8 +459,7 @@ class TuneBaseSearchCV(BaseEstimator):
                           and is_not_ensemble_subclass
                           and is_not_tree_subclass)
 
-        is_gbm = isinstance(self.estimator, LGBMModel) or isinstance(
-                    self.estimator, XGBModel)
+        is_gbm = is_xgboost_model(self.estimator)
 
         return can_partial_fit or can_warm_start or is_gbm
 

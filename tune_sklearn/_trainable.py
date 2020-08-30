@@ -12,13 +12,7 @@ from pickle import PicklingError
 import ray.cloudpickle as cpickle
 import warnings
 
-
-def try_import_xgboost():
-    try:
-        import xgboost  # ignore: F401
-        return True
-    except ImportError:
-        return False
+from tune_sklearn._detect_xgboost import is_xgboost_model
 
 
 class _Trainable(Trainable):
@@ -36,13 +30,6 @@ class _Trainable(Trainable):
     @property
     def main_estimator(self):
         return self.estimator_list[0]
-
-    @property
-    def is_xgb(self):
-        if try_import_xgboost():
-            from xgboost.sklearn import XGBModel
-            return isinstance(self.main_estimator, XGBModel)
-        return False
 
     def setup(self, config):
         # forward-compatbility
@@ -90,7 +77,7 @@ class _Trainable(Trainable):
             for i in range(n_splits):
                 self.estimator_list[i].set_params(**self.estimator_config)
 
-            if self.is_xgb:
+            if is_xgboost_model(self.main_estimator):
                 self.saved_models = [None for _ in range(n_splits)]
         else:
             self.main_estimator.set_params(**self.estimator_config)
@@ -133,10 +120,11 @@ class _Trainable(Trainable):
                     if self.is_xgb:
                         self.estimator_list[i].fit(
                             X_train, y_train, xgb_model=self.saved_models[i])
-                        self.saved_models[i] = self.estimator_list[i].get_booster()
+                        self.saved_models[i] = self.estimator_list[
+                            i].get_booster()
                     else:
-                        self.estimator_list[i].partial_fit(X_train, y_train,
-                                                      np.unique(self.y))
+                        self.estimator_list[i].partial_fit(
+                            X_train, y_train, np.unique(self.y))
                 else:
                     self.estimator_list[i].fit(X_train, y_train)
 
