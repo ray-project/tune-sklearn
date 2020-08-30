@@ -12,6 +12,8 @@ from pickle import PicklingError
 import ray.cloudpickle as cpickle
 import warnings
 
+from tune_sklearn._detect_xgboost import is_xgboost_model
+
 
 class _Trainable(Trainable):
     """Class to be passed in as the first argument of tune.run to train models.
@@ -74,6 +76,9 @@ class _Trainable(Trainable):
                 self.estimator_config["max_iter"] = 1
             for i in range(n_splits):
                 self.estimator_list[i].set_params(**self.estimator_config)
+
+            if is_xgboost_model(self.main_estimator):
+                self.saved_models = [None for _ in range(n_splits)]
         else:
             self.main_estimator.set_params(**self.estimator_config)
 
@@ -112,8 +117,14 @@ class _Trainable(Trainable):
                     test,
                     train_indices=train)
                 if self._can_partial_fit():
-                    self.estimator_list[i].partial_fit(X_train, y_train,
-                                                       np.unique(self.y))
+                    if is_xgboost_model(self.main_estimator):
+                        self.estimator_list[i].fit(
+                            X_train, y_train, xgb_model=self.saved_models[i])
+                        self.saved_models[i] = self.estimator_list[
+                            i].get_booster()
+                    else:
+                        self.estimator_list[i].partial_fit(
+                            X_train, y_train, np.unique(self.y))
                 else:
                     self.estimator_list[i].fit(X_train, y_train)
 

@@ -206,7 +206,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 fail_fast=True,
-                checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
                 local_dir=os.path.expanduser(self.local_dir))
         else:
@@ -218,7 +217,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 fail_fast=True,
-                checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
                 local_dir=os.path.expanduser(self.local_dir))
 

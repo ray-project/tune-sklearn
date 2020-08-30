@@ -30,6 +30,8 @@ import warnings
 import multiprocessing
 import os
 
+from tune_sklearn._detect_xgboost import is_xgboost_model
+
 
 def resolve_early_stopping(early_stopping, max_iters):
     if isinstance(early_stopping, str):
@@ -442,7 +444,6 @@ class TuneBaseSearchCV(BaseEstimator):
             bool: if the estimator can early stop
 
         """
-
         from sklearn.tree import BaseDecisionTree
         from sklearn.ensemble import BaseEnsemble
 
@@ -458,7 +459,9 @@ class TuneBaseSearchCV(BaseEstimator):
                           and is_not_ensemble_subclass
                           and is_not_tree_subclass)
 
-        return can_partial_fit or can_warm_start
+        is_gbm = is_xgboost_model(self.estimator)
+
+        return can_partial_fit or can_warm_start or is_gbm
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
