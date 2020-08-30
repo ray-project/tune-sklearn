@@ -20,6 +20,14 @@ class _Trainable(Trainable):
     and restore routines.
 
     """
+    estimator_list = None
+
+    def _can_partial_fit(self):
+        return hasattr(self.main_estimator, "partial_fit")
+
+    @property
+    def main_estimator(self):
+        return self.estimator_list[0]
 
     def setup(self, config):
         # forward-compatbility
@@ -36,7 +44,7 @@ class _Trainable(Trainable):
                 stopping if it is set to true.
 
         """
-        self.estimator = clone(config.pop("estimator"))
+        self.estimator_list = clone(config.pop("estimator_list"))
         self.early_stopping = config.pop("early_stopping")
         X_id = config.pop("X_id")
         self.X = ray.get(X_id)
@@ -57,7 +65,7 @@ class _Trainable(Trainable):
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
-            if not hasattr(self.estimator, "partial_fit"):
+            if not self._can_partial_fit():
                 # max_iter here is different than the max_iters the user sets.
                 # max_iter is to make sklearn only fit for one epoch,
                 # while max_iters (which the user can set) is the usual max
@@ -65,9 +73,9 @@ class _Trainable(Trainable):
                 self.estimator_config["warm_start"] = True
                 self.estimator_config["max_iter"] = 1
             for i in range(n_splits):
-                self.estimator[i].set_params(**self.estimator_config)
+                self.estimator_list[i].set_params(**self.estimator_config)
         else:
-            self.estimator.set_params(**self.estimator_config)
+            self.main_estimator.set_params(**self.estimator_config)
 
     def step(self):
         # forward-compatbility
@@ -95,25 +103,25 @@ class _Trainable(Trainable):
         """
         if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
-                X_train, y_train = _safe_split(self.estimator[i], self.X,
+                X_train, y_train = _safe_split(self.estimator_list[i], self.X,
                                                self.y, train)
                 X_test, y_test = _safe_split(
-                    self.estimator[i],
+                    self.estimator_list[i],
                     self.X,
                     self.y,
                     test,
                     train_indices=train)
-                if hasattr(self.estimator, "partial_fit"):
-                    self.estimator[i].partial_fit(X_train, y_train,
-                                                  np.unique(self.y))
+                if self._can_partial_fit():
+                    self.estimator_list[i].partial_fit(X_train, y_train,
+                                                       np.unique(self.y))
                 else:
-                    self.estimator[i].fit(X_train, y_train)
+                    self.estimator_list[i].fit(X_train, y_train)
 
                 if self.return_train_score:
                     self.fold_train_scores[i] = self.scoring(
-                        self.estimator[i], X_train, y_train)
-                self.fold_scores[i] = self.scoring(self.estimator[i], X_test,
-                                                   y_test)
+                        self.estimator_list[i], X_train, y_train)
+                self.fold_scores[i] = self.scoring(self.estimator_list[i],
+                                                   X_test, y_test)
 
             ret = {}
             total = 0
@@ -137,7 +145,7 @@ class _Trainable(Trainable):
         else:
             try:
                 scores = cross_validate(
-                    self.estimator,
+                    self.main_estimator,
                     self.X,
                     self.y,
                     cv=self.cv,
@@ -152,7 +160,7 @@ class _Trainable(Trainable):
                               "validation. Proceeding to cross validate with "
                               "one core.")
                 scores = cross_validate(
-                    self.estimator,
+                    self.main_estimator,
                     self.X,
                     self.y,
                     cv=self.cv,
@@ -195,15 +203,11 @@ class _Trainable(Trainable):
 
         """
         path = os.path.join(checkpoint_dir, "checkpoint")
-        with open(path, "wb") as f:
-            try:
-                cpickle.dump(self.estimator, f)
-                self.pickled = True
-            except PicklingError:
-                self.pickled = False
-                warnings.warn("{} could not be pickled. "
-                              "Restoring estimators may run into issues."
-                              .format(self.estimator))
+        try:
+            with open(path, "wb") as f:
+                cpickle.dump(self.estimator_list, f)
+        except Exception:
+            warnings.warn("Unable to save estimator.")
         return path
 
     def load_checkpoint(self, checkpoint):
@@ -217,10 +221,10 @@ class _Trainable(Trainable):
             checkpoint (str): file path to pickled checkpoint file.
 
         """
-        if self.pickled:
+        try:
             with open(checkpoint, "rb") as f:
-                self.estimator = cpickle.load(f)
-        else:
+                self.estimator_list = cpickle.load(f)
+        except Exception:
             warnings.warn("No estimator restored")
 
     def reset_config(self, new_config):
