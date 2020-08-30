@@ -6,7 +6,6 @@ from ray.tune import Trainable
 from sklearn.base import clone
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
-from lightgbm import LGBMModel
 import numpy as np
 import os
 from pickle import PicklingError
