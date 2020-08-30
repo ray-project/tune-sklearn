@@ -78,10 +78,6 @@ class _Trainable(Trainable):
         self.pickled = False
 
         if self.early_stopping:
-            if self.is_xgb:
-                # Does this work?
-                self.estimator_config["n_estimators"] = 1
-
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
