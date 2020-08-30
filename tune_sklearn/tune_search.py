@@ -557,7 +557,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 num_samples=self.num_samples,
                 config=config,
                 fail_fast=True,
-                checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
                 local_dir=os.path.expanduser(self.local_dir))
 
@@ -619,7 +618,6 @@ class TuneSearchCV(TuneBaseSearchCV):
             num_samples=self.num_samples,
             config=config,
             fail_fast=True,
-            checkpoint_at_end=True,
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir))
 
