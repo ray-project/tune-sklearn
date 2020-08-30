@@ -117,7 +117,7 @@ class _Trainable(Trainable):
                     test,
                     train_indices=train)
                 if self._can_partial_fit():
-                    if self.is_xgb:
+                    if is_xgboost_model(self.main_estimator):
                         self.estimator_list[i].fit(
                             X_train, y_train, xgb_model=self.saved_models[i])
                         self.saved_models[i] = self.estimator_list[
