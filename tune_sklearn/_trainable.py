@@ -45,7 +45,6 @@ class _Trainable(Trainable):
             return isinstance(self.main_estimator, XGBModel)
         return False
 
-
     def setup(self, config):
         # forward-compatbility
         self._setup(config)
@@ -98,7 +97,6 @@ class _Trainable(Trainable):
 
             if self.is_xgb:
                 self.saved_models = [None for _ in range(n_splits)]
-
         else:
             self.main_estimator.set_params(**self.estimator_config)
 
@@ -137,10 +135,7 @@ class _Trainable(Trainable):
                     test,
                     train_indices=train)
                 if self._can_partial_fit():
-                    if self.is_lgbm:
-                        self.saved_models[i] = self.estimator_list[i].fit(
-                            X_train, y_train, init_model=self.saved_models[i])
-                    elif self.is_xgb:
+                    if self.is_xgb:
                         self.estimator_list[i].fit(
                             X_train, y_train, xgb_model=self.saved_models[i])
                         self.saved_models[i] = self.estimator_list[i].get_booster()
