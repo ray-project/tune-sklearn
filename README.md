@@ -6,10 +6,10 @@ Tune-sklearn is a drop-in replacement for Scikit-Learn’s model selection modul
 ## Features
 Here’s what tune-sklearn has to offer:
 
- * *Consistency with Scikit-Learn API*: Change less than 5 lines in a standard Scikit-Learn script to use the API.
- * *Modern tuning techniques*: tune-sklearn allows you to easily leverage Bayesian Optimization, HyperBand, BOHB, and other optimization techniques by simply toggling a few parameters.
- * *Framework support*: tune-sklearn is used primarily for tuning Scikit-Learn models, but it also supports and provides examples for many other frameworks with Scikit-Learn wrappers such as Skorch (Pytorch), KerasClassifier (Keras), and XGBoostClassifier (XGBoost).
- * *Scale up*: Tune-sklearn leverages [Ray Tune](http://tune.io/)), a library for distributed hyperparameter tuning, to efficiently and transparently parallelize cross validation on multiple cores and even multiple machines.
+ * **Consistency with Scikit-Learn API**: Change less than 5 lines in a standard Scikit-Learn script to use the API.
+ * **Modern tuning techniques**: tune-sklearn allows you to easily leverage Bayesian Optimization, HyperBand, BOHB, and other optimization techniques by simply toggling a few parameters.
+ * **Framework support**: tune-sklearn is used primarily for tuning Scikit-Learn models, but it also supports and provides examples for many other frameworks with Scikit-Learn wrappers such as Skorch (Pytorch), KerasClassifier (Keras), and XGBoostClassifier (XGBoost).
+ * **Scale up**: Tune-sklearn leverages [Ray Tune](http://tune.io/), a library for distributed hyperparameter tuning, to efficiently and transparently parallelize cross validation on multiple cores and even multiple machines.
 
 ## Installation
 
