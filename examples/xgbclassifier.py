@@ -3,7 +3,6 @@ An example training a XGBClassifier, performing
 randomized search using TuneSearchCV.
 """
 
-import warnings
 from tune_sklearn import TuneSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split

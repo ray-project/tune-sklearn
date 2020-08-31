@@ -188,6 +188,14 @@ class RandomizedSearchTest(unittest.TestCase):
                 max_iters=10,
                 local_dir="./test-result")
 
+    def test_warn_reduce_maxiters(self):
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        from sklearn.ensemble import RandomForestClassifier
+        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        with self.assertWarnsRegex(UserWarning, "max_iters"):
+            TuneSearchCV(
+                clf, parameter_grid, max_iters=10, local_dir="./test-result")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -219,7 +219,7 @@ class _Trainable(Trainable):
             with open(path, "wb") as f:
                 cpickle.dump(self.estimator_list, f)
         except Exception:
-            warnings.warn("Unable to save estimator.")
+            warnings.warn("Unable to save estimator.", category=RuntimeWarning)
         return path
 
     def load_checkpoint(self, checkpoint):
@@ -237,7 +237,7 @@ class _Trainable(Trainable):
             with open(checkpoint, "rb") as f:
                 self.estimator_list = cpickle.load(f)
         except Exception:
-            warnings.warn("No estimator restored")
+            warnings.warn("No estimator restored", category=RuntimeWarning)
 
     def reset_config(self, new_config):
         self.config = new_config

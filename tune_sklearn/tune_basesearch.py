@@ -9,7 +9,7 @@ https://dask.org
 https://optuna.org
     -- Anthony Yu and Michael Chau
 """
-
+import logging
 from collections import defaultdict
 from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
@@ -31,6 +31,8 @@ import multiprocessing
 import os
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
+
+logger = logging.getLogger(__name__)
 
 
 def resolve_early_stopping(early_stopping, max_iters):
@@ -241,10 +243,12 @@ class TuneBaseSearchCV(BaseEstimator):
         self.estimator = estimator
 
         if not self._can_early_stop() and max_iters > 1:
-            warnings.warn("max_iters is set but incremental/partial training "
-                          "is not enabled. To enable partial training, "
-                          "ensure the estimator has `partial_fit` or "
-                          "`warm_start`. Automatically setting max_iters=1.")
+            warnings.warn(
+                "max_iters is set but incremental/partial training "
+                "is not enabled. To enable partial training, "
+                "ensure the estimator has `partial_fit` or "
+                "`warm_start`. Automatically setting max_iters=1.",
+                category=UserWarning)
             max_iters = 1
         self.max_iters = max_iters
 
@@ -255,11 +259,13 @@ class TuneBaseSearchCV(BaseEstimator):
                                  ", does not support warm_start, or is a "
                                  "tree or ensemble classifier.")
             elif is_xgboost_model(self.estimator):
-                warnings.warn("tune-sklearn implements incremental learning "
-                              "for xgboost models following this: "
-                              "https://github.com/dmlc/xgboost/issues/1686. "
-                              "This may negatively impact performance. To "
-                              "disable, set `early_stopping=False`.")
+                warnings.warn(
+                    "tune-sklearn implements incremental learning "
+                    "for xgboost models following this: "
+                    "https://github.com/dmlc/xgboost/issues/1686. "
+                    "This may negatively impact performance. To "
+                    "disable, set `early_stopping=False`.",
+                    category=UserWarning)
             if early_stopping is True:
                 # Override the early_stopping variable so
                 # that it is resolved appropriately in
@@ -318,8 +324,10 @@ class TuneBaseSearchCV(BaseEstimator):
         if self.n_jobs < 0:
             resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
             if self.n_jobs < -1:
-                warnings.warn("`self.n_jobs` is automatically set "
-                              "-1 for any negative values.")
+                warnings.warn(
+                    "`self.n_jobs` is automatically set "
+                    "-1 for any negative values.",
+                    category=UserWarning)
         else:
             available_cpus = multiprocessing.cpu_count()
             if ray.is_initialized():
@@ -406,8 +414,8 @@ class TuneBaseSearchCV(BaseEstimator):
                         # log_to_driver=self.verbose == 2
                     )
                     if self.verbose != 2:
-                        warnings.warn("Hiding process output by default. "
-                                      "To show process output, set verbose=2.")
+                        logger.info("TIP: Hiding process output by default. "
+                                    "To show process output, set verbose=2.")
 
             result = self._fit(X, y, groups, **fit_params)
 
