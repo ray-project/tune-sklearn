@@ -1,26 +1,46 @@
 # tune-sklearn
 [![Build Status](https://travis-ci.com/ray-project/tune-sklearn.svg?branch=master)](https://travis-ci.com/ray-project/tune-sklearn)
 
-Tune-sklearn is a package that integrates Ray Tune's hyperparameter tuning and scikit-learn's models, allowing users to optimize hyerparameter searching for sklearn using Tune's schedulers (more details in the [Tune Documentation](http://tune.io/)).
-Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions, such as distributions to sample from.
+Tune-sklearn is a drop-in replacement for Scikit-Learn’s model selection module with cutting edge hyperparameter tuning techniques.
 
-Tune-sklearn provides additional benefits if specifying a scheduler **with an estimator that supports early stopping**. The list of estimators that can be supported from scikit-learn can be found in [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data).
+## Features
+Here’s what tune-sklearn has to offer:
 
-If the estimator does not support `partial_fit`, a warning will be shown saying early stopping cannot be done and it will simply run the cross-validation on Ray's parallel back-end.
+ * *Consistency with Scikit-Learn API*: Change less than 5 lines in a standard Scikit-Learn script to use the API.
+ * *Modern tuning techniques*: tune-sklearn allows you to easily leverage Bayesian Optimization, HyperBand, BOHB, and other optimization techniques by simply toggling a few parameters.
+ * *Framework support*: tune-sklearn is used primarily for tuning Scikit-Learn models, but it also supports and provides examples for many other frameworks with Scikit-Learn wrappers such as Skorch (Pytorch), KerasClassifier (Keras), and XGBoostClassifier (XGBoost).
+ * *Scale up*: Tune-sklearn leverages [Ray Tune](http://tune.io/)), a library for distributed hyperparameter tuning, to efficiently and transparently parallelize cross validation on multiple cores and even multiple machines.
 
-### Installation
+## Installation
 
-#### Dependencies
+### Dependencies
 - numpy (>=1.16)
-- ray
+- [ray](http://docs.ray.io/)
 - scikit-learn (>=0.23)
 
-#### User Installation
+### User Installation
 
 `pip install tune-sklearn ray[tune]`
+
 or
 
 `pip install -U git+https://github.com/ray-project/tune-sklearn.git && pip install 'ray[tune]'`
+
+
+Tip: If you get an error mentioning `skopt` not found, you can fix that by running `pip install scikit-optimize`.
+
+## Tune-sklearn details
+
+Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions.
+
+Tune-sklearn provides additional benefits if tuning **an estimator that supports incremental training**. Such estimators include:
+ * Estimators that implement 'warm_start' (except for ensemble classifiers and decision trees)
+ * Estimators that implement partial fit
+ * XGBoost models (via [incremental learning](https://github.com/dmlc/xgboost/issues/1686))
+
+To read more about compatible scikit-learn models, see [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data).
+
+If the estimator does not support `partial_fit`, a warning will be shown saying early stopping cannot be done and it will simply run the cross-validation on Ray's parallel back-end.
 
 ## Examples
 
@@ -88,18 +108,22 @@ print("Sklearn Accuracy:", accuracy)
 
 #### TuneSearchCV
 
-`TuneSearchCV` acts as a wrapper for several search algorithms from Tune's [`tune.suggest`](https://docs.ray.io/en/master/tune/api_docs/suggestion.html), which in turn are wrappers for other libraries. The selection of the search algorithm is controlled by the `search_optimization` parameter. The default, built-in search algorithm is randomized search over the distribution (mirroring scikit-learn's `RandomizedSearchCV`). In order to use other algorithms, you need to install the libraries they depend on (`pip install` column). The search algorithms are as follows:
+`TuneSearchCV` is an upgraded version of scikit-learn's `RandomizedSearchCV`.
+
+It also provides a wrapper for several search optimization algorithms from Ray Tune's [`tune.suggest`](https://docs.ray.io/en/master/tune/api_docs/suggestion.html), which in turn are wrappers for other libraries. The selection of the search algorithm is controlled by the `search_optimization` parameter. In order to use other algorithms, you need to install the libraries they depend on (`pip install` column). The search algorithms are as follows:
 
 | Algorithm          | `search_optimization` value | Summary                | Website                                                 | `pip install`              |
 |--------------------|-----------------------------|------------------------|---------------------------------------------------------|--------------------------|
-| RandomListSearcher | `"random"`                  | Randomized Search      |                                                         | built-in                 |
+| (Random Search)    | `"random"`                  | Randomized Search      |                                                         | built-in                 |
 | SkoptSearch        | `"bayesian"`                | Bayesian Optimization  | [[Scikit-Optimize](https://scikit-optimize.github.io/)] | `scikit-optimize`        |
 | HyperOptSearch     | `"hyperopt"`                | Tree-Parzen Estimators | [[HyperOpt](http://hyperopt.github.io/hyperopt)]        | `hyperopt`               |
 | TuneBOHB           | `"bohb"`                    | Bayesian Opt/HyperBand | [[BOHB](https://github.com/automl/HpBandSter)]          | `hpbandster ConfigSpace` |
 
-All algorithms other than RandomListSearcher accept parameter distributions in the form of dictionaries in the format `{ param_name: str : distribution: tuple or list }`. Tuples represent real distributions and should be two-element or three-element, in the format `(lower_bound: float, upper_bound: float, Optional: "uniform" (default) or "log-uniform")`. Lists represent categorical distributions. Furthermore, each algorithm accepts parameters in their own specific format. More information in [Tune documentation](https://docs.ray.io/en/master/tune/api_docs/suggestion.html).
+All algorithms other than RandomListSearcher accept parameter distributions in the form of dictionaries in the format `{ param_name: str : distribution: tuple or list }`.
 
-RandomListSearcher accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `RandomizedSearchCV`.
+Tuples represent real distributions and should be two-element or three-element, in the format `(lower_bound: float, upper_bound: float, Optional: "uniform" (default) or "log-uniform")`. Lists represent categorical distributions. Furthermore, each algorithm also accepts parameters in their own specific format. More information in [Tune documentation](https://docs.ray.io/en/master/tune/api_docs/suggestion.html).
+
+Random Search (default) accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `RandomizedSearchCV`.
 
 ```python
 from tune_sklearn import TuneSearchCV
@@ -151,4 +175,4 @@ Tune-sklearn also supports the use of other machine learning libraries such as P
 * [XGBoost](https://github.com/ray-project/tune-sklearn/blob/master/examples/xgbclassifier.py)
 
 ## More information
-[Ray Tune](https://ray.readthedocs.io/en/latest/tune.html)
+[Ray Tune](https://docs.ray.io/en/latest/tune/index.html)
