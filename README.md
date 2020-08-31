@@ -1,7 +1,7 @@
 # tune-sklearn
 [![Build Status](https://travis-ci.com/ray-project/tune-sklearn.svg?branch=master)](https://travis-ci.com/ray-project/tune-sklearn)
 
-Tune-sklearn is a drop-in replacement for Scikit-Learn’s model selection module (`GridSearchCV, RandomizedSearchCV`) with cutting edge hyperparameter tuning techniques.
+Tune-sklearn is a drop-in replacement for Scikit-Learn’s model selection module (`GridSearchCV, RandomizedSearchCV`) -- but with cutting edge hyperparameter tuning techniques.
 
 ## Features
 Here’s what tune-sklearn has to offer:
