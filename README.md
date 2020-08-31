@@ -38,7 +38,7 @@ For certain estimators, tune-sklearn can also immediately enable **incremental t
  * Estimators that implement partial fit
  * XGBoost models (via [incremental learning](https://github.com/dmlc/xgboost/issues/1686))
 
-Early stopping algorithms that can be enabled include HyperBand and Median Stopping.
+Early stopping algorithms that can be enabled include HyperBand and Median Stopping (see below for examples).
 
 To read more about compatible scikit-learn models, see [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data).
 
@@ -159,7 +159,7 @@ bohb_tune_search.fit(X_train, y_train)
 hyperopt_tune_search = TuneSearchCV(SGDClassifier(),
     param_distributions=param_dists,
     n_trials=2,
-    early_stopping=True, # uses ASHAScheduler if set to True
+    early_stopping=True, # uses Async HyperBand if set to True
     max_iters=10,
     search_optimization="hyperopt"
 )
