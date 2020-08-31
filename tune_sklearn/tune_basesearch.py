@@ -31,6 +31,7 @@ import multiprocessing
 import os
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
+from tune_sklearn.utils import check_warm_start, check_partial_fit
 
 logger = logging.getLogger(__name__)
 
@@ -459,21 +460,9 @@ class TuneBaseSearchCV(BaseEstimator):
             bool: if the estimator can early stop
 
         """
-        from sklearn.tree import BaseDecisionTree
-        from sklearn.ensemble import BaseEnsemble
 
-        can_partial_fit = callable(
-            getattr(self.estimator, "partial_fit", None))
-        is_not_tree_subclass = not issubclass(
-            type(self.estimator), BaseDecisionTree)
-        is_not_ensemble_subclass = not issubclass(
-            type(self.estimator), BaseEnsemble)
-
-        can_warm_start = (hasattr(self.estimator, "warm_start")
-                          and hasattr(self.estimator, "max_iter")
-                          and is_not_ensemble_subclass
-                          and is_not_tree_subclass)
-
+        can_partial_fit = check_partial_fit(self.estimator)
+        can_warm_start = check_warm_start(self.estimator)
         is_gbm = is_xgboost_model(self.estimator)
 
         return can_partial_fit or can_warm_start or is_gbm
