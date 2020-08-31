@@ -29,18 +29,16 @@ or
 
 Tip: If you get an error mentioning `skopt` not found, you can fix that by running `pip install scikit-optimize`.
 
-## Tune-sklearn details
-
-Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions.
+### Tune-sklearn Early Stopping
 
 For certain estimators, tune-sklearn can also immediately enable **incremental training and early stopping**. Such estimators include:
  * Estimators that implement 'warm_start' (except for ensemble classifiers and decision trees)
  * Estimators that implement partial fit
  * XGBoost models (via [incremental learning](https://github.com/dmlc/xgboost/issues/1686))
 
-Early stopping algorithms that can be enabled include HyperBand and Median Stopping (see below for examples).
-
 To read more about compatible scikit-learn models, see [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data).
+
+Early stopping algorithms that can be enabled include HyperBand and Median Stopping (see below for examples).
 
 If the estimator does not support `partial_fit`, a warning will be shown saying early stopping cannot be done and it will simply run the cross-validation on Ray's parallel back-end.
 
