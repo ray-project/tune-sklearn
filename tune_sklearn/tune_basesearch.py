@@ -248,10 +248,19 @@ class TuneBaseSearchCV(BaseEstimator):
                              ", does not support warm_start, or is a "
                              "tree or ensemble classifier.")
 
+        if not early_stopping and max_iters > 1:
+            warnings.warn(
+                "max_iters is set but incremental/partial training "
+                "is not enabled. To enable partial training, "
+                "ensure the estimator has `partial_fit` or "
+                "`warm_start`. Automatically setting max_iters=1.",
+                category=UserWarning)
+            max_iters = 1
+
         if early_stopping:
             if max_iters == 1:
                 warnings.warn("max_iters was not set for early "
-                        "stopping so it defaulted to 10.")
+                              "stopping so it defaulted to 10.")
 
                 max_iters = 10
             if is_xgboost_model(self.estimator):
@@ -268,17 +277,7 @@ class TuneBaseSearchCV(BaseEstimator):
                 # the next block
                 early_stopping = "AsyncHyperBandScheduler"
             # Resolve the early stopping object
-            early_stopping = resolve_early_stopping(early_stopping,
-                                                    self.max_iters)
-        else:
-            if max_iters > 1:
-                warnings.warn(
-                    "max_iters is set but incremental/partial training "
-                    "is not enabled. To enable partial training, "
-                    "ensure the estimator has `partial_fit` or "
-                    "`warm_start`. Automatically setting max_iters=1.",
-                    category=UserWarning)
-                max_iters = 1
+            early_stopping = resolve_early_stopping(early_stopping, max_iters)
 
         self.early_stopping = early_stopping
         self.max_iters = max_iters

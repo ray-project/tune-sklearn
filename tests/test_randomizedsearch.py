@@ -16,6 +16,7 @@ from test_utils import MockClassifier
 X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
 y = np.array([1, 1, 2, 2])
 
+
 class RandomizedSearchTest(unittest.TestCase):
     def test_random_search_cv_results(self):
         # Make a dataset with a lot of noise to get various kind of prediction
@@ -201,13 +202,17 @@ class RandomizedSearchTest(unittest.TestCase):
 
     def test_early_stop_cases(self):
         with self.assertRaises(ValueError):
-            case_1 = TuneSearchCV(LogisticRegression(), {"C": [1, ,2]}, early_stopping=True)
+            case_1 = TuneSearchCV(
+                LogisticRegression(), {"C": [1, 2]}, early_stopping=True)
         with self.assertWarnsRegex(UserWarning, "max_iters was not set"):
-            case_2 = TuneSearchCV(SGDClassifier(), {"epsilon": [0.1, 0.2]}, early_stopping=True)
+            case_2 = TuneSearchCV(
+                SGDClassifier(), {"epsilon": [0.1, 0.2]}, early_stopping=True)
         with self.assertWarnsRegex(UserWarning, "max_iters is set but"):
-            case_3 = TuneSearchCV(SGDClassifier(), {"epsilon": [0.1, 0.2]}, max_iters=2)
+            case_3 = TuneSearchCV(
+                SGDClassifier(), {"epsilon": [0.1, 0.2]}, max_iters=2)
         with self.assertWarnsRegex(UserWarning, "max_iters is set but"):
-            case_3 = TuneSearchCV(LogisticRegression(), {"C": [1, 2]}, max_iters=2)
+            case_3 = TuneSearchCV(
+                LogisticRegression(), {"C": [1, 2]}, max_iters=2)
 
 
 if __name__ == "__main__":
