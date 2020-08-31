@@ -253,7 +253,13 @@ class TuneBaseSearchCV(BaseEstimator):
                                  "the estimator does not have `partial_fit` "
                                  ", does not support warm_start, or is a "
                                  "tree or ensemble classifier.")
-            elif early_stopping is True:
+            elif is_xgboost_model(self.estimator):
+                warnings.warn("tune-sklearn implements incremental learning "
+                              "for xgboost models following this: "
+                              "https://github.com/dmlc/xgboost/issues/1686. "
+                              "This may negatively impact performance. To "
+                              "disable, set `early_stopping=False`.")
+            if early_stopping is True:
                 # Override the early_stopping variable so
                 # that it is resolved appropriately in
                 # the next block
