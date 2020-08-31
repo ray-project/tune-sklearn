@@ -8,7 +8,7 @@ Here’s what tune-sklearn has to offer:
 
  * **Consistency with Scikit-Learn API**: Change less than 5 lines in a standard Scikit-Learn script to use the API.
  * **Modern tuning techniques**: tune-sklearn allows you to easily leverage Bayesian Optimization, HyperBand, BOHB, and other optimization techniques by simply toggling a few parameters.
- * **Framework support**: tune-sklearn is used primarily for tuning Scikit-Learn models, but it also supports and provides examples for many other frameworks with Scikit-Learn wrappers such as Skorch (Pytorch), KerasClassifier (Keras), and XGBoostClassifier (XGBoost).
+ * **Framework support**: tune-sklearn is used primarily for tuning Scikit-Learn models, but it also supports and provides examples for many other frameworks with Scikit-Learn wrappers such as Skorch (Pytorch) [[example](https://github.com/ray-project/tune-sklearn/blob/master/examples/torch_nn.py)], KerasClassifier (Keras) [[example](https://github.com/ray-project/tune-sklearn/blob/master/examples/keras_example.py)], and XGBoostClassifier (XGBoost) [[example](https://github.com/ray-project/tune-sklearn/blob/master/examples/xgbclassifier.py)].
  * **Scale up**: Tune-sklearn leverages [Ray Tune](http://tune.io/), a library for distributed hyperparameter tuning, to efficiently and transparently parallelize cross validation on multiple cores and even multiple machines.
 
 ## Installation
@@ -33,10 +33,12 @@ Tip: If you get an error mentioning `skopt` not found, you can fix that by runni
 
 Tune-sklearn follows the same API as scikit-learn's GridSearchCV, but allows for more flexibility in defining hyperparameter search regions.
 
-Tune-sklearn provides additional benefits if tuning **an estimator that supports incremental training**. Such estimators include:
+For certain estimators, tune-sklearn can also immediately enable **incremental training and early stopping**. Such estimators include:
  * Estimators that implement 'warm_start' (except for ensemble classifiers and decision trees)
  * Estimators that implement partial fit
  * XGBoost models (via [incremental learning](https://github.com/dmlc/xgboost/issues/1686))
+
+Early stopping algorithms that can be enabled include HyperBand and Median Stopping.
 
 To read more about compatible scikit-learn models, see [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data).
 
