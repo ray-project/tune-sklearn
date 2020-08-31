@@ -234,12 +234,13 @@ class TuneBaseSearchCV(BaseEstimator):
                  error_score="raise",
                  return_train_score=False,
                  local_dir="~/ray_results",
-                 max_iters=None,
+                 max_iters=1,
                  use_gpu=False):
-
+        if max_iters < 1:
+            raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
 
-        if not self._can_early_stop() and max_iters is not None:
+        if not self._can_early_stop() and max_iters > 1:
             warnings.warn("max_iters is set but incremental/partial training "
                           "is not enabled. To enable partial training, "
                           "ensure the estimator has `partial_fit` or "

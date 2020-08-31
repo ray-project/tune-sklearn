@@ -61,7 +61,8 @@ class _Trainable(Trainable):
         self.return_train_score = config.pop("return_train_score")
         self.n_jobs = config.pop("n_jobs")
         self.estimator_config = config
-        self.pickled = False
+        self.train_accuracy = None
+        self.test_accuracy = None
 
         if self.early_stopping:
             n_splits = self.cv.get_n_splits(self.X, self.y)

@@ -255,11 +255,10 @@ class TuneSearchCV(TuneBaseSearchCV):
                  error_score=np.nan,
                  return_train_score=False,
                  local_dir="~/ray_results",
-                 max_iters=10,
+                 max_iters=1,
                  search_optimization="random",
                  use_gpu=False,
                  **search_kwargs):
-
         search_optimization = search_optimization.lower()
         available_optimizations = [
             "random",
