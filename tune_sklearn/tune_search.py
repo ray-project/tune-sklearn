@@ -78,7 +78,7 @@ class TuneSearchCV(TuneBaseSearchCV):
     In contrast to GridSearchCV, not all parameter values are tried out, but
     rather a fixed number of parameter settings is sampled from the specified
     distributions. The number of parameter settings that are tried is
-    given by n_iter.
+    given by n_trials.
 
     Args:
         estimator (`estimator`): This is assumed to implement the
@@ -143,8 +143,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             this parameter is ignored for ``"bohb"``, as it requires
             ``HyperBandForBOHB``.
 
-        n_iter (int): Number of parameter settings that are sampled.
-            n_iter trades off runtime vs quality of the solution.
+        n_trials (int): Number of parameter settings that are sampled.
+            n_trials trades off runtime vs quality of the solution.
             Defaults to 10.
         scoring (str, list/tuple, dict, or None): A single
             string or a callable to evaluate the predictions on the test set.
@@ -217,18 +217,28 @@ class TuneSearchCV(TuneBaseSearchCV):
         local_dir (str): A string that defines where checkpoints will
             be stored. Defaults to "~/ray_results"
         max_iters (int): Indicates the maximum number of epochs to run for each
-            hyperparameter configuration sampled (specified by ``n_iter``).
+            hyperparameter configuration sampled (specified by ``n_trials``).
             This parameter is used for early stopping. Defaults to 10.
-        search_optimization ("random" or "bayesian"):
-            If "random", uses randomized search over the
-            ``param_distributions``. If "bayesian", uses
-            Bayesian optimization from scikit-optimize
-            (https://scikit-optimize.github.io/stable/index.html)
-            to search for hyperparameters.
+        search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"):
+            Randomized search is invoked with ``search_optimization`` set to
+            ``"random"`` and behaves like scikit-learn's
+            ``RandomizedSearchCV``.
+
+            Bayesian search can be invoked with several values of
+            ``search_optimization``.
+                - ``"bayesian"`` via https://scikit-optimize.github.io/stable/
+                - ``"bohb"`` via http://github.com/automl/HpBandSter
+
+            Tree-Parzen Estimators search is invoked with
+            ``search_optimization`` set to ``"hyperopt"`` via HyperOpt:
+            http://hyperopt.github.io/hyperopt
+
+            All types of search aside from Randomized search require parent
+            libraries to be installed.
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.
-        **kwargs (Any):
+        **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
 
@@ -238,7 +248,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  estimator,
                  param_distributions,
                  early_stopping=None,
-                 n_iter=10,
+                 n_trials=10,
                  scoring=None,
                  n_jobs=None,
                  sk_n_jobs=-1,
@@ -252,7 +262,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  max_iters=10,
                  search_optimization="random",
                  use_gpu=False,
-                 **kwargs):
+                 **search_kwargs):
 
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -295,8 +305,7 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         if search_optimization == "bohb":
             from ray.tune.schedulers import HyperBandForBOHB
-            if early_stopping and not isinstance(early_stopping,
-                                                 HyperBandForBOHB):
+            if not isinstance(early_stopping, HyperBandForBOHB):
                 early_stopping = HyperBandForBOHB(
                     metric="average_test_score", max_t=max_iters)
 
@@ -316,11 +325,14 @@ class TuneSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu)
 
         self.param_distributions = param_distributions
-        self.num_samples = n_iter
+        self.num_samples = n_trials
         if search_optimization == "random":
             self.random_state = random_state
+            if search_kwargs:
+                raise ValueError("Random search does not support "
+                                 f"extra args: {search_kwargs}")
         self.search_optimization = search_optimization
-        self.kwargs = kwargs
+        self.search_kwargs = search_kwargs
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -335,7 +347,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
-        if (self.search_optimization == "bayesian"):
+        if self.search_optimization != "random":
             return
 
         if isinstance(self.param_distributions, list):
@@ -517,7 +529,7 @@ class TuneSearchCV(TuneBaseSearchCV):
     def _tune_run(self, config, resources_per_trial):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
-        generated when  early stopping is not possible.
+        generated when early stopping is not possible.
 
         Args:
             config (dict): Configurations such as hyperparameters to run
@@ -533,7 +545,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         """
         stop_condition = {"training_iteration": self.max_iters}
         if self.early_stopping is not None:
-            config["estimator"] = [
+            config["estimator_list"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
             ]
             if hasattr(self.early_stopping, "_max_t_attr"):
@@ -542,7 +554,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 # the solution is to make the stop condition very big
                 stop_condition = {"training_iteration": self.max_iters * 10}
         else:
-            config["estimator"] = self.estimator
+            config["estimator_list"] = [self.estimator]
 
         if self.search_optimization == "random":
             run_args = dict(
@@ -572,7 +584,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 Optimizer(spaces),
                 hyperparameter_names,
                 metric="average_test_score",
-                **self.kwargs)
+                **self.search_kwargs)
 
         elif self.search_optimization == "bohb":
             from ray.tune.suggest.bohb import TuneBOHB
@@ -581,7 +593,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space,
                 metric="average_test_score",
                 mode="max",
-                **self.kwargs)
+                **self.search_kwargs)
 
         elif self.search_optimization == "optuna":
             from ray.tune.suggest.optuna import OptunaSearch
@@ -590,7 +602,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space,
                 metric="average_test_score",
                 mode="max",
-                **self.kwargs)
+                **self.search_kwargs)
 
         elif self.search_optimization == "hyperopt":
             from ray.tune.suggest.hyperopt import HyperOptSearch
@@ -599,7 +611,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space,
                 metric="average_test_score",
                 mode="max",
-                **self.kwargs)
+                **self.search_kwargs)
 
         if isinstance(self.n_jobs, int) and self.n_jobs > 0:
             search_algo = ConcurrencyLimiter(

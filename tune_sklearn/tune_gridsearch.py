@@ -191,11 +191,11 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         """
         if self.early_stopping is not None:
-            config["estimator"] = [
+            config["estimator_list"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
             ]
         else:
-            config["estimator"] = self.estimator
+            config["estimator_list"] = [self.estimator]
 
         if isinstance(self.param_grid, list):
             analysis = tune.run(

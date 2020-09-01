@@ -19,7 +19,7 @@ tune_search = TuneSearchCV(
     clf,
     parameter_grid,
     search_optimization="bayesian",
-    n_iter=3,
+    n_trials=3,
     early_stopping=scheduler,
     max_iters=10)
 tune_search.fit(x_train, y_train)

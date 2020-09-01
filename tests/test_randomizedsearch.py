@@ -28,7 +28,7 @@ class RandomizedSearchTest(unittest.TestCase):
         params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
         random_search = TuneSearchCV(
             SVC(),
-            n_iter=n_search_iter,
+            n_trials=n_search_iter,
             cv=n_splits,
             param_distributions=params,
             return_train_score=True,
@@ -147,6 +147,59 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search.fit(x, y)
         self.assertEqual(tune_search.best_score_, max(tune_search.cv_results_["mean_test_accuracy"]))
 
+    def test_warm_start_detection(self):
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        from sklearn.ensemble import RandomForestClassifier
+        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        tune_search = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertFalse(tune_search._can_early_stop())
+
+        from sklearn.tree import DecisionTreeClassifier
+        clf = DecisionTreeClassifier(random_state=0)
+        tune_search2 = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertFalse(tune_search2._can_early_stop())
+
+        from sklearn.linear_model import LogisticRegression
+        clf = LogisticRegression()
+        tune_search3 = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+
+        self.assertTrue(tune_search3._can_early_stop())
+
+    def test_warm_start_error(self):
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        from sklearn.ensemble import RandomForestClassifier
+        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        tune_search = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            early_stopping=False,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertFalse(tune_search._can_early_stop())
+        with self.assertRaises(ValueError):
+            tune_search = TuneSearchCV(
+                clf,
+                parameter_grid,
+                n_jobs=1,
+                early_stopping=True,
+                max_iters=10,
+                local_dir="./test-result")
 
 
 if __name__ == "__main__":
