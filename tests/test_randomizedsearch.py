@@ -143,7 +143,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         scoring = ("accuracy", "f1_micro")
 
-        tune_search = TuneGridSearchCV(SGDClassifier(), parameter_grid, scoring=scoring, max_iters=20, refit="accuracy")
+        tune_search = TuneSearchCV(SGDClassifier(), parameter_grid, scoring=scoring, max_iters=20, refit="accuracy")
         tune_search.fit(x, y)
         self.assertEqual(tune_search.best_score_, max(tune_search.cv_results_["mean_test_accuracy"]))
 
