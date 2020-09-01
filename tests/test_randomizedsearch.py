@@ -194,9 +194,15 @@ class RandomizedSearchTest(unittest.TestCase):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
         from sklearn.ensemble import RandomForestClassifier
         clf = RandomForestClassifier(max_depth=2, random_state=0)
-        with self.assertWarnsRegex(UserWarning, "max_iters"):
+        with self.assertWarnsRegex(UserWarning, "max_iters is set"):
             TuneSearchCV(
                 clf, parameter_grid, max_iters=10, local_dir="./test-result")
+        with self.assertWarnsRegex(UserWarning, "max_iters is set"):
+            TuneSearchCV(
+                SGDClassifier(),
+                parameter_grid,
+                max_iters=10,
+                local_dir="./test-result")
 
     def test_warn_early_stop(self):
         with self.assertWarnsRegex(UserWarning, "max_iters = 1"):

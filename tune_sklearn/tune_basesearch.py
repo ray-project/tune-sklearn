@@ -250,15 +250,15 @@ class TuneBaseSearchCV(BaseEstimator):
                                  "does not support warm_start, or is a "
                                  "tree or ensemble classifier. Set "
                                  "`early_stopping=False`.")
-            if max_iters > 1:
-                warnings.warn(
-                    "max_iters is set > 1 but incremental/partial training "
-                    "is not enabled. To enable partial training, "
-                    "ensure the estimator has `partial_fit` or "
-                    "`warm_start` and set `early_stopping=True`. "
-                    "Automatically setting max_iters=1.",
-                    category=UserWarning)
-                max_iters = 1
+        if not early_stopping and max_iters > 1:
+            warnings.warn(
+                "max_iters is set > 1 but incremental/partial training "
+                "is not enabled. To enable partial training, "
+                "ensure the estimator has `partial_fit` or "
+                "`warm_start` and set `early_stopping=True`. "
+                "Automatically setting max_iters=1.",
+                category=UserWarning)
+            max_iters = 1
 
         if early_stopping:
             assert self._can_early_stop()
