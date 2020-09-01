@@ -14,9 +14,6 @@ from unittest.mock import patch
 import os
 from tune_sklearn._detect_xgboost import has_xgboost
 
-X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
-y = np.array([1, 1, 2, 2])
-
 
 class RandomizedSearchTest(unittest.TestCase):
     def test_random_search_cv_results(self):
