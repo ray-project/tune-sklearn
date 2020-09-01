@@ -120,11 +120,11 @@ class _Trainable(Trainable):
 
                 if self.return_train_score:
                     self.fold_train_scores[i] = {
-                        name: score(self.estimator[i], X_train, y_train)
+                        name: score(self.estimator_list[i], X_train, y_train)
                         for name, score in self.scoring.items()
                     }
                 self.fold_scores[i] = {
-                    name: score(self.estimator[i], X_test, y_test)
+                    name: score(self.estimator_list[i], X_test, y_test)
                     for name, score in self.scoring.items()
                 }
 
