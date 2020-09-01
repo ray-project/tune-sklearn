@@ -12,6 +12,9 @@ from pickle import PicklingError
 import ray.cloudpickle as cpickle
 import warnings
 
+from tune_sklearn._detect_xgboost import is_xgboost_model
+from tune_sklearn.utils import check_warm_start, check_partial_fit
+
 
 class _Trainable(Trainable):
     """Class to be passed in as the first argument of tune.run to train models.
@@ -23,7 +26,19 @@ class _Trainable(Trainable):
     estimator_list = None
 
     def _can_partial_fit(self):
-        return hasattr(self.main_estimator, "partial_fit")
+        return check_partial_fit(self.main_estimator)
+
+    def _can_warm_start(self):
+        return check_warm_start(self.main_estimator)
+
+    def _is_xgb(self):
+        return is_xgboost_model(self.main_estimator)
+
+    def _can_early_start(self):
+        return any(
+            [self._is_xgb(),
+             self._can_warm_start(),
+             self._can_partial_fit()])
 
     @property
     def main_estimator(self):
@@ -59,21 +74,28 @@ class _Trainable(Trainable):
         self.return_train_score = config.pop("return_train_score")
         self.n_jobs = config.pop("n_jobs")
         self.estimator_config = config
-        self.pickled = False
+        self.train_accuracy = None
+        self.test_accuracy = None
+        self.saved_models = []  # XGBoost specific
 
         if self.early_stopping:
+            assert self._can_early_start()
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.zeros(n_splits)
             self.fold_train_scores = np.zeros(n_splits)
-            if not self._can_partial_fit():
+            if not self._can_partial_fit() and self._can_warm_start():
                 # max_iter here is different than the max_iters the user sets.
                 # max_iter is to make sklearn only fit for one epoch,
                 # while max_iters (which the user can set) is the usual max
                 # number of calls to _trainable.
                 self.estimator_config["warm_start"] = True
                 self.estimator_config["max_iter"] = 1
+
             for i in range(n_splits):
                 self.estimator_list[i].set_params(**self.estimator_config)
+
+            if self._is_xgb():
+                self.saved_models = [None for _ in range(n_splits)]
         else:
             self.main_estimator.set_params(**self.estimator_config)
 
@@ -114,8 +136,16 @@ class _Trainable(Trainable):
                 if self._can_partial_fit():
                     self.estimator_list[i].partial_fit(X_train, y_train,
                                                        np.unique(self.y))
-                else:
+                elif self._is_xgb():
+                    self.estimator_list[i].fit(
+                        X_train, y_train, xgb_model=self.saved_models[i])
+                    self.saved_models[i] = self.estimator_list[i].get_booster()
+                elif self._can_warm_start():
                     self.estimator_list[i].fit(X_train, y_train)
+                else:
+                    raise RuntimeError(
+                        "Early stopping set but model is not: "
+                        "xgb model, supports partial fit, or warm-startable.")
 
                 if self.return_train_score:
                     self.fold_train_scores[i] = self.scoring(
@@ -207,7 +237,7 @@ class _Trainable(Trainable):
             with open(path, "wb") as f:
                 cpickle.dump(self.estimator_list, f)
         except Exception:
-            warnings.warn("Unable to save estimator.")
+            warnings.warn("Unable to save estimator.", category=RuntimeWarning)
         return path
 
     def load_checkpoint(self, checkpoint):
@@ -225,7 +255,7 @@ class _Trainable(Trainable):
             with open(checkpoint, "rb") as f:
                 self.estimator_list = cpickle.load(f)
         except Exception:
-            warnings.warn("No estimator restored")
+            warnings.warn("No estimator restored", category=RuntimeWarning)
 
     def reset_config(self, new_config):
         self.config = new_config

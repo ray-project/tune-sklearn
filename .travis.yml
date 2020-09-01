@@ -34,7 +34,7 @@ notifications:
 install:
   - pip3 install -U -q pip
   - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace scipy
-  - pip3 install -q -r requirements.txt
+  - pip3 install -q -r requirements-test.txt
   - pip3 install --upgrade -q keras
   - pip3 install -U -q scikit-learn pytest
   # Nightly wheel installation
@@ -46,6 +46,7 @@ script:
   - cd tests
   - pytest -v --durations=0 -x test_randomizedsearch.py
   - pytest -v --durations=0 -x test_gridsearch.py
+  - pytest -v --durations=0 -x test_trainable.py
   - declare -a arr=("AsyncHyperBandScheduler" "HyperBandScheduler" "MedianStoppingRule" "ASHAScheduler"); for s in "${arr[@]}"; do python3 schedulers.py --scheduler "$s"; done
   - cd ../examples
   - for f in *.py; do if [ "$f" == "bayesian_sgd.py" ]; then continue; fi; echo "running $f" && python3 "$f" || exit 1 ; done
