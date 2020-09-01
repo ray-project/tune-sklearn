@@ -243,27 +243,30 @@ class TuneBaseSearchCV(BaseEstimator):
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
 
-        if not self._can_early_stop() and early_stopping:
-            raise ValueError("Early stopping is not supported because "
-                             "the estimator does not have `partial_fit` "
-                             ", does not support warm_start, or is a "
-                             "tree or ensemble classifier.")
-
-        if not early_stopping and max_iters > 1:
-            warnings.warn(
-                "max_iters is set but incremental/partial training "
-                "is not enabled. To enable partial training, "
-                "ensure the estimator has `partial_fit` or "
-                "`warm_start`. Automatically setting max_iters=1.",
-                category=UserWarning)
-            max_iters = 1
+        if not self._can_early_stop():
+            if early_stopping:
+                raise ValueError("Early stopping is not supported because "
+                                 "the estimator does not have `partial_fit`, "
+                                 "does not support warm_start, or is a "
+                                 "tree or ensemble classifier. Set "
+                                 "`early_stopping=False`.")
+            if max_iters > 1:
+                warnings.warn(
+                    "max_iters is set > 1 but incremental/partial training "
+                    "is not enabled. To enable partial training, "
+                    "ensure the estimator has `partial_fit` or "
+                    "`warm_start` and set `early_stopping=True`. "
+                    "Automatically setting max_iters=1.",
+                    category=UserWarning)
+                max_iters = 1
 
         if early_stopping:
+            assert self._can_early_stop()
             if max_iters == 1:
-                warnings.warn("max_iters was not set for early "
-                              "stopping so it defaulted to 10.")
-
-                max_iters = 10
+                warnings.warn(
+                    "early_stopping is enabled but max_iters = 1. "
+                    "To enable partial training, set max_iters > 1.",
+                    category=UserWarning)
             if is_xgboost_model(self.estimator):
                 warnings.warn(
                     "tune-sklearn implements incremental learning "

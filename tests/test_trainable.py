@@ -62,7 +62,6 @@ class TrainableTest(unittest.TestCase):
 
     @unittest.skipIf(not has_xgboost(), "xgboost not installed")
     def testXGBoostEarlyStop(self):
-
         config = self.base_params(
             estimator_list=[create_xgboost(),
                             create_xgboost()])
