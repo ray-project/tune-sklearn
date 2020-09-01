@@ -563,9 +563,11 @@ class GridSearchTest(unittest.TestCase):
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
 
         tune_search = TuneGridSearchCV(SGDClassifier(), parameter_grid, scoring=("accuracy", "f1_micro"), max_iters=20, refit=False)
+        tune_search.fit(X, y)
         self.assertTrue(tune_search.is_multi)
 
         tune_search = TuneGridSearchCV(SGDClassifier(), parameter_grid, scoring="f1_micro", max_iters=20)
+        tune_search.fit(X, y)
         self.assertFalse(tune_search.is_multi)
 
         # Make sure error is raised when refit isn't set properly

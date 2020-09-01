@@ -147,6 +147,11 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search.fit(x, y)
         self.assertEqual(tune_search.best_score_, max(tune_search.cv_results_["mean_test_accuracy"]))
 
+        p = tune_search.cv_results_["params"]
+        scores = tune_search.cv_results_["mean_test_accuracy"]
+        cv_best_params = [params for _, params in sorted(zip(scores, p), key=lambda pair: pair[0], )]
+        self.assertEqual(tune_search.best_params_, cv_best_params[-1])
+
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
         from sklearn.ensemble import RandomForestClassifier
