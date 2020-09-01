@@ -35,8 +35,10 @@ class _Trainable(Trainable):
         return is_xgboost_model(self.main_estimator)
 
     def _can_early_start(self):
-        return any(self._is_xgb() or self._can_warm_start()
-                   or self._can_partial_fit())
+        return any(
+            [self._is_xgb(),
+             self._can_warm_start(),
+             self._can_partial_fit()])
 
     @property
     def main_estimator(self):
@@ -74,6 +76,7 @@ class _Trainable(Trainable):
         self.estimator_config = config
         self.train_accuracy = None
         self.test_accuracy = None
+        self.saved_models = []  # XGBoost specific
 
         if self.early_stopping:
             assert self._can_early_start()
