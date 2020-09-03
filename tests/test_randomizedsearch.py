@@ -4,6 +4,7 @@ from numpy.testing import assert_array_equal
 from sklearn.datasets import make_classification
 from scipy.stats import expon
 from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import SGDClassifier
 from sklearn import datasets
 from skopt.space.space import Real
@@ -11,6 +12,7 @@ from ray.tune.schedulers import MedianStoppingRule
 import unittest
 from unittest.mock import patch
 import os
+from tune_sklearn._detect_xgboost import has_xgboost
 
 
 class RandomizedSearchTest(unittest.TestCase):
@@ -205,6 +207,42 @@ class RandomizedSearchTest(unittest.TestCase):
                 early_stopping=True,
                 max_iters=10,
                 local_dir="./test-result")
+
+    def test_warn_reduce_maxiters(self):
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        from sklearn.ensemble import RandomForestClassifier
+        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        with self.assertWarnsRegex(UserWarning, "max_iters is set"):
+            TuneSearchCV(
+                clf, parameter_grid, max_iters=10, local_dir="./test-result")
+        with self.assertWarnsRegex(UserWarning, "max_iters is set"):
+            TuneSearchCV(
+                SGDClassifier(),
+                parameter_grid,
+                max_iters=10,
+                local_dir="./test-result")
+
+    def test_warn_early_stop(self):
+        with self.assertWarnsRegex(UserWarning, "max_iters = 1"):
+            TuneSearchCV(
+                LogisticRegression(), {"C": [1, 2]}, early_stopping=True)
+        with self.assertWarnsRegex(UserWarning, "max_iters = 1"):
+            TuneSearchCV(
+                SGDClassifier(), {"epsilon": [0.1, 0.2]}, early_stopping=True)
+
+    @unittest.skipIf(not has_xgboost(), "xgboost not installed")
+    def test_early_stop_xgboost_warn(self):
+        from xgboost.sklearn import XGBClassifier
+        with self.assertWarnsRegex(UserWarning, "github.com"):
+            TuneSearchCV(
+                XGBClassifier(), {"C": [1, 2]},
+                early_stopping=True,
+                max_iters=10)
+        with self.assertWarnsRegex(UserWarning, "max_iters"):
+            TuneSearchCV(
+                XGBClassifier(), {"C": [1, 2]},
+                early_stopping=True,
+                max_iters=1)
 
 
 if __name__ == "__main__":

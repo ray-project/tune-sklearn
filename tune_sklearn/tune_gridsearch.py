@@ -108,7 +108,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             be stored. Defaults to "~/ray_results"
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled.
-            This parameter is used for early stopping. Defaults to 10.
+            This parameter is used for early stopping. Defaults to 1.
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.
@@ -127,7 +127,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  error_score="raise",
                  return_train_score=False,
                  local_dir="~/ray_results",
-                 max_iters=10,
+                 max_iters=1,
                  use_gpu=False):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
@@ -208,7 +208,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 fail_fast=True,
-                checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
                 local_dir=os.path.expanduser(self.local_dir))
         else:
@@ -220,7 +219,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 stop={"training_iteration": self.max_iters},
                 config=config,
                 fail_fast=True,
-                checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
                 local_dir=os.path.expanduser(self.local_dir))
 

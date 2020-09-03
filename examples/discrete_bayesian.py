@@ -16,8 +16,7 @@ tune_search = TuneSearchCV(
     space,
     n_jobs=3,
     search_optimization="hyperopt",
-    n_trials=3,
-    max_iters=10)
+    n_trials=3)
 tune_search.fit(X_train, y_train)
 
 print(tune_search.cv_results_)

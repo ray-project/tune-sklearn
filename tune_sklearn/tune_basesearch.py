@@ -9,7 +9,7 @@ https://dask.org
 https://optuna.org
     -- Anthony Yu and Michael Chau
 """
-
+import logging
 from collections import defaultdict
 from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
@@ -29,6 +29,11 @@ from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
 import os
+
+from tune_sklearn._detect_xgboost import is_xgboost_model
+from tune_sklearn.utils import check_warm_start, check_partial_fit
+
+logger = logging.getLogger(__name__)
 
 
 def resolve_early_stopping(early_stopping, max_iters):
@@ -243,34 +248,54 @@ class TuneBaseSearchCV(BaseEstimator):
                  error_score="raise",
                  return_train_score=False,
                  local_dir="~/ray_results",
-                 max_iters=None,
+                 max_iters=1,
                  use_gpu=False):
-
+        if max_iters < 1:
+            raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
 
-        if not self._can_early_stop() and max_iters is not None:
-            warnings.warn("max_iters is set but incremental/partial training "
-                          "is not enabled. To enable partial training, "
-                          "ensure the estimator has `partial_fit` or "
-                          "`warm_start`. Automatically setting max_iters=1.")
+        if not self._can_early_stop():
+            if early_stopping:
+                raise ValueError("Early stopping is not supported because "
+                                 "the estimator does not have `partial_fit`, "
+                                 "does not support warm_start, or is a "
+                                 "tree or ensemble classifier. Set "
+                                 "`early_stopping=False`.")
+        if not early_stopping and max_iters > 1:
+            warnings.warn(
+                "max_iters is set > 1 but incremental/partial training "
+                "is not enabled. To enable partial training, "
+                "ensure the estimator has `partial_fit` or "
+                "`warm_start` and set `early_stopping=True`. "
+                "Automatically setting max_iters=1.",
+                category=UserWarning)
             max_iters = 1
-        self.max_iters = max_iters
 
         if early_stopping:
-            if not self._can_early_stop():
-                raise ValueError("Early stopping is not supported because "
-                                 "the estimator does not have `partial_fit` "
-                                 ", does not support warm_start, or is a "
-                                 "tree or ensemble classifier.")
-            elif early_stopping is True:
+            assert self._can_early_stop()
+            if max_iters == 1:
+                warnings.warn(
+                    "early_stopping is enabled but max_iters = 1. "
+                    "To enable partial training, set max_iters > 1.",
+                    category=UserWarning)
+            if is_xgboost_model(self.estimator):
+                warnings.warn(
+                    "tune-sklearn implements incremental learning "
+                    "for xgboost models following this: "
+                    "https://github.com/dmlc/xgboost/issues/1686. "
+                    "This may negatively impact performance. To "
+                    "disable, set `early_stopping=False`.",
+                    category=UserWarning)
+            if early_stopping is True:
                 # Override the early_stopping variable so
                 # that it is resolved appropriately in
                 # the next block
                 early_stopping = "AsyncHyperBandScheduler"
             # Resolve the early stopping object
-            early_stopping = resolve_early_stopping(early_stopping,
-                                                    self.max_iters)
+            early_stopping = resolve_early_stopping(early_stopping, max_iters)
+
         self.early_stopping = early_stopping
+        self.max_iters = max_iters
 
         self.cv = cv
         self.scoring = scoring
@@ -333,8 +358,10 @@ class TuneBaseSearchCV(BaseEstimator):
         if self.n_jobs < 0:
             resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
             if self.n_jobs < -1:
-                warnings.warn("`self.n_jobs` is automatically set "
-                              "-1 for any negative values.")
+                warnings.warn(
+                    "`self.n_jobs` is automatically set "
+                    "-1 for any negative values.",
+                    category=UserWarning)
         else:
             available_cpus = multiprocessing.cpu_count()
             if ray.is_initialized():
@@ -427,8 +454,8 @@ class TuneBaseSearchCV(BaseEstimator):
                         # log_to_driver=self.verbose == 2
                     )
                     if self.verbose != 2:
-                        warnings.warn("Hiding process output by default. "
-                                      "To show process output, set verbose=2.")
+                        logger.info("TIP: Hiding process output by default. "
+                                    "To show process output, set verbose=2.")
 
             result = self._fit(X, y, groups, **fit_params)
 
@@ -478,22 +505,11 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
 
-        from sklearn.tree import BaseDecisionTree
-        from sklearn.ensemble import BaseEnsemble
+        can_partial_fit = check_partial_fit(self.estimator)
+        can_warm_start = check_warm_start(self.estimator)
+        is_gbm = is_xgboost_model(self.estimator)
 
-        can_partial_fit = callable(
-            getattr(self.estimator, "partial_fit", None))
-        is_not_tree_subclass = not issubclass(
-            type(self.estimator), BaseDecisionTree)
-        is_not_ensemble_subclass = not issubclass(
-            type(self.estimator), BaseEnsemble)
-
-        can_warm_start = (hasattr(self.estimator, "warm_start")
-                          and hasattr(self.estimator, "max_iter")
-                          and is_not_ensemble_subclass
-                          and is_not_tree_subclass)
-
-        return can_partial_fit or can_warm_start
+        return can_partial_fit or can_warm_start or is_gbm
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.

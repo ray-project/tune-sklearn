@@ -214,7 +214,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             However computing the scores on the training set can be
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
-        local_dir (str): A string that defines where checkpoints will
+        local_dir (str): A string that defines where checkpoints and logs will
             be stored. Defaults to "~/ray_results"
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_trials``).
@@ -236,8 +236,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             All types of search aside from Randomized search require parent
             libraries to be installed.
         use_gpu (bool): Indicates whether to use gpu for fitting.
-            Defaults to False. If True, training will use 1 gpu
-            for `resources_per_trial`.
+            Defaults to False. If True, training will start processes
+            with the proper CUDA VISIBLE DEVICE settings set.
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
@@ -259,11 +259,10 @@ class TuneSearchCV(TuneBaseSearchCV):
                  error_score=np.nan,
                  return_train_score=False,
                  local_dir="~/ray_results",
-                 max_iters=10,
+                 max_iters=1,
                  search_optimization="random",
                  use_gpu=False,
                  **search_kwargs):
-
         search_optimization = search_optimization.lower()
         available_optimizations = [
             "random",
@@ -494,7 +493,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from skopt import Optimizer  # noqa: F401
                 from ray.tune.suggest.skopt import SkOptSearch  # noqa: F401
             except ImportError:
-                logger.exception()
                 raise ImportError(
                     "It appears that scikit-optimize is not installed. "
                     "Do: pip install scikit-optimize") from None
@@ -504,7 +502,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.schedulers import HyperBandForBOHB  # noqa: F401
                 import ConfigSpace as CS  # noqa: F401
             except ImportError:
-                logger.exception()
                 raise ImportError(
                     "It appears that either HpBandSter or ConfigSpace "
                     "is not installed. "
@@ -514,7 +511,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.suggest.hyperopt import HyperOptSearch  # noqa: F401,E501
                 from hyperopt import hp  # noqa: F401
             except ImportError:
-                logger.exception()
                 raise ImportError("It appears that hyperopt is not installed. "
                                   "Do: pip install hyperopt") from None
         elif search_optimization == "optuna":
@@ -522,7 +518,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.suggest.optuna import OptunaSearch, param  # noqa: F401,E501
                 import optuna  # noqa: F401
             except ImportError:
-                logger.exception()
                 raise ImportError("It appears that optuna is not installed. "
                                   "Do: pip install optuna") from None
 
@@ -565,7 +560,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 num_samples=self.num_samples,
                 config=config,
                 fail_fast=True,
-                checkpoint_at_end=True,
                 resources_per_trial=resources_per_trial,
                 local_dir=os.path.expanduser(self.local_dir))
 
@@ -627,7 +621,6 @@ class TuneSearchCV(TuneBaseSearchCV):
             num_samples=self.num_samples,
             config=config,
             fail_fast=True,
-            checkpoint_at_end=True,
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir))
 
