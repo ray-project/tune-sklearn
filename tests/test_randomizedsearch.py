@@ -159,13 +159,8 @@ class RandomizedSearchTest(unittest.TestCase):
 
         p = tune_search.cv_results_["params"]
         scores = tune_search.cv_results_["mean_test_accuracy"]
-        cv_best_params = [
-            params for _, params in sorted(
-                zip(scores, p),
-                key=lambda pair: pair[0],
-            )
-        ]
-        self.assertEqual(tune_search.best_params_, cv_best_params[-1])
+        cv_best_param = max(list(zip(scores, p)), key=lambda pair: pair[0])[1]
+        self.assertEqual(tune_search.best_params_, cv_best_param)
 
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}

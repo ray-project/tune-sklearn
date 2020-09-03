@@ -5,7 +5,6 @@ import ray
 from ray.tune import Trainable
 from sklearn.base import clone
 from sklearn.model_selection import cross_validate
-from sklearn.model_selection._validation import _aggregate_score_dicts
 from sklearn.utils.metaestimators import _safe_split
 import numpy as np
 import os
@@ -14,7 +13,7 @@ import ray.cloudpickle as cpickle
 import warnings
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import check_warm_start, check_partial_fit
+from tune_sklearn.utils import check_warm_start, check_partial_fit, _aggregate_score_dicts
 
 
 class _Trainable(Trainable):

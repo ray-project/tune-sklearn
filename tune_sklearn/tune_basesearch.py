@@ -15,7 +15,6 @@ from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import check_cv
-from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.base import is_classifier
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
@@ -31,7 +30,7 @@ import multiprocessing
 import os
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import check_warm_start, check_partial_fit
+from tune_sklearn.utils import check_warm_start, check_partial_fit, _check_multimetric_scoring
 
 logger = logging.getLogger(__name__)
 

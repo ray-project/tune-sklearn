@@ -146,7 +146,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         n_trials (int): Number of parameter settings that are sampled.
             n_trials trades off runtime vs quality of the solution.
             Defaults to 10.
-        scoring (str, list/tuple, dict, or None): A single
+        scoring (str, callable, list/tuple, dict, or None): A single
             string or a callable to evaluate the predictions on the test set.
             See https://scikit-learn.org/stable/modules/model_evaluation.html
             #scoring-parameter for all options.

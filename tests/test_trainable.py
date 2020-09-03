@@ -5,10 +5,10 @@ from tune_sklearn._detect_xgboost import has_xgboost
 
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.model_selection import check_cv
 from sklearn.svm import SVC
 
+from tune_sklearn.utils import _check_multimetric_scoring
 
 def create_xgboost():
     from xgboost.sklearn import XGBClassifier
