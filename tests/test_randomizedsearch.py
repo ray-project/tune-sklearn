@@ -136,6 +136,32 @@ class RandomizedSearchTest(unittest.TestCase):
             tune_search.fit(x, y)
         self.assertTrue(wrapped_init.call_args[1]["local_mode"])
 
+    def test_multi_best(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+
+        parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
+
+        scoring = ("accuracy", "f1_micro")
+
+        tune_search = TuneSearchCV(
+            SGDClassifier(),
+            parameter_grid,
+            scoring=scoring,
+            max_iters=20,
+            refit="accuracy")
+        tune_search.fit(x, y)
+        self.assertAlmostEqual(
+            tune_search.best_score_,
+            max(tune_search.cv_results_["mean_test_accuracy"]),
+            places=10)
+
+        p = tune_search.cv_results_["params"]
+        scores = tune_search.cv_results_["mean_test_accuracy"]
+        cv_best_param = max(list(zip(scores, p)), key=lambda pair: pair[0])[1]
+        self.assertEqual(tune_search.best_params_, cv_best_param)
+
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
         from sklearn.ensemble import RandomForestClassifier

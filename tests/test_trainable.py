@@ -5,9 +5,10 @@ from tune_sklearn._detect_xgboost import has_xgboost
 
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.metrics import check_scoring
 from sklearn.model_selection import check_cv
 from sklearn.svm import SVC
+
+from tune_sklearn.utils import _check_multimetric_scoring
 
 
 def create_xgboost():
@@ -49,7 +50,8 @@ class TrainableTest(unittest.TestCase):
         config["groups"] = None
         config["cv"] = cv
         config["fit_params"] = None
-        config["scoring"] = check_scoring(estimator_list[0], scoring=None)
+        config["scoring"], _ = _check_multimetric_scoring(
+            estimator_list[0], scoring=None)
         config["return_train_score"] = False
         config["n_jobs"] = 1
         return config

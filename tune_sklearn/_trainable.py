@@ -13,7 +13,8 @@ import ray.cloudpickle as cpickle
 import warnings
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import check_warm_start, check_partial_fit
+from tune_sklearn.utils import (check_warm_start, check_partial_fit,
+                                _aggregate_score_dicts)
 
 
 class _Trainable(Trainable):
@@ -81,8 +82,8 @@ class _Trainable(Trainable):
         if self.early_stopping:
             assert self._can_early_start()
             n_splits = self.cv.get_n_splits(self.X, self.y)
-            self.fold_scores = np.zeros(n_splits)
-            self.fold_train_scores = np.zeros(n_splits)
+            self.fold_scores = np.empty(n_splits, dtype=dict)
+            self.fold_train_scores = np.empty(n_splits, dtype=dict)
             if not self._can_partial_fit() and self._can_warm_start():
                 # max_iter here is different than the max_iters the user sets.
                 # max_iter is to make sklearn only fit for one epoch,
@@ -148,28 +149,37 @@ class _Trainable(Trainable):
                         "xgb model, supports partial fit, or warm-startable.")
 
                 if self.return_train_score:
-                    self.fold_train_scores[i] = self.scoring(
-                        self.estimator_list[i], X_train, y_train)
-                self.fold_scores[i] = self.scoring(self.estimator_list[i],
-                                                   X_test, y_test)
+                    self.fold_train_scores[i] = {
+                        name: score(self.estimator_list[i], X_train, y_train)
+                        for name, score in self.scoring.items()
+                    }
+                self.fold_scores[i] = {
+                    name: score(self.estimator_list[i], X_test, y_test)
+                    for name, score in self.scoring.items()
+                }
 
             ret = {}
-            total = 0
-            for i, score in enumerate(self.fold_scores):
-                total += score
-                key_str = f"split{i}_test_score"
-                ret[key_str] = score
-            self.mean_score = total / len(self.fold_scores)
-            ret["average_test_score"] = self.mean_score
+            agg_fold_scores = _aggregate_score_dicts(self.fold_scores)
+            for name, scores in agg_fold_scores.items():
+                total = 0
+                for i, score in enumerate(scores):
+                    total += score
+                    key_str = f"split{i}_test_%s" % name
+                    ret[key_str] = score
+                self.mean_score = total / len(scores)
+                ret["average_test_%s" % name] = self.mean_score
 
             if self.return_train_score:
-                total = 0
-                for i, score in enumerate(self.fold_train_scores):
-                    total += score
-                    key_str = f"split{i}_train_score"
-                    ret[key_str] = score
-                self.mean_train_score = total / len(self.fold_train_scores)
-                ret["average_train_score"] = self.mean_train_score
+                agg_fold_train_scores = _aggregate_score_dicts(
+                    self.fold_train_scores)
+                for name, scores in agg_fold_train_scores.items():
+                    total = 0
+                    for i, score in enumerate(scores):
+                        total += score
+                        key_str = f"split{i}_train_%s" % name
+                        ret[key_str] = score
+                    self.mean_train_score = total / len(scores)
+                    ret["average_train_%s" % name] = self.mean_train_score
 
             return ret
         else:
@@ -201,20 +211,22 @@ class _Trainable(Trainable):
                 )
 
             ret = {}
-            for i, score in enumerate(scores["test_score"]):
-                key_str = f"split{i}_test_score"
-                ret[key_str] = score
-            self.test_accuracy = sum(scores["test_score"]) / len(
-                scores["test_score"])
-            ret["average_test_score"] = self.test_accuracy
+            for name in self.scoring:
+                for i, score in enumerate(scores["test_%s" % name]):
+                    key_str = f"split{i}_test_%s" % name
+                    ret[key_str] = score
+                self.test_accuracy = sum(scores["test_%s" % name]) / len(
+                    scores["test_%s" % name])
+                ret["average_test_%s" % name] = self.test_accuracy
 
             if self.return_train_score:
-                for i, score in enumerate(scores["train_score"]):
-                    key_str = f"split{i}_train_score"
-                    ret[key_str] = score
-                self.train_accuracy = sum(scores["train_score"]) / len(
-                    scores["train_score"])
-                ret["average_train_score"] = self.train_accuracy
+                for name in self.scoring:
+                    for i, score in enumerate(scores["train_%s" % name]):
+                        key_str = f"split{i}_train_%s" % name
+                        ret[key_str] = score
+                    self.train_accuracy = sum(scores["train_%s" % name]) / len(
+                        scores["train_%s" % name])
+                    ret["average_train_%s" % name] = self.train_accuracy
 
             return ret
 

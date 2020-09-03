@@ -15,7 +15,6 @@ from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import check_cv
-from sklearn.metrics import check_scoring
 from sklearn.base import is_classifier
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
@@ -31,7 +30,8 @@ import multiprocessing
 import os
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import check_warm_start, check_partial_fit
+from tune_sklearn.utils import (check_warm_start, check_partial_fit,
+                                _check_multimetric_scoring)
 
 logger = logging.getLogger(__name__)
 
@@ -225,6 +225,17 @@ class TuneBaseSearchCV(BaseEstimator):
         else:
             check_is_fitted(self)
 
+    def _is_multimetric(self, scoring):
+        """Helper method to see if multimetric scoring is
+        being used
+
+        Args:
+            scoring (str, callable, list, tuple, or dict):
+                the scoring being used
+        """
+
+        return isinstance(scoring, (list, tuple, dict))
+
     def __init__(self,
                  estimator,
                  early_stopping=None,
@@ -326,7 +337,20 @@ class TuneBaseSearchCV(BaseEstimator):
         classifier = is_classifier(self.estimator)
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
-        self.scoring = check_scoring(self.estimator, scoring=self.scoring)
+        if not hasattr(self, "is_multi"):
+            self.scoring, self.is_multi = _check_multimetric_scoring(
+                self.estimator, self.scoring)
+        else:
+            self.scoring, _ = _check_multimetric_scoring(
+                self.estimator, self.scoring)
+
+        if self.is_multi:
+            if self.refit and (not isinstance(self.refit, str)
+                               or self.refit not in self.scoring):
+                raise ValueError("When using multimetric scoring, refit "
+                                 "must be the name of the scorer used to "
+                                 "pick the best parameters. If not needed, "
+                                 "set refit to False")
 
         assert isinstance(
             self.n_jobs,
@@ -370,17 +394,29 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
+        if self.is_multi:
+            scoring_name = self.refit
+        else:
+            scoring_name = "score"
+
         if self.refit:
             best_config = analysis.get_best_config(
-                metric="average_test_score", mode="max")
+                metric="average_test_%s" % scoring_name,
+                mode="max",
+                scope="last")
             self.best_params = self._clean_config_dict(best_config)
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
 
-            df = analysis.dataframe(metric="average_test_score", mode="max")
-            self.best_score = df["average_test_score"].iloc[df[
-                "average_test_score"].idxmax()]
+            best_finished_trial_id = analysis.get_best_trial(
+                metric="average_test_%s" % scoring_name,
+                mode="max",
+                scope="last").trial_id
+            df = analysis.dataframe()
+            self.best_score = float(
+                df.loc[df["trial_id"] == best_finished_trial_id][
+                    "average_test_%s" % scoring_name])
 
             return self
 
@@ -456,7 +492,12 @@ class TuneBaseSearchCV(BaseEstimator):
             float: computed score
 
         """
-        return self.scoring(self.best_estimator_, X, y)
+        self._check_is_fitted("score")
+        if self.is_multi:
+            scorer_name = self.refit
+        else:
+            scorer_name = "score"
+        return self.scoring[scorer_name](self.best_estimator_, X, y)
 
     def _can_early_stop(self):
         """Helper method to determine if it is possible to do early stopping.
@@ -544,21 +585,24 @@ class TuneBaseSearchCV(BaseEstimator):
         """
         dfs = list(out.fetch_trial_dataframes().values())
         finished = [df.iloc[[-1]] for df in dfs]
-        test_scores = [
-            df[[
-                col for col in dfs[0].columns
-                if "split" in col and "test_score" in col
-            ]].to_numpy() for df in finished
-        ]
-        if self.return_train_score:
-            train_scores = [
+        test_scores = {}
+        train_scores = {}
+        for name in self.scoring:
+            test_scores[name] = [
                 df[[
                     col for col in dfs[0].columns
-                    if "split" in col and "train_score" in col
+                    if "split" in col and "test_%s" % name in col
                 ]].to_numpy() for df in finished
             ]
-        else:
-            train_scores = None
+            if self.return_train_score:
+                train_scores[name] = [
+                    df[[
+                        col for col in dfs[0].columns
+                        if "split" in col and "train_%s" % name in col
+                    ]].to_numpy() for df in finished
+                ]
+            else:
+                train_scores = None
 
         configs = out.get_all_configs()
         candidate_params = [
@@ -602,25 +646,27 @@ class TuneBaseSearchCV(BaseEstimator):
                 results["rank_%s" % key_name] = np.asarray(
                     rankdata(-array_means, method="min"), dtype=np.int32)
 
-        _store(
-            results,
-            "test_score",
-            test_scores,
-            n_splits,
-            n_candidates,
-            splits=True,
-            rank=True,
-        )
-        if self.return_train_score:
+        for name in self.scoring:
             _store(
                 results,
-                "train_score",
-                train_scores,
+                "test_%s" % name,
+                test_scores[name],
                 n_splits,
                 n_candidates,
                 splits=True,
                 rank=True,
             )
+        if self.return_train_score:
+            for name in self.scoring:
+                _store(
+                    results,
+                    "train_%s" % name,
+                    train_scores[name],
+                    n_splits,
+                    n_candidates,
+                    splits=True,
+                    rank=True,
+                )
 
         results["time_total_s"] = np.array(
             [df["time_total_s"].to_numpy() for df in finished]).flatten()
