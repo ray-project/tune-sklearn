@@ -163,7 +163,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 key=lambda pair: pair[0],
             )
         ]
-        self.assertEqual(tune_search.best_params_, cv_best_params[-1])
+        self.assertAlmostEqual(tune_search.best_params_, cv_best_params[-1], places=10)
 
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
