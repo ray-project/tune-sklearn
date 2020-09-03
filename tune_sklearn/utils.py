@@ -1,5 +1,6 @@
 from sklearn.metrics import check_scoring
 
+
 def check_partial_fit(estimator):
     return callable(getattr(estimator, "partial_fit", None))
 
@@ -14,9 +15,10 @@ def check_warm_start(estimator):
             and hasattr(estimator, "max_iter") and is_not_ensemble_subclass
             and is_not_tree_subclass)
 
+
 def _aggregate_score_dicts(scores):
     """Aggregate the list of dict to dict of np ndarray
-    The aggregated output of _aggregate_score_dicts will be a list of dict
+    The aggregated output of _fit_and_score will be a list of dict
     of form [{'prec': 0.1, 'acc':1.0}, {'prec': 0.1, 'acc':1.0}, ...]
     Convert it to a dict of array {'prec': np.array([0.1 ...]), ...}
     Parameters
@@ -34,10 +36,9 @@ def _aggregate_score_dicts(scores):
     """
     return {
         key: np.asarray([score[key] for score in scores])
-        if isinstance(scores[0][key], numbers.Number)
-        else [score[key] for score in scores]
         for key in scores[0]
     }
+
 
 def _check_multimetric_scoring(estimator, scoring=None):
     """Check the scoring parameter in cases when multiple metrics are allowed
@@ -66,17 +67,16 @@ def _check_multimetric_scoring(estimator, scoring=None):
         True if scorer is a list/tuple or dict of callables
         False if scorer is None/str/callable
     """
-    if callable(scoring) or scoring is None or isinstance(scoring,
-                                                          str):
+    if callable(scoring) or scoring is None or isinstance(scoring, str):
         scorers = {"score": check_scoring(estimator, scoring=scoring)}
         return scorers, False
     else:
-        err_msg_generic = ("scoring should either be a single string or "
-                           "callable for single metric evaluation or a "
-                           "list/tuple of strings or a dict of scorer name "
-                           "mapped to the callable for multiple metric "
-                           "evaluation. Got %s of type %s"
-                           % (repr(scoring), type(scoring)))
+        err_msg_generic = (
+            "scoring should either be a single string or "
+            "callable for single metric evaluation or a "
+            "list/tuple of strings or a dict of scorer name "
+            "mapped to the callable for multiple metric "
+            "evaluation. Got %s of type %s" % (repr(scoring), type(scoring)))
 
         if isinstance(scoring, (list, tuple, set)):
             err_msg = ("The list/tuple elements must be unique "
@@ -101,12 +101,13 @@ def _check_multimetric_scoring(estimator, scoring=None):
                                          "mapped to the scorer callable. "
                                          "Got %r" % repr(scoring))
                     else:
-                        raise ValueError(err_msg +
-                                         "Non-string types were found in "
-                                         "the given list. Got %r"
-                                         % repr(scoring))
-                scorers = {scorer: check_scoring(estimator, scoring=scorer)
-                           for scorer in scoring}
+                        raise ValueError(
+                            err_msg + "Non-string types were found in "
+                            "the given list. Got %r" % repr(scoring))
+                scorers = {
+                    scorer: check_scoring(estimator, scoring=scorer)
+                    for scorer in scoring
+                }
             else:
                 raise ValueError(err_msg +
                                  "Empty list was given. %r" % repr(scoring))
@@ -117,11 +118,12 @@ def _check_multimetric_scoring(estimator, scoring=None):
                 raise ValueError("Non-string types were found in the keys of "
                                  "the given dict. scoring=%r" % repr(scoring))
             if len(keys) == 0:
-                raise ValueError("An empty dict was passed. %r"
-                                 % repr(scoring))
-            scorers = {key: check_scoring(estimator, scoring=scorer)
-                       for key, scorer in scoring.items()}
+                raise ValueError(
+                    "An empty dict was passed. %r" % repr(scoring))
+            scorers = {
+                key: check_scoring(estimator, scoring=scorer)
+                for key, scorer in scoring.items()
+            }
         else:
             raise ValueError(err_msg_generic)
         return scorers, True
-
