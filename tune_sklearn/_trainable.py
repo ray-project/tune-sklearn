@@ -13,7 +13,8 @@ import ray.cloudpickle as cpickle
 import warnings
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import check_warm_start, check_partial_fit, _aggregate_score_dicts
+from tune_sklearn.utils import (check_warm_start, check_partial_fit,
+                                _aggregate_score_dicts)
 
 
 class _Trainable(Trainable):

@@ -30,7 +30,8 @@ import multiprocessing
 import os
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import check_warm_start, check_partial_fit, _check_multimetric_scoring
+from tune_sklearn.utils import (check_warm_start, check_partial_fit,
+                                _check_multimetric_scoring)
 
 logger = logging.getLogger(__name__)
 

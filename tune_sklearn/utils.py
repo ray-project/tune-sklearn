@@ -1,4 +1,5 @@
 from sklearn.metrics import check_scoring
+import numpy as np
 
 
 def check_partial_fit(estimator):
