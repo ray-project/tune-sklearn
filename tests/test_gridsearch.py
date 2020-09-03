@@ -562,17 +562,27 @@ class GridSearchTest(unittest.TestCase):
         # Check that multimetric is detected
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
 
-        tune_search = TuneGridSearchCV(SGDClassifier(), parameter_grid, scoring=("accuracy", "f1_micro"), max_iters=20, refit=False)
+        tune_search = TuneGridSearchCV(
+            SGDClassifier(),
+            parameter_grid,
+            scoring=("accuracy", "f1_micro"),
+            max_iters=20,
+            refit=False)
         tune_search.fit(X, y)
         self.assertTrue(tune_search.is_multi)
 
-        tune_search = TuneGridSearchCV(SGDClassifier(), parameter_grid, scoring="f1_micro", max_iters=20)
+        tune_search = TuneGridSearchCV(
+            SGDClassifier(), parameter_grid, scoring="f1_micro", max_iters=20)
         tune_search.fit(X, y)
         self.assertFalse(tune_search.is_multi)
 
         # Make sure error is raised when refit isn't set properly
         with self.assertRaises(ValueError):
-            tune_search = TuneGridSearchCV(SGDClassifier(), parameter_grid, scoring=("accuracy", "f1_micro"), max_iters=20)
+            tune_search = TuneGridSearchCV(
+                SGDClassifier(),
+                parameter_grid,
+                scoring=("accuracy", "f1_micro"),
+                max_iters=20)
 
     def test_gridsearch_multi_cv_results(self):
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
@@ -580,7 +590,13 @@ class GridSearchTest(unittest.TestCase):
         scoring = ("accuracy", "f1_micro")
         cv = 2
 
-        tune_search = TuneGridSearchCV(SGDClassifier(), parameter_grid, scoring=scoring, max_iters=20, refit=False, cv=cv)
+        tune_search = TuneGridSearchCV(
+            SGDClassifier(),
+            parameter_grid,
+            scoring=scoring,
+            max_iters=20,
+            refit=False,
+            cv=cv)
         tune_search.fit(X, y)
         result = tune_search.cv_results_
 
@@ -591,7 +607,6 @@ class GridSearchTest(unittest.TestCase):
             for i in range(cv):
                 keys_to_check.append("split%d_test_%s" % (i, s))
 
-
         for key in keys_to_check:
             self.assertIn(key, result)
 
@@ -600,7 +615,8 @@ class GridSearchTest(unittest.TestCase):
 
         cv = 2
 
-        tune_search = TuneGridSearchCV(SGDClassifier(), parameter_grid, max_iters=20, refit=False, cv=cv)
+        tune_search = TuneGridSearchCV(
+            SGDClassifier(), parameter_grid, max_iters=20, refit=False, cv=cv)
         tune_search.fit(X, y)
         result = tune_search.cv_results_
 
@@ -611,8 +627,6 @@ class GridSearchTest(unittest.TestCase):
 
         for key in keys_to_check:
             self.assertIn(key, result)
-
-
 
     def test_digits(self):
         # Loading the Digits dataset

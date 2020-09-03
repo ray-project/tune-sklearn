@@ -145,13 +145,24 @@ class RandomizedSearchTest(unittest.TestCase):
 
         scoring = ("accuracy", "f1_micro")
 
-        tune_search = TuneSearchCV(SGDClassifier(), parameter_grid, scoring=scoring, max_iters=20, refit="accuracy")
+        tune_search = TuneSearchCV(
+            SGDClassifier(),
+            parameter_grid,
+            scoring=scoring,
+            max_iters=20,
+            refit="accuracy")
         tune_search.fit(x, y)
-        self.assertEqual(tune_search.best_score_, max(tune_search.cv_results_["mean_test_accuracy"]))
+        self.assertEqual(tune_search.best_score_,
+                         max(tune_search.cv_results_["mean_test_accuracy"]))
 
         p = tune_search.cv_results_["params"]
         scores = tune_search.cv_results_["mean_test_accuracy"]
-        cv_best_params = [params for _, params in sorted(zip(scores, p), key=lambda pair: pair[0], )]
+        cv_best_params = [
+            params for _, params in sorted(
+                zip(scores, p),
+                key=lambda pair: pair[0],
+            )
+        ]
         self.assertEqual(tune_search.best_params_, cv_best_params[-1])
 
     def test_warm_start_detection(self):

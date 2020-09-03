@@ -401,16 +401,22 @@ class TuneBaseSearchCV(BaseEstimator):
 
         if self.refit:
             best_config = analysis.get_best_config(
-                metric="average_test_%s" % scoring_name, mode="max", scope="last")
+                metric="average_test_%s" % scoring_name,
+                mode="max",
+                scope="last")
             self.best_params = self._clean_config_dict(best_config)
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
 
             best_finished_trial_id = analysis.get_best_trial(
-                metric="average_test_%s" % scoring_name, mode="max", scope="last").trial_id
+                metric="average_test_%s" % scoring_name,
+                mode="max",
+                scope="last").trial_id
             df = analysis.dataframe()
-            self.best_score = float(df.loc[df["trial_id"] == best_finished_trial_id]["average_test_%s" % scoring_name])
+            self.best_score = float(
+                df.loc[df["trial_id"] == best_finished_trial_id][
+                    "average_test_%s" % scoring_name])
 
             return self
 
@@ -578,7 +584,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
         dfs = list(out.fetch_trial_dataframes().values())
-        finished = [df[df["done"]] for df in dfs]
+        finished = [df.iloc[[-1]] for df in dfs]
         test_scores = {}
         train_scores = {}
         for name in self.scoring:
@@ -619,7 +625,6 @@ class TuneBaseSearchCV(BaseEstimator):
         ):
             """A small helper to store the scores/times to the cv_results_"""
             # When iterated first by n_splits and then by parameters
-            print(array)
             array = np.array(
                 array, dtype=np.float64).reshape((n_candidates, n_splits))
             if splits:
