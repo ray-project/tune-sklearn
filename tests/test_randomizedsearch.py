@@ -152,8 +152,10 @@ class RandomizedSearchTest(unittest.TestCase):
             max_iters=20,
             refit="accuracy")
         tune_search.fit(x, y)
-        self.assertEqual(tune_search.best_score_,
-                         max(tune_search.cv_results_["mean_test_accuracy"]))
+        self.assertAlmostEqual(
+            tune_search.best_score_,
+            max(tune_search.cv_results_["mean_test_accuracy"]),
+            places=10)
 
         p = tune_search.cv_results_["params"]
         scores = tune_search.cv_results_["mean_test_accuracy"]
@@ -163,7 +165,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 key=lambda pair: pair[0],
             )
         ]
-        self.assertAlmostEqual(tune_search.best_params_, cv_best_params[-1], places=10)
+        self.assertEqual(tune_search.best_params_, cv_best_params[-1])
 
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
