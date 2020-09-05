@@ -13,8 +13,8 @@ import ray.cloudpickle as cpickle
 import warnings
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import (check_warm_start, check_partial_fit,
-                                _aggregate_score_dicts)
+from tune_sklearn.utils import (check_warm_start, check_warm_start_ensemble,
+                                check_partial_fit, _aggregate_score_dicts)
 
 
 class _Trainable(Trainable):
@@ -32,14 +32,19 @@ class _Trainable(Trainable):
     def _can_warm_start(self):
         return check_warm_start(self.main_estimator)
 
+    def _can_warm_start_ensemble(self):
+        return check_warm_start_ensemble(self.main_estimator)
+
     def _is_xgb(self):
         return is_xgboost_model(self.main_estimator)
 
     def _can_early_start(self):
-        return any(
-            [self._is_xgb(),
-             self._can_warm_start(),
-             self._can_partial_fit()])
+        return any([
+            self._is_xgb(),
+            self._can_warm_start(),
+            self._can_warm_start_ensemble(),
+            self._can_partial_fit()
+        ])
 
     @property
     def main_estimator(self):
@@ -92,6 +97,10 @@ class _Trainable(Trainable):
                 self.estimator_config["warm_start"] = True
                 self.estimator_config["max_iter"] = 1
 
+            if not self._can_partial_fit() and self._can_warm_start_ensemble():
+                self.estimator_config["warm_start"] = True
+                self.estimator_config["n_estimators"] = 0
+
             for i in range(n_splits):
                 self.estimator_list[i].set_params(**self.estimator_config)
 
@@ -142,6 +151,14 @@ class _Trainable(Trainable):
                         X_train, y_train, xgb_model=self.saved_models[i])
                     self.saved_models[i] = self.estimator_list[i].get_booster()
                 elif self._can_warm_start():
+                    self.estimator_list[i].fit(X_train, y_train)
+                elif self._can_warm_start_ensemble():
+                    # User will not be able to fine tune the n_estimators
+                    # parameter using ensemble early stopping
+                    updated_n_estimators = self.estimator_list[i].get_params(
+                    )["n_estimators"] + 1
+                    self.estimator_list[i].set_params(
+                        **{"n_estimators": updated_n_estimators})
                     self.estimator_list[i].fit(X_train, y_train)
                 else:
                     raise RuntimeError(

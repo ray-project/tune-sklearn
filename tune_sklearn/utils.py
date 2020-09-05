@@ -17,6 +17,14 @@ def check_warm_start(estimator):
             and is_not_tree_subclass)
 
 
+def check_warm_start_ensemble(estimator):
+    from sklearn.ensemble import BaseEnsemble
+    is_ensemble_subclass = issubclass(type(estimator), BaseEnsemble)
+
+    return (hasattr(estimator, "warm_start")
+            and hasattr(estimator, "n_estimators") and is_ensemble_subclass)
+
+
 def _aggregate_score_dicts(scores):
     """Aggregate the list of dict to dict of np ndarray
     The aggregated output of _fit_and_score will be a list of dict
