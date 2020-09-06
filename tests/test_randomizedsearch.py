@@ -165,7 +165,7 @@ class RandomizedSearchTest(unittest.TestCase):
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
         from sklearn.ensemble import VotingClassifier
-        clf = VotingClassifier()
+        clf = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2), ('gnb', clf3)])
         tune_search = TuneSearchCV(
             clf,
             parameter_grid,
