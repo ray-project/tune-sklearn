@@ -30,7 +30,7 @@ import multiprocessing
 import os
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import (check_warm_start, check_warm_start_ensemble,
+from tune_sklearn.utils import (check_warm_start_iter, check_warm_start_ensemble,
                                 check_partial_fit, _check_multimetric_scoring)
 
 logger = logging.getLogger(__name__)
@@ -408,6 +408,10 @@ class TuneBaseSearchCV(BaseEstimator):
             if not check_partial_fit(
                     self.estimator) and check_warm_start_ensemble(
                         self.estimator):
+                logger.info("Warm start uses `n_estimators` to warm "
+                            "start, so this parameter can't be "
+                            "set when warm start early stopping. "
+                            "`n_estimators` defaults to `max_iters`.")
                 self.best_params["n_estimators"] = self.max_iters
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params)
@@ -516,7 +520,7 @@ class TuneBaseSearchCV(BaseEstimator):
         """
 
         can_partial_fit = check_partial_fit(self.estimator)
-        can_warm_start = check_warm_start(self.estimator)
+        can_warm_start = check_warm_start_iter(self.estimator)
         can_warm_start_ensemble = check_warm_start_ensemble(self.estimator)
         is_gbm = is_xgboost_model(self.estimator)
 

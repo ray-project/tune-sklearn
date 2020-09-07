@@ -6,7 +6,7 @@ def check_partial_fit(estimator):
     return callable(getattr(estimator, "partial_fit", None))
 
 
-def check_warm_start(estimator):
+def check_warm_start_iter(estimator):
     from sklearn.tree import BaseDecisionTree
     from sklearn.ensemble import BaseEnsemble
     is_not_tree_subclass = not issubclass(type(estimator), BaseDecisionTree)

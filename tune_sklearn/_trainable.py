@@ -13,7 +13,7 @@ import ray.cloudpickle as cpickle
 import warnings
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import (check_warm_start, check_warm_start_ensemble,
+from tune_sklearn.utils import (check_warm_start_iter, check_warm_start_ensemble,
                                 check_partial_fit, _aggregate_score_dicts)
 
 
@@ -29,8 +29,8 @@ class _Trainable(Trainable):
     def _can_partial_fit(self):
         return check_partial_fit(self.main_estimator)
 
-    def _can_warm_start(self):
-        return check_warm_start(self.main_estimator)
+    def _can_warm_start_iter(self):
+        return check_warm_start_iter(self.main_estimator)
 
     def _can_warm_start_ensemble(self):
         return check_warm_start_ensemble(self.main_estimator)
@@ -41,7 +41,7 @@ class _Trainable(Trainable):
     def _can_early_start(self):
         return any([
             self._is_xgb(),
-            self._can_warm_start(),
+            self._can_warm_start_iter(),
             self._can_warm_start_ensemble(),
             self._can_partial_fit()
         ])
@@ -89,7 +89,7 @@ class _Trainable(Trainable):
             n_splits = self.cv.get_n_splits(self.X, self.y)
             self.fold_scores = np.empty(n_splits, dtype=dict)
             self.fold_train_scores = np.empty(n_splits, dtype=dict)
-            if not self._can_partial_fit() and self._can_warm_start():
+            if not self._can_partial_fit() and self._can_warm_start_iter():
                 # max_iter here is different than the max_iters the user sets.
                 # max_iter is to make sklearn only fit for one epoch,
                 # while max_iters (which the user can set) is the usual max
@@ -98,6 +98,10 @@ class _Trainable(Trainable):
                 self.estimator_config["max_iter"] = 1
 
             if not self._can_partial_fit() and self._can_warm_start_ensemble():
+                # Each additional call on a warm start ensemble only trains
+                # new estimators added to the ensemble. We start with 0
+                # and add an estimator before each call to fit in _train(),
+                # training the ensemble incrementally.
                 self.estimator_config["warm_start"] = True
                 self.estimator_config["n_estimators"] = 0
 
@@ -135,31 +139,32 @@ class _Trainable(Trainable):
         """
         if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
-                X_train, y_train = _safe_split(self.estimator_list[i], self.X,
+                estimator = self.estimator_list[i]
+                X_train, y_train = _safe_split(estimator, self.X,
                                                self.y, train)
                 X_test, y_test = _safe_split(
-                    self.estimator_list[i],
+                    estimator,
                     self.X,
                     self.y,
                     test,
                     train_indices=train)
                 if self._can_partial_fit():
-                    self.estimator_list[i].partial_fit(X_train, y_train,
+                    estimator.partial_fit(X_train, y_train,
                                                        np.unique(self.y))
                 elif self._is_xgb():
-                    self.estimator_list[i].fit(
+                    estimator.fit(
                         X_train, y_train, xgb_model=self.saved_models[i])
-                    self.saved_models[i] = self.estimator_list[i].get_booster()
-                elif self._can_warm_start():
-                    self.estimator_list[i].fit(X_train, y_train)
+                    self.saved_models[i] = estimator.get_booster()
+                elif self._can_warm_start_iter():
+                    estimator.fit(X_train, y_train)
                 elif self._can_warm_start_ensemble():
                     # User will not be able to fine tune the n_estimators
                     # parameter using ensemble early stopping
-                    updated_n_estimators = self.estimator_list[i].get_params(
+                    updated_n_estimators = estimator.get_params(
                     )["n_estimators"] + 1
-                    self.estimator_list[i].set_params(
+                    estimator.set_params(
                         **{"n_estimators": updated_n_estimators})
-                    self.estimator_list[i].fit(X_train, y_train)
+                    estimator.fit(X_train, y_train)
                 else:
                     raise RuntimeError(
                         "Early stopping set but model is not: "
@@ -167,11 +172,11 @@ class _Trainable(Trainable):
 
                 if self.return_train_score:
                     self.fold_train_scores[i] = {
-                        name: score(self.estimator_list[i], X_train, y_train)
+                        name: score(estimator, X_train, y_train)
                         for name, score in self.scoring.items()
                     }
                 self.fold_scores[i] = {
-                    name: score(self.estimator_list[i], X_test, y_test)
+                    name: score(estimator, X_test, y_test)
                     for name, score in self.scoring.items()
                 }
 
