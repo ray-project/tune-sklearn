@@ -9,13 +9,12 @@ https://dask.org
 https://optuna.org
     -- Anthony Yu and Michael Chau
 """
-
+import logging
 from collections import defaultdict
 from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import check_cv
-from sklearn.metrics import check_scoring
 from sklearn.base import is_classifier
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
@@ -29,6 +28,42 @@ from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
 import os
+
+from tune_sklearn._detect_xgboost import is_xgboost_model
+from tune_sklearn.utils import (check_warm_start, check_partial_fit,
+                                _check_multimetric_scoring)
+
+logger = logging.getLogger(__name__)
+
+
+def resolve_early_stopping(early_stopping, max_iters):
+    if isinstance(early_stopping, str):
+        if early_stopping in TuneBaseSearchCV.defined_schedulers:
+            if early_stopping == "PopulationBasedTraining":
+                return PopulationBasedTraining(
+                    metric="average_test_score", mode="max")
+            elif early_stopping == "AsyncHyperBandScheduler":
+                return AsyncHyperBandScheduler(
+                    metric="average_test_score", mode="max", max_t=max_iters)
+            elif early_stopping == "HyperBandScheduler":
+                return HyperBandScheduler(
+                    metric="average_test_score", mode="max", max_t=max_iters)
+            elif early_stopping == "MedianStoppingRule":
+                return MedianStoppingRule(
+                    metric="average_test_score", mode="max")
+            elif early_stopping == "ASHAScheduler":
+                return ASHAScheduler(
+                    metric="average_test_score", mode="max", max_t=max_iters)
+        raise ValueError("{} is not a defined scheduler. "
+                         "Check the list of available schedulers."
+                         .format(early_stopping))
+    elif isinstance(early_stopping, TrialScheduler):
+        early_stopping._metric = "average_test_score"
+        early_stopping._mode = "max"
+        return early_stopping
+    else:
+        raise TypeError("`early_stopping` must be a str, boolean, "
+                        f"or tune scheduler. Got {type(early_stopping)}.")
 
 
 class TuneBaseSearchCV(BaseEstimator):
@@ -193,6 +228,17 @@ class TuneBaseSearchCV(BaseEstimator):
         else:
             check_is_fitted(self)
 
+    def _is_multimetric(self, scoring):
+        """Helper method to see if multimetric scoring is
+        being used
+
+        Args:
+            scoring (str, callable, list, tuple, or dict):
+                the scoring being used
+        """
+
+        return isinstance(scoring, (list, tuple, dict))
+
     def __init__(self,
                  estimator,
                  early_stopping=None,
@@ -205,62 +251,58 @@ class TuneBaseSearchCV(BaseEstimator):
                  error_score="raise",
                  return_train_score=False,
                  local_dir="~/ray_results",
-                 max_iters=10,
+                 max_iters=1,
                  use_gpu=False):
-
+        if max_iters < 1:
+            raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
 
-        if early_stopping and self._can_early_stop():
-            self.max_iters = max_iters
+        if not self._can_early_stop():
+            if early_stopping:
+                raise ValueError("Early stopping is not supported because "
+                                 "the estimator does not have `partial_fit`, "
+                                 "does not support warm_start, or is a "
+                                 "tree or ensemble classifier. Set "
+                                 "`early_stopping=False`.")
+        if not early_stopping and max_iters > 1:
+            warnings.warn(
+                "max_iters is set > 1 but incremental/partial training "
+                "is not enabled. To enable partial training, "
+                "ensure the estimator has `partial_fit` or "
+                "`warm_start` and set `early_stopping=True`. "
+                "Automatically setting max_iters=1.",
+                category=UserWarning)
+            max_iters = 1
+
+        if early_stopping:
+            assert self._can_early_stop()
+            if max_iters == 1:
+                warnings.warn(
+                    "early_stopping is enabled but max_iters = 1. "
+                    "To enable partial training, set max_iters > 1.",
+                    category=UserWarning)
+            if is_xgboost_model(self.estimator):
+                warnings.warn(
+                    "tune-sklearn implements incremental learning "
+                    "for xgboost models following this: "
+                    "https://github.com/dmlc/xgboost/issues/1686. "
+                    "This may negatively impact performance. To "
+                    "disable, set `early_stopping=False`.",
+                    category=UserWarning)
             if early_stopping is True:
                 # Override the early_stopping variable so
                 # that it is resolved appropriately in
                 # the next block
                 early_stopping = "AsyncHyperBandScheduler"
             # Resolve the early stopping object
-            if isinstance(early_stopping, str):
-                if early_stopping in TuneBaseSearchCV.defined_schedulers:
-                    if early_stopping == "PopulationBasedTraining":
-                        self.early_stopping = PopulationBasedTraining(
-                            metric="average_test_score", mode="max")
-                    elif early_stopping == "AsyncHyperBandScheduler":
-                        self.early_stopping = AsyncHyperBandScheduler(
-                            metric="average_test_score", mode="max")
-                    elif early_stopping == "HyperBandScheduler":
-                        self.early_stopping = HyperBandScheduler(
-                            metric="average_test_score", mode="max")
-                    elif early_stopping == "MedianStoppingRule":
-                        self.early_stopping = MedianStoppingRule(
-                            metric="average_test_score", mode="max")
-                    elif early_stopping == "ASHAScheduler":
-                        self.early_stopping = ASHAScheduler(
-                            metric="average_test_score", mode="max")
-                else:
-                    raise ValueError("{} is not a defined scheduler. "
-                                     "Check the list of available schedulers."
-                                     .format(early_stopping))
-            elif isinstance(early_stopping, TrialScheduler):
-                self.early_stopping = early_stopping
-                self.early_stopping._metric = "average_test_score"
-                self.early_stopping._mode = "max"
-            else:
-                raise TypeError("`early_stopping` must be a str, boolean, "
-                                "or tune scheduler")
-        elif not early_stopping:
-            warnings.warn("Early stopping is not enabled. "
-                          "To enable early stopping, pass in a supported "
-                          "scheduler from Tune and ensure the estimator "
-                          "has `partial_fit`.")
+            early_stopping = resolve_early_stopping(early_stopping, max_iters)
 
-            self.max_iters = 1
-            self.early_stopping = None
-        else:
-            raise ValueError("Early stopping is not supported because "
-                             "the estimator does not have `partial_fit`")
+        self.early_stopping = early_stopping
+        self.max_iters = max_iters
 
         self.cv = cv
         self.scoring = scoring
-        self.n_jobs = n_jobs
+        self.n_jobs = int(n_jobs or -1)
         if os.environ.get("SKLEARN_N_JOBS") is not None:
             self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
         else:
@@ -271,6 +313,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.local_dir = local_dir
         self.use_gpu = use_gpu
+        assert isinstance(self.n_jobs, int)
 
     def _fit(self, X, y=None, groups=None, **fit_params):
         """Helper method to run fit procedure
@@ -297,24 +340,42 @@ class TuneBaseSearchCV(BaseEstimator):
         classifier = is_classifier(self.estimator)
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
-        self.scoring = check_scoring(self.estimator, scoring=self.scoring)
-
-        if self.n_jobs is not None:
-            if self.n_jobs < 0:
-                resources_per_trial = {
-                    "cpu": 1,
-                    "gpu": 1 if self.use_gpu else 0
-                }
-                warnings.warn("`self.n_jobs` is automatically set "
-                              "-1 for any negative values.")
-            else:
-                available_cpus = multiprocessing.cpu_count()
-                resources_per_trial = {
-                    "cpu": available_cpus / self.n_jobs,
-                    "gpu": 1 if self.use_gpu else 0
-                }
+        if not hasattr(self, "is_multi"):
+            self.scoring, self.is_multi = _check_multimetric_scoring(
+                self.estimator, self.scoring)
         else:
+            self.scoring, _ = _check_multimetric_scoring(
+                self.estimator, self.scoring)
+
+        if self.is_multi:
+            if self.refit and (not isinstance(self.refit, str)
+                               or self.refit not in self.scoring):
+                raise ValueError("When using multimetric scoring, refit "
+                                 "must be the name of the scorer used to "
+                                 "pick the best parameters. If not needed, "
+                                 "set refit to False")
+
+        assert isinstance(
+            self.n_jobs,
+            int), ("Internal error: self.n_jobs must be an integer.")
+        if self.n_jobs < 0:
             resources_per_trial = {"cpu": 1, "gpu": 1 if self.use_gpu else 0}
+            if self.n_jobs < -1:
+                warnings.warn(
+                    "`self.n_jobs` is automatically set "
+                    "-1 for any negative values.",
+                    category=UserWarning)
+        else:
+            available_cpus = multiprocessing.cpu_count()
+            if ray.is_initialized():
+                available_cpus = ray.cluster_resources()["CPU"]
+            cpu_fraction = available_cpus / self.n_jobs
+            if cpu_fraction > 1:
+                cpu_fraction = int(np.ceil(cpu_fraction))
+            resources_per_trial = {
+                "cpu": cpu_fraction,
+                "gpu": 1 if self.use_gpu else 0
+            }
 
         X_id = ray.put(X)
         y_id = ray.put(y)
@@ -336,17 +397,29 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
+        if self.is_multi:
+            scoring_name = self.refit
+        else:
+            scoring_name = "score"
+
         if self.refit:
             best_config = analysis.get_best_config(
-                metric="average_test_score", mode="max")
+                metric="average_test_%s" % scoring_name,
+                mode="max",
+                scope="last")
             self.best_params = self._clean_config_dict(best_config)
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
 
-            df = analysis.dataframe(metric="average_test_score", mode="max")
-            self.best_score = df["average_test_score"].iloc[df[
-                "average_test_score"].idxmax()]
+            best_finished_trial_id = analysis.get_best_trial(
+                metric="average_test_%s" % scoring_name,
+                mode="max",
+                scope="last").trial_id
+            df = analysis.dataframe()
+            self.best_score = float(
+                df.loc[df["trial_id"] == best_finished_trial_id][
+                    "average_test_%s" % scoring_name])
 
             return self
 
@@ -373,15 +446,25 @@ class TuneBaseSearchCV(BaseEstimator):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
+        ray_init = ray.is_initialized()
         try:
-            ray_init = ray.is_initialized()
             if not ray_init:
-                ray.init(
-                    ignore_reinit_error=True,
-                    configure_logging=False,
-                    log_to_driver=False)
-                warnings.warn("Hiding process output by default. "
-                              "To show process output, set verbose=2.")
+                if self.n_jobs == 1:
+                    ray.init(
+                        local_mode=True,
+                        configure_logging=False,
+                        ignore_reinit_error=True,
+                        include_dashboard=False)
+                else:
+                    ray.init(
+                        ignore_reinit_error=True,
+                        configure_logging=False,
+                        include_dashboard=False
+                        # log_to_driver=self.verbose == 2
+                    )
+                    if self.verbose != 2:
+                        logger.info("TIP: Hiding process output by default. "
+                                    "To show process output, set verbose=2.")
 
             result = self._fit(X, y, groups, **fit_params)
 
@@ -412,19 +495,30 @@ class TuneBaseSearchCV(BaseEstimator):
             float: computed score
 
         """
-        return self.scoring(self.best_estimator_, X, y)
+        self._check_is_fitted("score")
+        if self.is_multi:
+            scorer_name = self.refit
+        else:
+            scorer_name = "score"
+        return self.scoring[scorer_name](self.best_estimator_, X, y)
 
     def _can_early_stop(self):
         """Helper method to determine if it is possible to do early stopping.
 
-        Only sklearn estimators with partial_fit can be early stopped.
+        Only sklearn estimators with `partial_fit` or `warm_start` can be early
+        stopped. warm_start works by picking up training from the previous
+        call to `fit`.
 
         Returns:
             bool: if the estimator can early stop
 
         """
-        return (hasattr(self.estimator, "partial_fit")
-                and callable(getattr(self.estimator, "partial_fit", None)))
+
+        can_partial_fit = check_partial_fit(self.estimator)
+        can_warm_start = check_warm_start(self.estimator)
+        is_gbm = is_xgboost_model(self.estimator)
+
+        return can_partial_fit or can_warm_start or is_gbm
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -472,9 +566,9 @@ class TuneBaseSearchCV(BaseEstimator):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "estimator", "early_stopping", "X_id", "y_id", "groups", "cv",
-                "fit_params", "scoring", "max_iters", "return_train_score",
-                "n_jobs"
+                "estimator_list", "early_stopping", "X_id", "y_id", "groups",
+                "cv", "fit_params", "scoring", "max_iters",
+                "return_train_score", "n_jobs"
         ]:
             config.pop(key, None)
         return config
@@ -493,22 +587,25 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
         dfs = list(out.fetch_trial_dataframes().values())
-        finished = [df[df["done"]] for df in dfs]
-        test_scores = [
-            df[[
-                col for col in dfs[0].columns
-                if "split" in col and "test_score" in col
-            ]].to_numpy() for df in finished
-        ]
-        if self.return_train_score:
-            train_scores = [
+        finished = [df.iloc[[-1]] for df in dfs]
+        test_scores = {}
+        train_scores = {}
+        for name in self.scoring:
+            test_scores[name] = [
                 df[[
                     col for col in dfs[0].columns
-                    if "split" in col and "train_score" in col
+                    if "split" in col and "test_%s" % name in col
                 ]].to_numpy() for df in finished
             ]
-        else:
-            train_scores = None
+            if self.return_train_score:
+                train_scores[name] = [
+                    df[[
+                        col for col in dfs[0].columns
+                        if "split" in col and "train_%s" % name in col
+                    ]].to_numpy() for df in finished
+                ]
+            else:
+                train_scores = None
 
         configs = out.get_all_configs()
         candidate_params = [
@@ -552,25 +649,27 @@ class TuneBaseSearchCV(BaseEstimator):
                 results["rank_%s" % key_name] = np.asarray(
                     rankdata(-array_means, method="min"), dtype=np.int32)
 
-        _store(
-            results,
-            "test_score",
-            test_scores,
-            n_splits,
-            n_candidates,
-            splits=True,
-            rank=True,
-        )
-        if self.return_train_score:
+        for name in self.scoring:
             _store(
                 results,
-                "train_score",
-                train_scores,
+                "test_%s" % name,
+                test_scores[name],
                 n_splits,
                 n_candidates,
                 splits=True,
                 rank=True,
             )
+        if self.return_train_score:
+            for name in self.scoring:
+                _store(
+                    results,
+                    "train_%s" % name,
+                    train_scores[name],
+                    n_splits,
+                    n_candidates,
+                    splits=True,
+                    rank=True,
+                )
 
         results["time_total_s"] = np.array(
             [df["time_total_s"].to_numpy() for df in finished]).flatten()

@@ -4,12 +4,15 @@ from numpy.testing import assert_array_equal
 from sklearn.datasets import make_classification
 from scipy.stats import expon
 from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import SGDClassifier
 from sklearn import datasets
 from skopt.space.space import Real
 from ray.tune.schedulers import MedianStoppingRule
 import unittest
+from unittest.mock import patch
 import os
+from tune_sklearn._detect_xgboost import has_xgboost
 
 
 class RandomizedSearchTest(unittest.TestCase):
@@ -27,7 +30,7 @@ class RandomizedSearchTest(unittest.TestCase):
         params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
         random_search = TuneSearchCV(
             SVC(),
-            n_iter=n_search_iter,
+            n_trials=n_search_iter,
             cv=n_splits,
             param_distributions=params,
             return_train_score=True,
@@ -111,6 +114,143 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search.fit(x, y)
 
         self.assertTrue(len(os.listdir("./test-result")) != 0)
+
+    def test_local_mode(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+
+        clf = SGDClassifier()
+        parameter_grid = {
+            "alpha": Real(1e-4, 1e-1, 1),
+            "epsilon": Real(0.01, 0.1)
+        }
+        tune_search = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        import ray
+        with patch.object(ray, "init", wraps=ray.init) as wrapped_init:
+            tune_search.fit(x, y)
+        self.assertTrue(wrapped_init.call_args[1]["local_mode"])
+
+    def test_multi_best(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+
+        parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
+
+        scoring = ("accuracy", "f1_micro")
+
+        tune_search = TuneSearchCV(
+            SGDClassifier(),
+            parameter_grid,
+            scoring=scoring,
+            max_iters=20,
+            refit="accuracy")
+        tune_search.fit(x, y)
+        self.assertAlmostEqual(
+            tune_search.best_score_,
+            max(tune_search.cv_results_["mean_test_accuracy"]),
+            places=10)
+
+        p = tune_search.cv_results_["params"]
+        scores = tune_search.cv_results_["mean_test_accuracy"]
+        cv_best_param = max(list(zip(scores, p)), key=lambda pair: pair[0])[1]
+        self.assertEqual(tune_search.best_params_, cv_best_param)
+
+    def test_warm_start_detection(self):
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        from sklearn.ensemble import RandomForestClassifier
+        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        tune_search = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertFalse(tune_search._can_early_stop())
+
+        from sklearn.tree import DecisionTreeClassifier
+        clf = DecisionTreeClassifier(random_state=0)
+        tune_search2 = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertFalse(tune_search2._can_early_stop())
+
+        from sklearn.linear_model import LogisticRegression
+        clf = LogisticRegression()
+        tune_search3 = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+
+        self.assertTrue(tune_search3._can_early_stop())
+
+    def test_warm_start_error(self):
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        from sklearn.ensemble import RandomForestClassifier
+        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        tune_search = TuneSearchCV(
+            clf,
+            parameter_grid,
+            n_jobs=1,
+            early_stopping=False,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertFalse(tune_search._can_early_stop())
+        with self.assertRaises(ValueError):
+            tune_search = TuneSearchCV(
+                clf,
+                parameter_grid,
+                n_jobs=1,
+                early_stopping=True,
+                max_iters=10,
+                local_dir="./test-result")
+
+    def test_warn_reduce_maxiters(self):
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        from sklearn.ensemble import RandomForestClassifier
+        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        with self.assertWarnsRegex(UserWarning, "max_iters is set"):
+            TuneSearchCV(
+                clf, parameter_grid, max_iters=10, local_dir="./test-result")
+        with self.assertWarnsRegex(UserWarning, "max_iters is set"):
+            TuneSearchCV(
+                SGDClassifier(),
+                parameter_grid,
+                max_iters=10,
+                local_dir="./test-result")
+
+    def test_warn_early_stop(self):
+        with self.assertWarnsRegex(UserWarning, "max_iters = 1"):
+            TuneSearchCV(
+                LogisticRegression(), {"C": [1, 2]}, early_stopping=True)
+        with self.assertWarnsRegex(UserWarning, "max_iters = 1"):
+            TuneSearchCV(
+                SGDClassifier(), {"epsilon": [0.1, 0.2]}, early_stopping=True)
+
+    @unittest.skipIf(not has_xgboost(), "xgboost not installed")
+    def test_early_stop_xgboost_warn(self):
+        from xgboost.sklearn import XGBClassifier
+        with self.assertWarnsRegex(UserWarning, "github.com"):
+            TuneSearchCV(
+                XGBClassifier(), {"C": [1, 2]},
+                early_stopping=True,
+                max_iters=10)
+        with self.assertWarnsRegex(UserWarning, "max_iters"):
+            TuneSearchCV(
+                XGBClassifier(), {"C": [1, 2]},
+                early_stopping=True,
+                max_iters=1)
 
 
 if __name__ == "__main__":

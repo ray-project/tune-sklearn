@@ -3,13 +3,10 @@ An example training a XGBClassifier, performing
 randomized search using TuneSearchCV.
 """
 
-import warnings
 from tune_sklearn import TuneSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
-
-warnings.filterwarnings("ignore")
 
 digits = datasets.load_digits()
 x = digits.data
@@ -29,14 +26,15 @@ xgb = XGBClassifier(
     learning_rate=0.02,
     n_estimators=50,
     objective="binary:logistic",
-    silent=True,
-    nthread=1,
+    nthread=4,
+    # tree_method="gpu_hist"  # this enables GPU.
+    # See https://github.com/dmlc/xgboost/issues/2819
 )
 
 digit_search = TuneSearchCV(
     xgb,
     param_distributions=params,
-    n_iter=3,
+    n_trials=3,
     # use_gpu=True # Commented out for testing on travis,
     # but this is how you would use gpu
 )

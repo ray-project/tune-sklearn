@@ -18,7 +18,7 @@ scheduler = MedianStoppingRule(grace_period=10.0)
 tune_search = TuneSearchCV(
     clf,
     parameter_grid,
-    search_optimization="bayesian",
+    search_optimization="hyperopt",
     n_trials=3,
     early_stopping=scheduler,
     max_iters=10)

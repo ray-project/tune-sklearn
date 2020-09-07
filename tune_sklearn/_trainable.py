@@ -12,6 +12,10 @@ from pickle import PicklingError
 import ray.cloudpickle as cpickle
 import warnings
 
+from tune_sklearn._detect_xgboost import is_xgboost_model
+from tune_sklearn.utils import (check_warm_start, check_partial_fit,
+                                _aggregate_score_dicts)
+
 
 class _Trainable(Trainable):
     """Class to be passed in as the first argument of tune.run to train models.
@@ -20,6 +24,30 @@ class _Trainable(Trainable):
     and restore routines.
 
     """
+    estimator_list = None
+
+    def _can_partial_fit(self):
+        return check_partial_fit(self.main_estimator)
+
+    def _can_warm_start(self):
+        return check_warm_start(self.main_estimator)
+
+    def _is_xgb(self):
+        return is_xgboost_model(self.main_estimator)
+
+    def _can_early_start(self):
+        return any(
+            [self._is_xgb(),
+             self._can_warm_start(),
+             self._can_partial_fit()])
+
+    @property
+    def main_estimator(self):
+        return self.estimator_list[0]
+
+    def setup(self, config):
+        # forward-compatbility
+        self._setup(config)
 
     def _setup(self, config):
         """Sets up Trainable attributes during initialization.
@@ -32,7 +60,7 @@ class _Trainable(Trainable):
                 stopping if it is set to true.
 
         """
-        self.estimator = clone(config.pop("estimator"))
+        self.estimator_list = clone(config.pop("estimator_list"))
         self.early_stopping = config.pop("early_stopping")
         X_id = config.pop("X_id")
         self.X = ray.get(X_id)
@@ -47,15 +75,34 @@ class _Trainable(Trainable):
         self.return_train_score = config.pop("return_train_score")
         self.n_jobs = config.pop("n_jobs")
         self.estimator_config = config
+        self.train_accuracy = None
+        self.test_accuracy = None
+        self.saved_models = []  # XGBoost specific
 
         if self.early_stopping:
+            assert self._can_early_start()
             n_splits = self.cv.get_n_splits(self.X, self.y)
-            self.fold_scores = np.zeros(n_splits)
-            self.fold_train_scores = np.zeros(n_splits)
+            self.fold_scores = np.empty(n_splits, dtype=dict)
+            self.fold_train_scores = np.empty(n_splits, dtype=dict)
+            if not self._can_partial_fit() and self._can_warm_start():
+                # max_iter here is different than the max_iters the user sets.
+                # max_iter is to make sklearn only fit for one epoch,
+                # while max_iters (which the user can set) is the usual max
+                # number of calls to _trainable.
+                self.estimator_config["warm_start"] = True
+                self.estimator_config["max_iter"] = 1
+
             for i in range(n_splits):
-                self.estimator[i].set_params(**self.estimator_config)
+                self.estimator_list[i].set_params(**self.estimator_config)
+
+            if self._is_xgb():
+                self.saved_models = [None for _ in range(n_splits)]
         else:
-            self.estimator.set_params(**self.estimator_config)
+            self.main_estimator.set_params(**self.estimator_config)
+
+    def step(self):
+        # forward-compatbility
+        return self._train()
 
     def _train(self):
         """Trains one iteration of the model called when ``tune.run`` is called.
@@ -79,45 +126,66 @@ class _Trainable(Trainable):
         """
         if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
-                X_train, y_train = _safe_split(self.estimator[i], self.X,
+                X_train, y_train = _safe_split(self.estimator_list[i], self.X,
                                                self.y, train)
                 X_test, y_test = _safe_split(
-                    self.estimator[i],
+                    self.estimator_list[i],
                     self.X,
                     self.y,
                     test,
                     train_indices=train)
-                self.estimator[i].partial_fit(X_train, y_train,
-                                              np.unique(self.y))
+                if self._can_partial_fit():
+                    self.estimator_list[i].partial_fit(X_train, y_train,
+                                                       np.unique(self.y))
+                elif self._is_xgb():
+                    self.estimator_list[i].fit(
+                        X_train, y_train, xgb_model=self.saved_models[i])
+                    self.saved_models[i] = self.estimator_list[i].get_booster()
+                elif self._can_warm_start():
+                    self.estimator_list[i].fit(X_train, y_train)
+                else:
+                    raise RuntimeError(
+                        "Early stopping set but model is not: "
+                        "xgb model, supports partial fit, or warm-startable.")
+
                 if self.return_train_score:
-                    self.fold_train_scores[i] = self.scoring(
-                        self.estimator[i], X_train, y_train)
-                self.fold_scores[i] = self.scoring(self.estimator[i], X_test,
-                                                   y_test)
+                    self.fold_train_scores[i] = {
+                        name: score(self.estimator_list[i], X_train, y_train)
+                        for name, score in self.scoring.items()
+                    }
+                self.fold_scores[i] = {
+                    name: score(self.estimator_list[i], X_test, y_test)
+                    for name, score in self.scoring.items()
+                }
 
             ret = {}
-            total = 0
-            for i, score in enumerate(self.fold_scores):
-                total += score
-                key_str = f"split{i}_test_score"
-                ret[key_str] = score
-            self.mean_score = total / len(self.fold_scores)
-            ret["average_test_score"] = self.mean_score
+            agg_fold_scores = _aggregate_score_dicts(self.fold_scores)
+            for name, scores in agg_fold_scores.items():
+                total = 0
+                for i, score in enumerate(scores):
+                    total += score
+                    key_str = f"split{i}_test_%s" % name
+                    ret[key_str] = score
+                self.mean_score = total / len(scores)
+                ret["average_test_%s" % name] = self.mean_score
 
             if self.return_train_score:
-                total = 0
-                for i, score in enumerate(self.fold_train_scores):
-                    total += score
-                    key_str = f"split{i}_train_score"
-                    ret[key_str] = score
-                self.mean_train_score = total / len(self.fold_train_scores)
-                ret["average_train_score"] = self.mean_train_score
+                agg_fold_train_scores = _aggregate_score_dicts(
+                    self.fold_train_scores)
+                for name, scores in agg_fold_train_scores.items():
+                    total = 0
+                    for i, score in enumerate(scores):
+                        total += score
+                        key_str = f"split{i}_train_%s" % name
+                        ret[key_str] = score
+                    self.mean_train_score = total / len(scores)
+                    ret["average_train_%s" % name] = self.mean_train_score
 
             return ret
         else:
             try:
                 scores = cross_validate(
-                    self.estimator,
+                    self.main_estimator,
                     self.X,
                     self.y,
                     cv=self.cv,
@@ -132,7 +200,7 @@ class _Trainable(Trainable):
                               "validation. Proceeding to cross validate with "
                               "one core.")
                 scores = cross_validate(
-                    self.estimator,
+                    self.main_estimator,
                     self.X,
                     self.y,
                     cv=self.cv,
@@ -143,22 +211,28 @@ class _Trainable(Trainable):
                 )
 
             ret = {}
-            for i, score in enumerate(scores["test_score"]):
-                key_str = f"split{i}_test_score"
-                ret[key_str] = score
-            self.test_accuracy = sum(scores["test_score"]) / len(
-                scores["test_score"])
-            ret["average_test_score"] = self.test_accuracy
+            for name in self.scoring:
+                for i, score in enumerate(scores["test_%s" % name]):
+                    key_str = f"split{i}_test_%s" % name
+                    ret[key_str] = score
+                self.test_accuracy = sum(scores["test_%s" % name]) / len(
+                    scores["test_%s" % name])
+                ret["average_test_%s" % name] = self.test_accuracy
 
             if self.return_train_score:
-                for i, score in enumerate(scores["train_score"]):
-                    key_str = f"split{i}_train_score"
-                    ret[key_str] = score
-                self.train_accuracy = sum(scores["train_score"]) / len(
-                    scores["train_score"])
-                ret["average_train_score"] = self.train_accuracy
+                for name in self.scoring:
+                    for i, score in enumerate(scores["train_%s" % name]):
+                        key_str = f"split{i}_train_%s" % name
+                        ret[key_str] = score
+                    self.train_accuracy = sum(scores["train_%s" % name]) / len(
+                        scores["train_%s" % name])
+                    ret["average_train_%s" % name] = self.train_accuracy
 
             return ret
+
+    def save_checkpoint(self, checkpoint_dir):
+        # forward-compatbility
+        return self._save(checkpoint_dir)
 
     def _save(self, checkpoint_dir):
         """Creates a checkpoint in ``checkpoint_dir``, creating a pickle file.
@@ -171,16 +245,16 @@ class _Trainable(Trainable):
 
         """
         path = os.path.join(checkpoint_dir, "checkpoint")
-        with open(path, "wb") as f:
-            try:
-                cpickle.dump(self.estimator, f)
-                self.pickled = True
-            except PicklingError:
-                self.pickled = False
-                warnings.warn("{} could not be pickled. "
-                              "Restoring estimators may run into issues."
-                              .format(self.estimator))
+        try:
+            with open(path, "wb") as f:
+                cpickle.dump(self.estimator_list, f)
+        except Exception:
+            warnings.warn("Unable to save estimator.", category=RuntimeWarning)
         return path
+
+    def load_checkpoint(self, checkpoint):
+        # forward-compatbility
+        return self._restore(checkpoint)
 
     def _restore(self, checkpoint):
         """Loads a checkpoint created from `save`.
@@ -189,11 +263,13 @@ class _Trainable(Trainable):
             checkpoint (str): file path to pickled checkpoint file.
 
         """
-        if self.pickled:
+        try:
             with open(checkpoint, "rb") as f:
-                self.estimator = cpickle.load(f)
-        else:
-            warnings.warn("No estimator restored")
+                self.estimator_list = cpickle.load(f)
+        except Exception:
+            warnings.warn("No estimator restored", category=RuntimeWarning)
 
     def reset_config(self, new_config):
-        return False
+        self.config = new_config
+        self._setup(new_config)
+        return True

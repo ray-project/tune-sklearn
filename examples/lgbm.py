@@ -3,8 +3,8 @@
 Example taken from https://mlfromscratch.com/gridsearch-keras-sklearn/#/
 """
 
-from tune_sklearn import TuneSearchCV
 import lightgbm as lgb
+from tune_sklearn import TuneSearchCV
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
@@ -29,7 +29,7 @@ param_dists = {
     "subsample_freq": [20]
 }
 
-gs = TuneSearchCV(model, param_dists, n_iter=5, scoring="accuracy")
+gs = TuneSearchCV(model, param_dists, n_trials=5, scoring="accuracy")
 gs.fit(X_train, y_train)
 print(gs.cv_results_)
 
