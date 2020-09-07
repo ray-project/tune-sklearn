@@ -333,7 +333,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             search_algo = SkOptSearch(
                 Optimizer(spaces),
                 hyperparameter_names,
-                metric="average_test_score")
+                metric="average_test_score",
+                mode="max")
 
             analysis = tune.run(
                 _Trainable,

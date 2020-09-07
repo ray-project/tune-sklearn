@@ -222,26 +222,27 @@ class TuneBaseSearchCV(BaseEstimator):
                 if early_stopping in TuneBaseSearchCV.defined_schedulers:
                     if early_stopping == "PopulationBasedTraining":
                         self.early_stopping = PopulationBasedTraining(
-                            metric="average_test_score")
+                            metric="average_test_score", mode="max")
                     elif early_stopping == "AsyncHyperBandScheduler":
                         self.early_stopping = AsyncHyperBandScheduler(
-                            metric="average_test_score")
+                            metric="average_test_score", mode="max")
                     elif early_stopping == "HyperBandScheduler":
                         self.early_stopping = HyperBandScheduler(
-                            metric="average_test_score")
+                            metric="average_test_score", mode="max")
                     elif early_stopping == "MedianStoppingRule":
                         self.early_stopping = MedianStoppingRule(
-                            metric="average_test_score")
+                            metric="average_test_score", mode="max")
                     elif early_stopping == "ASHAScheduler":
                         self.early_stopping = ASHAScheduler(
-                            metric="average_test_score")
+                            metric="average_test_score", mode="max")
                 else:
                     raise ValueError("{} is not a defined scheduler. "
                                      "Check the list of available schedulers."
                                      .format(early_stopping))
             elif isinstance(early_stopping, TrialScheduler):
                 self.early_stopping = early_stopping
-                self.early_stopping.metric = "average_test_score"
+                self.early_stopping._metric = "average_test_score"
+                self.early_stopping._mode = "max"
             else:
                 raise TypeError("`early_stopping` must be a str, boolean, "
                                 "or tune scheduler")
