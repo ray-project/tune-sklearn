@@ -13,8 +13,9 @@ import ray.cloudpickle as cpickle
 import warnings
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
-from tune_sklearn.utils import (check_warm_start_iter, check_warm_start_ensemble,
-                                check_partial_fit, _aggregate_score_dicts)
+from tune_sklearn.utils import (check_warm_start_iter,
+                                check_warm_start_ensemble, check_partial_fit,
+                                _aggregate_score_dicts)
 
 
 class _Trainable(Trainable):
@@ -140,17 +141,12 @@ class _Trainable(Trainable):
         if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
                 estimator = self.estimator_list[i]
-                X_train, y_train = _safe_split(estimator, self.X,
-                                               self.y, train)
+                X_train, y_train = _safe_split(estimator, self.X, self.y,
+                                               train)
                 X_test, y_test = _safe_split(
-                    estimator,
-                    self.X,
-                    self.y,
-                    test,
-                    train_indices=train)
+                    estimator, self.X, self.y, test, train_indices=train)
                 if self._can_partial_fit():
-                    estimator.partial_fit(X_train, y_train,
-                                                       np.unique(self.y))
+                    estimator.partial_fit(X_train, y_train, np.unique(self.y))
                 elif self._is_xgb():
                     estimator.fit(
                         X_train, y_train, xgb_model=self.saved_models[i])
