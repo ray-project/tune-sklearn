@@ -28,3 +28,4 @@ bohb_tune_search = TuneSearchCV(
 )
 
 bohb_tune_search.fit(X_train, y_train)
+print(bohb_tune_search.best_params_)
