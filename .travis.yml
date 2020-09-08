@@ -34,7 +34,7 @@ matrix:
         - pip install -r doc/requirements-doc.txt
         - pip install -U -r doc/requirements-rtd.txt
       script:
-        - cd ray/doc/
+        - cd && cd ray/doc/
         - sphinx-build -q -E -W -T -b html source _build/html
 
 notifications:
