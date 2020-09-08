@@ -40,23 +40,26 @@ def resolve_early_stopping(early_stopping, max_iters):
     if isinstance(early_stopping, str):
         if early_stopping in TuneBaseSearchCV.defined_schedulers:
             if early_stopping == "PopulationBasedTraining":
-                return PopulationBasedTraining(metric="average_test_score")
+                return PopulationBasedTraining(
+                    metric="average_test_score", mode="max")
             elif early_stopping == "AsyncHyperBandScheduler":
                 return AsyncHyperBandScheduler(
-                    metric="average_test_score", max_t=max_iters)
+                    metric="average_test_score", mode="max", max_t=max_iters)
             elif early_stopping == "HyperBandScheduler":
                 return HyperBandScheduler(
-                    metric="average_test_score", max_t=max_iters)
+                    metric="average_test_score", mode="max", max_t=max_iters)
             elif early_stopping == "MedianStoppingRule":
-                return MedianStoppingRule(metric="average_test_score")
+                return MedianStoppingRule(
+                    metric="average_test_score", mode="max")
             elif early_stopping == "ASHAScheduler":
                 return ASHAScheduler(
-                    metric="average_test_score", max_t=max_iters)
+                    metric="average_test_score", mode="max", max_t=max_iters)
         raise ValueError("{} is not a defined scheduler. "
                          "Check the list of available schedulers."
                          .format(early_stopping))
     elif isinstance(early_stopping, TrialScheduler):
-        early_stopping.metric = "average_test_score"
+        early_stopping._metric = "average_test_score"
+        early_stopping._mode = "max"
         return early_stopping
     else:
         raise TypeError("`early_stopping` must be a str, boolean, "

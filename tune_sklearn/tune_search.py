@@ -306,7 +306,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             from ray.tune.schedulers import HyperBandForBOHB
             if not isinstance(early_stopping, HyperBandForBOHB):
                 early_stopping = HyperBandForBOHB(
-                    metric="average_test_score", max_t=max_iters)
+                    metric="average_test_score", mode="max", max_t=max_iters)
 
         super(TuneSearchCV, self).__init__(
             estimator=estimator,
@@ -578,6 +578,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 Optimizer(spaces),
                 hyperparameter_names,
                 metric="average_test_score",
+                mode="max",
                 **self.search_kwargs)
 
         elif self.search_optimization == "bohb":
