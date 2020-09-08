@@ -7,8 +7,8 @@ from sklearn.linear_model import SGDClassifier
 
 # Set training and validation sets
 X, y = make_classification(
-    n_samples=11000,
-    n_features=1000,
+    n_samples=5000,
+    n_features=200,
     n_informative=50,
     n_redundant=0,
     n_classes=10,
