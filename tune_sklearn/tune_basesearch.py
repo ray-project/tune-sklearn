@@ -423,9 +423,10 @@ class TuneBaseSearchCV(BaseEstimator):
                 mode="max",
                 scope="last").trial_id
             df = analysis.dataframe()
-            self.best_score = float(
-                df.loc[df["trial_id"] == best_finished_trial_id][
-                    "average_test_%s" % scoring_name])
+            best_val_loc = df.loc[df["trial_id"] == best_finished_trial_id]
+            best_val = best_val_loc["average_test_%s" % scoring_name]
+            # best_val is a pd.Series
+            self.best_score = float(best_val.to_list()[0])
 
             return self
 
