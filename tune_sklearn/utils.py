@@ -6,7 +6,7 @@ def check_partial_fit(estimator):
     return callable(getattr(estimator, "partial_fit", None))
 
 
-def check_warm_start(estimator):
+def check_warm_start_iter(estimator):
     from sklearn.tree import BaseDecisionTree
     from sklearn.ensemble import BaseEnsemble
     is_not_tree_subclass = not issubclass(type(estimator), BaseDecisionTree)
@@ -15,6 +15,14 @@ def check_warm_start(estimator):
     return (hasattr(estimator, "warm_start")
             and hasattr(estimator, "max_iter") and is_not_ensemble_subclass
             and is_not_tree_subclass)
+
+
+def check_warm_start_ensemble(estimator):
+    from sklearn.ensemble import BaseEnsemble
+    is_ensemble_subclass = issubclass(type(estimator), BaseEnsemble)
+
+    return (hasattr(estimator, "warm_start")
+            and hasattr(estimator, "n_estimators") and is_ensemble_subclass)
 
 
 def _aggregate_score_dicts(scores):

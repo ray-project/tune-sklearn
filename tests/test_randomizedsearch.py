@@ -164,8 +164,9 @@ class RandomizedSearchTest(unittest.TestCase):
 
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
-        from sklearn.ensemble import RandomForestClassifier
-        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        from sklearn.ensemble import VotingClassifier, RandomForestClassifier
+        clf = VotingClassifier(estimators=[(
+            "rf", RandomForestClassifier(n_estimators=50, random_state=0))])
         tune_search = TuneSearchCV(
             clf,
             parameter_grid,
@@ -197,8 +198,9 @@ class RandomizedSearchTest(unittest.TestCase):
 
     def test_warm_start_error(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
-        from sklearn.ensemble import RandomForestClassifier
-        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        from sklearn.ensemble import VotingClassifier, RandomForestClassifier
+        clf = VotingClassifier(estimators=[(
+            "rf", RandomForestClassifier(n_estimators=50, random_state=0))])
         tune_search = TuneSearchCV(
             clf,
             parameter_grid,
