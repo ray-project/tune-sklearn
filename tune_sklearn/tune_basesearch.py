@@ -409,7 +409,7 @@ class TuneBaseSearchCV(BaseEstimator):
             if not check_partial_fit(
                     self.estimator) and check_warm_start_ensemble(
                         self.estimator):
-                logger.info("Warm start uses `n_estimators` to warm "
+                logger.info("tune-sklearn uses `n_estimators` to warm "
                             "start, so this parameter can't be "
                             "set when warm start early stopping. "
                             "`n_estimators` defaults to `max_iters`.")
