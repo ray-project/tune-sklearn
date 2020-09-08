@@ -58,8 +58,9 @@ class TuneSearchCV(TuneBaseSearchCV):
 
     Bayesian search can be invoked with several values of
     ``search_optimization``.
-        - ``"bayesian"``, using https://scikit-optimize.github.io/stable/
-        - ``"bohb"``, using HpBandSter - https://github.com/automl/HpBandSter
+
+     - ``"bayesian"``, using https://scikit-optimize.github.io/stable/
+     - ``"bohb"``, using HpBandSter - https://github.com/automl/HpBandSter
 
     Tree-Parzen Estimators search is invoked with ``search_optimization``
     set to ``"hyperopt"``, using HyperOpt - http://hyperopt.github.io/hyperopt
@@ -85,7 +86,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             scikit-learn estimator interface. Either estimator needs to
             provide a ``score`` function, or ``scoring`` must be passed.
         param_distributions (`dict` or `list` or `ConfigurationSpace`): Serves
-             as the ``param_distributions`` parameter in scikit-learn's
+            as the ``param_distributions`` parameter in scikit-learn's
             ``RandomizedSearchCV`` or as the ``search_space`` parameter in
             ``BayesSearchCV``.
             For randomized search: dictionary with parameters names (string)
@@ -99,11 +100,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             For other types of search: dictionary with parameter names (string)
             as keys. Values can be
 
-            - a (lower_bound, upper_bound) tuple (for Real
-              or Integer dimensions),
-            - a (lower_bound, upper_bound, "prior") tuple
-              (for Real dimensions),
-            - as a list of categories (for Categorical dimensions),
+            - a (lower_bound, upper_bound) tuple (for Real or Integer params)
+            - a (lower_bound, upper_bound, "prior") tuple (for Real params)
+            - as a list of categories (for Categorical dimensions)
 
             ``"bayesian"`` (scikit-optimize) also accepts
 
@@ -228,8 +227,9 @@ class TuneSearchCV(TuneBaseSearchCV):
 
             Bayesian search can be invoked with several values of
             ``search_optimization``.
-                - ``"bayesian"`` via https://scikit-optimize.github.io/stable/
-                - ``"bohb"`` via http://github.com/automl/HpBandSter
+
+            - ``"bayesian"`` via https://scikit-optimize.github.io/stable/
+            - ``"bohb"`` via http://github.com/automl/HpBandSter
 
             Tree-Parzen Estimators search is invoked with
             ``search_optimization`` set to ``"hyperopt"`` via HyperOpt:
