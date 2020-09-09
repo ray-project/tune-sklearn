@@ -15,7 +15,7 @@ matrix:
       osx_image: xcode9.4
       language: generic
       python: 3.6
-      env: PYTHON=3.6 OS=MAC SKLEARN_N_JOBS=1 RAY_MASTER=1
+      env: PYTHON=3.6 PYTHONWARNINGS=ignore OS=MAC SKLEARN_N_JOBS=1 RAY_MASTER=1
       before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_intel.whl
     - os: osx
       osx_image: xcode10.2
