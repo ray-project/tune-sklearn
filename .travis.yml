@@ -16,13 +16,16 @@ matrix:
       language: generic
       python: 3.6
       env: PYTHON=3.6 PYTHONWARNINGS=ignore OS=MAC SKLEARN_N_JOBS=1 RAY_MASTER=1
-      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_intel.whl
+      before_script:
+        - wget -o ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_x86_64.whl https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_intel.whl
+        - pip install -U ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_x86_64.whl
     - os: osx
       osx_image: xcode10.2
       language: generic
       python: 3.7
       env: PYTHON=3.7 PYTHONWARNINGS=ignore OS=MAC SKLEARN_N_JOBS=1 RAY_MASTER=1
-      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_intel.whl
+        - wget -o ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_x86_64.whl https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_intel.whl
+        - pip install -U ray-0.9.0.dev0-cp36-cp36m-macosx_10_13_x86_64.whl
     - os: osx
       osx_image: xcode9.4
       language: generic
@@ -31,7 +34,7 @@ matrix:
       script:
         - if [ "$OS" == "MAC" ]; then brew install -q libomp > /dev/null ; fi
         - pip3 install -e .
-        - cd ../examples
+        - cd examples
         - for f in *.py; do echo "running $f" && python3 "$f" || exit 1 ; done
     - os: linux
       python: 3.6
@@ -40,7 +43,7 @@ matrix:
       script:
         - if [ "$OS" == "MAC" ]; then brew install -q libomp > /dev/null ; fi
         - pip3 install -e .
-        - cd ../examples
+        - cd examples
         - for f in *.py; do echo "running $f" && python3 "$f" || exit 1 ; done
     - os: linux
       env: LINT=1 PYTHONWARNINGS=ignore
