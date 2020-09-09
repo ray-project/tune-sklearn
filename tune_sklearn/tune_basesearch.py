@@ -406,9 +406,7 @@ class TuneBaseSearchCV(BaseEstimator):
         metric = "average_test_%s" % scoring_name
         if self.refit:
             best_config = analysis.get_best_config(
-                metric=metric,
-                mode="max",
-                scope="last")
+                metric=metric, mode="max", scope="last")
             self.best_params = self._clean_config_dict(best_config)
             if not check_partial_fit(
                     self.estimator) and check_warm_start_ensemble(
@@ -423,9 +421,7 @@ class TuneBaseSearchCV(BaseEstimator):
             self.best_estimator_.fit(X, y, **fit_params)
 
             best_result = analysis.get_best_trial(
-                metric=metric,
-                mode="max",
-                scope="last").last_result
+                metric=metric, mode="max", scope="last").last_result
             self.best_score = float(best_result[metric])
 
         return self
