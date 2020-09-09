@@ -403,11 +403,10 @@ class TuneBaseSearchCV(BaseEstimator):
         else:
             scoring_name = "score"
 
+        metric = "average_test_%s" % scoring_name
         if self.refit:
             best_config = analysis.get_best_config(
-                metric="average_test_%s" % scoring_name,
-                mode="max",
-                scope="last")
+                metric=metric, mode="max", scope="last")
             self.best_params = self._clean_config_dict(best_config)
             if not check_partial_fit(
                     self.estimator) and check_warm_start_ensemble(
@@ -421,17 +420,11 @@ class TuneBaseSearchCV(BaseEstimator):
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
 
-            best_finished_trial_id = analysis.get_best_trial(
-                metric="average_test_%s" % scoring_name,
-                mode="max",
-                scope="last").trial_id
-            df = analysis.dataframe()
-            best_val_loc = df.loc[df["trial_id"] == best_finished_trial_id]
-            best_val = best_val_loc["average_test_%s" % scoring_name]
-            # best_val is a pd.Series
-            self.best_score = float(best_val.to_list()[0])
+            best_result = analysis.get_best_trial(
+                metric=metric, mode="max", scope="last").last_result
+            self.best_score = float(best_result[metric])
 
-            return self
+        return self
 
     def fit(self, X, y=None, groups=None, **fit_params):
         """Run fit with all sets of parameters.
