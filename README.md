@@ -11,6 +11,8 @@ Here’s what tune-sklearn has to offer:
  * **Framework support**: tune-sklearn is used primarily for tuning Scikit-Learn models, but it also supports and provides examples for many other frameworks with Scikit-Learn wrappers such as Skorch (Pytorch) [[example](https://github.com/ray-project/tune-sklearn/blob/master/examples/torch_nn.py)], KerasClassifier (Keras) [[example](https://github.com/ray-project/tune-sklearn/blob/master/examples/keras_example.py)], and XGBoostClassifier (XGBoost) [[example](https://github.com/ray-project/tune-sklearn/blob/master/examples/xgbclassifier.py)].
  * **Scale up**: Tune-sklearn leverages [Ray Tune](http://tune.io/), a library for distributed hyperparameter tuning, to parallelize cross validation on multiple cores and even multiple machines without changing your code.
 
+Check out our [API Documentation](https://docs.ray.io/en/master/tune/api_docs/sklearn.html) and [Walkthrough](https://docs.ray.io/en/master/tune/tutorials/tune-sklearn.html) (for `master` branch).
+
 ## Installation
 
 ### Dependencies
