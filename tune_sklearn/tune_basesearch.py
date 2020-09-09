@@ -422,11 +422,11 @@ class TuneBaseSearchCV(BaseEstimator):
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
 
-        best_result = analysis.get_best_trial(
-            metric=metric,
-            mode="max",
-            scope="last").last_result
-        self.best_score = float(best_result[metric])
+            best_result = analysis.get_best_trial(
+                metric=metric,
+                mode="max",
+                scope="last").last_result
+            self.best_score = float(best_result[metric])
 
         return self
 
