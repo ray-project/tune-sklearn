@@ -68,8 +68,8 @@ matrix:
       env: DOC_BUILD=1 PYTHONWARNINGS=ignore
       install:
         - git clone https://github.com/ray-project/ray
-        - pip install -r ray/doc/requirements-doc.txt
         - pip install -U -r ray/doc/requirements-rtd.txt
+        - pip install -r ray/doc/requirements-doc.txt
       script:
         - cd ray/doc/ && sphinx-build -q -E -W -T -b html source _build/html
 
