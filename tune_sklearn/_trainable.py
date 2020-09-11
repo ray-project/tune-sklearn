@@ -120,26 +120,26 @@ class _Trainable(Trainable):
 
     def _early_stopping_partial_fit(self, i, estimator, X_train, y_train):
         """Handles early stopping on estimators that support `partial_fit`.
-        
+
         """
         estimator.partial_fit(X_train, y_train, np.unique(self.y))
 
     def _early_stopping_xgb(self, i, estimator, X_train, y_train):
         """Handles early stopping on XGBoost estimators.
-        
+
         """
         estimator.fit(X_train, y_train, xgb_model=self.saved_models[i])
         self.saved_models[i] = estimator.get_booster()
 
     def _early_stopping_iter(self, i, estimator, X_train, y_train):
         """Handles early stopping on estimators supporting `warm_start`.
-        
+
         """
         estimator.fit(X_train, y_train)
 
     def _early_stopping_ensemble(self, i, estimator, X_train, y_train):
         """Handles early stopping on ensemble estimators.
-        
+
         """
         # User will not be able to fine tune the n_estimators
         # parameter using ensemble early stopping
