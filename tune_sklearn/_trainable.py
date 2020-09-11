@@ -118,6 +118,35 @@ class _Trainable(Trainable):
         # forward-compatbility
         return self._train()
 
+    def _early_stopping_partial_fit(self, i, estimator, X_train, y_train):
+        """Handles early stopping on estimators that support `partial_fit`.
+
+        """
+        estimator.partial_fit(X_train, y_train, np.unique(self.y))
+
+    def _early_stopping_xgb(self, i, estimator, X_train, y_train):
+        """Handles early stopping on XGBoost estimators.
+
+        """
+        estimator.fit(X_train, y_train, xgb_model=self.saved_models[i])
+        self.saved_models[i] = estimator.get_booster()
+
+    def _early_stopping_iter(self, i, estimator, X_train, y_train):
+        """Handles early stopping on estimators supporting `warm_start`.
+
+        """
+        estimator.fit(X_train, y_train)
+
+    def _early_stopping_ensemble(self, i, estimator, X_train, y_train):
+        """Handles early stopping on ensemble estimators.
+
+        """
+        # User will not be able to fine tune the n_estimators
+        # parameter using ensemble early stopping
+        updated_n_estimators = estimator.get_params()["n_estimators"] + 1
+        estimator.set_params(**{"n_estimators": updated_n_estimators})
+        estimator.fit(X_train, y_train)
+
     def _train(self):
         """Trains one iteration of the model called when ``tune.run`` is called.
 
@@ -146,21 +175,15 @@ class _Trainable(Trainable):
                 X_test, y_test = _safe_split(
                     estimator, self.X, self.y, test, train_indices=train)
                 if self._can_partial_fit():
-                    estimator.partial_fit(X_train, y_train, np.unique(self.y))
+                    self._early_stopping_partial_fit(i, estimator, X_train,
+                                                     y_train)
                 elif self._is_xgb():
-                    estimator.fit(
-                        X_train, y_train, xgb_model=self.saved_models[i])
-                    self.saved_models[i] = estimator.get_booster()
+                    self._early_stopping_xgb(i, estimator, X_train, y_train)
                 elif self._can_warm_start_iter():
-                    estimator.fit(X_train, y_train)
+                    self._early_stopping_iter(i, estimator, X_train, y_train)
                 elif self._can_warm_start_ensemble():
-                    # User will not be able to fine tune the n_estimators
-                    # parameter using ensemble early stopping
-                    updated_n_estimators = estimator.get_params(
-                    )["n_estimators"] + 1
-                    estimator.set_params(
-                        **{"n_estimators": updated_n_estimators})
-                    estimator.fit(X_train, y_train)
+                    self._early_stopping_ensemble(i, estimator, X_train,
+                                                  y_train)
                 else:
                     raise RuntimeError(
                         "Early stopping set but model is not: "
