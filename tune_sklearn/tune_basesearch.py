@@ -66,6 +66,39 @@ def resolve_early_stopping(early_stopping, max_iters):
         raise TypeError("`early_stopping` must be a str, boolean, "
                         f"or tune scheduler. Got {type(early_stopping)}.")
 
+def resolve_loggers(loggers, logdir, logger_config):
+    if loggers is None:
+        return None
+
+    if not isinstance(loggers, list):
+        raise TypeError("`loggers` must be a list of str or tune "
+                        "loggers.")
+
+    init_loggers = []
+    logdir = os.path.realpath(logdir)
+    for l in loggers:
+        if isinstance(l, str) and l in TuneBaseSearchCV.defined_loggers:
+            if l == "UnifiedLogger":
+                init_loggers.append(UnifiedLogger(logger_config, logdir))
+            elif l == "TBXLogger":
+                init_loggers.append(TBXLogger(logger_config, logdir))
+            elif l == "JsonLogger":
+                init_loggers.append(JsonLogger(logger_config, logdir))
+            elif l == "CSVLogger":
+                init_loggers.append(CSVLogger(logger_config, logdir))
+            elif l == "MLFLowLogger":
+                init_loggers.append(MLFLowLogger(logger_config, logdir))
+            elif l == "Logger":
+                init_loggers.append(Logger(logger_config, logdir))
+        elif isinstance(l, logger):
+            init_loggers.append(l)
+        else:
+            raise TypeError("`loggers` must be a list of str or tune "
+                            "loggers.")
+
+    return init_loggers
+
+
 
 class TuneBaseSearchCV(BaseEstimator):
     """Abstract base class for TuneGridSearchCV and TuneSearchCV"""
@@ -74,6 +107,7 @@ class TuneBaseSearchCV(BaseEstimator):
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
         "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler"
     ]
+    defined_loggers = ["UnifiedLogger", "TBXLogger", "JsonLogger", "CSVLogger", "MLFLowLogger", "Logger"]
 
     @property
     def _estimator_type(self):
@@ -253,7 +287,10 @@ class TuneBaseSearchCV(BaseEstimator):
                  return_train_score=False,
                  local_dir="~/ray_results",
                  max_iters=1,
-                 use_gpu=False):
+                 use_gpu=False,
+                 loggers=None,
+                 logdir="./",
+                 logconfig={}):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
@@ -314,6 +351,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.local_dir = local_dir
         self.use_gpu = use_gpu
+        self.loggers = resolve_loggers(loggers, logdir, logconfig)
         assert isinstance(self.n_jobs, int)
 
     def _fit(self, X, y=None, groups=None, **fit_params):

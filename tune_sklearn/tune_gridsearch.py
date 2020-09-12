@@ -130,7 +130,11 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  return_train_score=False,
                  local_dir="~/ray_results",
                  max_iters=1,
-                 use_gpu=False):
+                 use_gpu=False,
+                 loggers=None,
+                 logdir="./",
+                 logconfig={},
+                 ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
@@ -144,7 +148,10 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             local_dir=local_dir,
             max_iters=max_iters,
             verbose=verbose,
-            use_gpu=use_gpu)
+            use_gpu=use_gpu,
+            loggers=loggers,
+            logdir=logdir,
+            logconfig=logconfig)
 
         _check_param_grid(param_grid)
         self.param_grid = param_grid
@@ -211,7 +218,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
+                local_dir=os.path.expanduser(self.local_dir),
+                loggers=self.loggers)
         else:
             analysis = tune.run(
                 _Trainable,
@@ -222,6 +230,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
+                local_dir=os.path.expanduser(self.local_dir),
+                loggeres=self.loggers)
 
         return analysis

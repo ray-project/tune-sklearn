@@ -264,6 +264,9 @@ class TuneSearchCV(TuneBaseSearchCV):
                  max_iters=1,
                  search_optimization="random",
                  use_gpu=False,
+                 loggers=None,
+                 logdir="./",
+                 logconfig={},
                  **search_kwargs):
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -323,7 +326,10 @@ class TuneSearchCV(TuneBaseSearchCV):
             return_train_score=return_train_score,
             local_dir=local_dir,
             max_iters=max_iters,
-            use_gpu=use_gpu)
+            use_gpu=use_gpu,
+            loggers=loggers,
+            logdir=logdir,
+            logconfig=logconfig)
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials
@@ -563,7 +569,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
+                local_dir=os.path.expanduser(self.local_dir),
+                loggers=self.loggers)
 
             if isinstance(self.param_distributions, list):
                 run_args["search_alg"] = RandomListSearcher(
@@ -625,6 +632,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             config=config,
             fail_fast=True,
             resources_per_trial=resources_per_trial,
-            local_dir=os.path.expanduser(self.local_dir))
+            local_dir=os.path.expanduser(self.local_dir),
+            loggers=self.loggers)
 
         return analysis
