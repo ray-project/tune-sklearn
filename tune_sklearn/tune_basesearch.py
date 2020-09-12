@@ -22,6 +22,8 @@ import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler)
+from ray.tune.logger import (UnifiedLogger, TBXLogger, JsonLogger, CSVLogger,
+                             MLFLowLogger)
 from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
@@ -66,38 +68,35 @@ def resolve_early_stopping(early_stopping, max_iters):
         raise TypeError("`early_stopping` must be a str, boolean, "
                         f"or tune scheduler. Got {type(early_stopping)}.")
 
+
 def resolve_loggers(loggers, logdir, logger_config):
     if loggers is None:
         return None
 
     if not isinstance(loggers, list):
-        raise TypeError("`loggers` must be a list of str or tune "
-                        "loggers.")
+        raise TypeError("`loggers` must be a list of str or tune " "loggers.")
 
     init_loggers = []
     logdir = os.path.realpath(logdir)
-    for l in loggers:
-        if isinstance(l, str) and l in TuneBaseSearchCV.defined_loggers:
-            if l == "UnifiedLogger":
+    for log in loggers:
+        if isinstance(log, str) and log in TuneBaseSearchCV.defined_loggers:
+            if log == "UnifiedLogger":
                 init_loggers.append(UnifiedLogger(logger_config, logdir))
-            elif l == "TBXLogger":
+            elif log == "TBXLogger":
                 init_loggers.append(TBXLogger(logger_config, logdir))
-            elif l == "JsonLogger":
+            elif log == "JsonLogger":
                 init_loggers.append(JsonLogger(logger_config, logdir))
-            elif l == "CSVLogger":
+            elif log == "CSVLogger":
                 init_loggers.append(CSVLogger(logger_config, logdir))
-            elif l == "MLFLowLogger":
+            elif log == "MLFLowLogger":
                 init_loggers.append(MLFLowLogger(logger_config, logdir))
-            elif l == "Logger":
-                init_loggers.append(Logger(logger_config, logdir))
-        elif isinstance(l, logger):
-            init_loggers.append(l)
+        elif isinstance(log, logger):
+            init_loggers.append(log)
         else:
             raise TypeError("`loggers` must be a list of str or tune "
                             "loggers.")
 
     return init_loggers
-
 
 
 class TuneBaseSearchCV(BaseEstimator):
@@ -107,7 +106,10 @@ class TuneBaseSearchCV(BaseEstimator):
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
         "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler"
     ]
-    defined_loggers = ["UnifiedLogger", "TBXLogger", "JsonLogger", "CSVLogger", "MLFLowLogger", "Logger"]
+    defined_loggers = [
+        "UnifiedLogger", "TBXLogger", "JsonLogger", "CSVLogger",
+        "MLFLowLogger", "Logger"
+    ]
 
     @property
     def _estimator_type(self):
