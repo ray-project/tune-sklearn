@@ -133,8 +133,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             max_iters=1,
             use_gpu=False,
             loggers=None,
-            logdir="./",
-            logconfig={},
     ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
@@ -150,9 +148,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             max_iters=max_iters,
             verbose=verbose,
             use_gpu=use_gpu,
-            loggers=loggers,
-            logdir=logdir,
-            logconfig=logconfig)
+            loggers=loggers)
 
         _check_param_grid(param_grid)
         self.param_grid = param_grid
@@ -232,6 +228,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 fail_fast=True,
                 resources_per_trial=resources_per_trial,
                 local_dir=os.path.expanduser(self.local_dir),
-                loggeres=self.loggers)
+                loggers=self.loggers)
 
         return analysis

@@ -265,8 +265,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                  search_optimization="random",
                  use_gpu=False,
                  loggers=None,
-                 logdir="./",
-                 logconfig={},
                  **search_kwargs):
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -327,9 +325,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             local_dir=local_dir,
             max_iters=max_iters,
             use_gpu=use_gpu,
-            loggers=loggers,
-            logdir=logdir,
-            logconfig=logconfig)
+            loggers=loggers)
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials

@@ -23,7 +23,8 @@ from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler)
 from ray.tune.logger import (UnifiedLogger, TBXLogger, JsonLogger, CSVLogger,
-                             MLFLowLogger)
+                             MLFLowLogger, Logger)
+from ray.tune.logger import DEFAULT_LOGGERS
 from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
@@ -69,7 +70,7 @@ def resolve_early_stopping(early_stopping, max_iters):
                         f"or tune scheduler. Got {type(early_stopping)}.")
 
 
-def resolve_loggers(loggers, logdir, logger_config):
+def resolve_loggers(loggers):
     if loggers is None:
         return None
 
@@ -77,24 +78,27 @@ def resolve_loggers(loggers, logdir, logger_config):
         raise TypeError("`loggers` must be a list of str or tune " "loggers.")
 
     init_loggers = []
-    logdir = os.path.realpath(logdir)
     for log in loggers:
         if isinstance(log, str) and log in TuneBaseSearchCV.defined_loggers:
             if log == "UnifiedLogger":
-                init_loggers.append(UnifiedLogger(logger_config, logdir))
+                init_loggers.append(UnifiedLogger)
             elif log == "TBXLogger":
-                init_loggers.append(TBXLogger(logger_config, logdir))
+                init_loggers.append(TBXLogger)
             elif log == "JsonLogger":
-                init_loggers.append(JsonLogger(logger_config, logdir))
+                init_loggers.append(JsonLogger)
             elif log == "CSVLogger":
-                init_loggers.append(CSVLogger(logger_config, logdir))
+                init_loggers.append(CSVLogger)
             elif log == "MLFLowLogger":
-                init_loggers.append(MLFLowLogger(logger_config, logdir))
-        elif isinstance(log, logger):
+                init_loggers.append(MLFLowLogger)
+        elif issubclass(log, Logger):
             init_loggers.append(log)
         else:
             raise TypeError("`loggers` must be a list of str or tune "
                             "loggers.")
+
+    for log in DEFAULT_LOGGERS:
+        if log not in init_loggers:
+            init_loggers.append(log)
 
     return init_loggers
 
@@ -290,9 +294,7 @@ class TuneBaseSearchCV(BaseEstimator):
                  local_dir="~/ray_results",
                  max_iters=1,
                  use_gpu=False,
-                 loggers=None,
-                 logdir="./",
-                 logconfig={}):
+                 loggers=None):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
@@ -353,7 +355,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.local_dir = local_dir
         self.use_gpu = use_gpu
-        self.loggers = resolve_loggers(loggers, logdir, logconfig)
+        self.loggers = resolve_loggers(loggers)
         assert isinstance(self.n_jobs, int)
 
     def _fit(self, X, y=None, groups=None, **fit_params):
