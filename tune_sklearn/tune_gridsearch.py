@@ -4,6 +4,7 @@
 
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
+from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.model_selection._search import _check_param_grid
 from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
@@ -114,6 +115,10 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.
+        pipeline_detection (bool): Indicates whether to attempt to enable
+            early stopping support if the passed estimator is a sklearn
+            Pipeline. Early stopping will only be performed taking the 
+            last step of the pipeline into account. Defaults to True. 
     """
 
     def __init__(self,
@@ -130,7 +135,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  return_train_score=False,
                  local_dir="~/ray_results",
                  max_iters=1,
-                 use_gpu=False):
+                 use_gpu=False,
+                 pipeline_detection=True):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
@@ -144,7 +150,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             local_dir=local_dir,
             max_iters=max_iters,
             verbose=verbose,
-            use_gpu=use_gpu)
+            use_gpu=use_gpu,
+            pipeline_detection=pipeline_detection)
 
         _check_param_grid(param_grid)
         self.param_grid = param_grid
@@ -192,6 +199,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
+        trainable = _Trainable if not self.base_estimator_name else _PipelineTrainable
+
         if self.early_stopping is not None:
             config["estimator_list"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
@@ -201,7 +210,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         if isinstance(self.param_grid, list):
             analysis = tune.run(
-                _Trainable,
+                trainable,
                 search_alg=ListSearcher(self.param_grid),
                 num_samples=self._list_grid_num_samples(),
                 scheduler=self.early_stopping,
@@ -214,7 +223,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 local_dir=os.path.expanduser(self.local_dir))
         else:
             analysis = tune.run(
-                _Trainable,
+                trainable,
                 scheduler=self.early_stopping,
                 reuse_actors=True,
                 verbose=self.verbose,

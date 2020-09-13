@@ -4,6 +4,7 @@
 import logging
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
+from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.base import clone
 from ray import tune
 from ray.tune.suggest import ConcurrencyLimiter
@@ -240,6 +241,10 @@ class TuneSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will start processes
             with the proper CUDA VISIBLE DEVICE settings set.
+        pipeline_detection (bool): Indicates whether to attempt to enable
+            early stopping support if the passed estimator is a sklearn
+            Pipeline. Early stopping will only be performed taking the 
+            last step of the pipeline into account. Defaults to True. 
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
@@ -264,6 +269,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  max_iters=1,
                  search_optimization="random",
                  use_gpu=False,
+                 pipeline_detection=True,
                  **search_kwargs):
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -323,7 +329,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             return_train_score=return_train_score,
             local_dir=local_dir,
             max_iters=max_iters,
-            use_gpu=use_gpu)
+            use_gpu=use_gpu,
+            pipeline_detection=pipeline_detection)
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials
@@ -540,6 +547,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
+        trainable = _Trainable if not self.base_estimator_name else _PipelineTrainable
+
         stop_condition = {"training_iteration": self.max_iters}
         if self.early_stopping is not None:
             config["estimator_list"] = [
@@ -569,7 +578,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 run_args["search_alg"] = RandomListSearcher(
                     self.param_distributions)
 
-            analysis = tune.run(_Trainable, **run_args)
+            analysis = tune.run(trainable, **run_args)
             return analysis
 
         elif self.search_optimization == "bayesian":
@@ -615,7 +624,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 search_algo, max_concurrent=self.n_jobs)
 
         analysis = tune.run(
-            _Trainable,
+            trainable,
             search_alg=search_algo,
             scheduler=self.early_stopping,
             reuse_actors=True,

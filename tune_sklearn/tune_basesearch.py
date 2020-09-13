@@ -18,6 +18,7 @@ from sklearn.model_selection import check_cv
 from sklearn.base import is_classifier
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
+from sklearn.pipeline import Pipeline
 import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
@@ -253,10 +254,19 @@ class TuneBaseSearchCV(BaseEstimator):
                  return_train_score=False,
                  local_dir="~/ray_results",
                  max_iters=1,
-                 use_gpu=False):
+                 use_gpu=False,
+                 pipeline_detection=True):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
+        self.base_estimator = estimator
+        self.base_estimator_name = ""
+        self.pipeline_detection = pipeline_detection
+
+        if self.pipeline_detection and isinstance(self.base_estimator,
+                                                  Pipeline):
+            self.base_estimator_name, self.base_estimator = self.base_estimator.steps[
+                -1]
 
         if not self._can_early_stop():
             if early_stopping:
@@ -517,10 +527,11 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
 
-        can_partial_fit = check_partial_fit(self.estimator)
-        can_warm_start = check_warm_start_iter(self.estimator)
-        can_warm_start_ensemble = check_warm_start_ensemble(self.estimator)
-        is_gbm = is_xgboost_model(self.estimator)
+        can_partial_fit = check_partial_fit(self.base_estimator)
+        can_warm_start = check_warm_start_iter(self.base_estimator)
+        can_warm_start_ensemble = check_warm_start_ensemble(
+            self.base_estimator)
+        is_gbm = is_xgboost_model(self.base_estimator)
 
         return (can_partial_fit or can_warm_start or can_warm_start_ensemble
                 or is_gbm)
