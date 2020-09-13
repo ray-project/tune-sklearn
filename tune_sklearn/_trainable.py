@@ -413,9 +413,7 @@ class _PipelineTrainable(_Trainable):
         """
         # User will not be able to fine tune the n_estimators
         # parameter using ensemble early stopping
-        updated_n_estimators = estimator.get_params(
-        )[f"{self.base_estimator_name}__n_estimators"] + 1
-        estimator.set_params(**{
-            f"{self.base_estimator_name}__n_estimators": updated_n_estimators
-        })
+        n_estimator_key = f"{self.main_estimator_name}__n_estimators"
+        updated_n_estimators = estimator.get_params()[n_estimator_key] + 1
+        estimator.set_params(**{n_estimator_key: updated_n_estimators})
         estimator.fit(X_train, y_train)
