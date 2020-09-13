@@ -10,6 +10,7 @@ from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
+from tune_sklearn.utils import check_is_pipeline
 import os
 
 
@@ -199,7 +200,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
-        trainable = _Trainable if not self.base_estimator_name else _PipelineTrainable
+        trainable = _Trainable
+        if check_is_pipeline(self.estimator) and self.early_stopping:
+            trainable = _PipelineTrainable
 
         if self.early_stopping is not None:
             config["estimator_list"] = [

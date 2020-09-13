@@ -1,9 +1,14 @@
 from sklearn.metrics import check_scoring
+from sklearn.pipeline import Pipeline
 import numpy as np
 
 
 def check_partial_fit(estimator):
     return callable(getattr(estimator, "partial_fit", None))
+
+
+def check_is_pipeline(estimator):
+    return isinstance(estimator, Pipeline)
 
 
 def check_warm_start_iter(estimator):

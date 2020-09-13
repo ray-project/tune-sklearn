@@ -2,6 +2,7 @@
     -- Anthony Yu and Michael Chau
 """
 import logging
+from tune_sklearn.utils import check_is_pipeline
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
@@ -547,7 +548,9 @@ class TuneSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
-        trainable = _Trainable if not self.base_estimator_name else _PipelineTrainable
+        trainable = _Trainable
+        if check_is_pipeline(self.estimator) and self.early_stopping:
+            trainable = _PipelineTrainable
 
         stop_condition = {"training_iteration": self.max_iters}
         if self.early_stopping is not None:

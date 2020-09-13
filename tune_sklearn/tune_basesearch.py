@@ -18,7 +18,6 @@ from sklearn.model_selection import check_cv
 from sklearn.base import is_classifier
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
-from sklearn.pipeline import Pipeline
 import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
@@ -33,7 +32,7 @@ import os
 from tune_sklearn._detect_xgboost import is_xgboost_model
 from tune_sklearn.utils import (check_warm_start_iter,
                                 check_warm_start_ensemble, check_partial_fit,
-                                _check_multimetric_scoring)
+                                check_is_pipeline, _check_multimetric_scoring)
 
 logger = logging.getLogger(__name__)
 
@@ -260,13 +259,10 @@ class TuneBaseSearchCV(BaseEstimator):
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
         self.base_estimator = estimator
-        self.base_estimator_name = ""
         self.pipeline_detection = pipeline_detection
 
-        if self.pipeline_detection and isinstance(self.base_estimator,
-                                                  Pipeline):
-            self.base_estimator_name, self.base_estimator = self.base_estimator.steps[
-                -1]
+        if self.pipeline_detection and check_is_pipeline(estimator):
+            _, self.base_estimator = self.base_estimator.steps[-1]
 
         if not self._can_early_stop():
             if early_stopping:
