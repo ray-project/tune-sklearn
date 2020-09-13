@@ -2,10 +2,12 @@ from tune_sklearn import TuneSearchCV
 import numpy as np
 from numpy.testing import assert_array_equal
 from sklearn.datasets import make_classification
+from sklearn.decomposition import PCA
 from scipy.stats import expon
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import SGDClassifier
+from sklearn.pipeline import Pipeline
 from sklearn import datasets
 from skopt.space.space import Real
 from ray.tune.schedulers import MedianStoppingRule
@@ -253,6 +255,36 @@ class RandomizedSearchTest(unittest.TestCase):
                 XGBClassifier(), {"C": [1, 2]},
                 early_stopping=True,
                 max_iters=1)
+
+    def test_pipeline_early_stop(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+
+        pipe = Pipeline([("reduce_dim", PCA()), ("classify", SGDClassifier())])
+        parameter_grid = [
+            {
+                "classify__alpha": [1e-4, 1e-1, 1],
+                "classify__epsilon": [0.01, 0.1]
+            },
+        ]
+
+        with self.assertRaises(ValueError) as exc:
+            TuneSearchCV(
+                pipe,
+                parameter_grid,
+                early_stopping=True,
+                pipeline_detection=False,
+                max_iters=10)
+        self.assertTrue((
+            "Early stopping is not supported because the estimator does not have "
+            "`partial_fit`, does not support warm_start, or is a tree "
+            "classifier. Set `early_stopping=False`."
+        ) in str(exc.exception))
+
+        tune_search = TuneSearchCV(
+            pipe, parameter_grid, early_stopping=True, max_iters=10)
+        tune_search.fit(x, y)
 
 
 if __name__ == "__main__":
