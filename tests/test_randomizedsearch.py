@@ -277,9 +277,9 @@ class RandomizedSearchTest(unittest.TestCase):
                 pipeline_detection=False,
                 max_iters=10)
         self.assertTrue((
-            "Early stopping is not supported because the estimator does not have "
-            "`partial_fit`, does not support warm_start, or is a tree "
-            "classifier. Set `early_stopping=False`."
+            "Early stopping is not supported because the estimator does "
+            "not have `partial_fit`, does not support warm_start, or "
+            "is a tree classifier. Set `early_stopping=False`."
         ) in str(exc.exception))
 
         tune_search = TuneSearchCV(
