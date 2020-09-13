@@ -332,17 +332,25 @@ class _PipelineTrainable(_Trainable):
 
     """
 
+    @property
+    def base_estimator_name(self):
+        return self.main_estimator.steps[-1][0]
+
+    @property
+    def base_estimator(self):
+        return self.main_estimator.steps[-1][1]
+
     def _can_partial_fit(self):
-        return check_partial_fit(self.main_estimator.steps[-1][1])
+        return check_partial_fit(self.base_estimator)
 
     def _can_warm_start_iter(self):
-        return check_warm_start_iter(self.main_estimator.steps[-1][1])
+        return check_warm_start_iter(self.base_estimator)
 
     def _can_warm_start_ensemble(self):
-        return check_warm_start_ensemble(self.main_estimator.steps[-1][1])
+        return check_warm_start_ensemble(self.base_estimator)
 
     def _is_xgb(self):
-        return is_xgboost_model(self.main_estimator.steps[-1][1])
+        return is_xgboost_model(self.base_estimator)
 
     def _setup_early_stopping(self):
         assert self._can_early_start()
@@ -356,9 +364,9 @@ class _PipelineTrainable(_Trainable):
                 # while max_iters (which the user can set) is the usual max
                 # number of calls to _trainable.
                 self.estimator_config[
-                    f"{self.main_estimator.steps[-1][0]}__warm_start"] = True
+                    f"{self.base_estimator_name}__warm_start"] = True
                 self.estimator_config[
-                    f"{self.main_estimator.steps[-1][0]}__max_iter"] = 1
+                    f"{self.base_estimator_name}__max_iter"] = 1
 
             elif self._can_warm_start_ensemble():
                 # Each additional call on a warm start ensemble only trains
@@ -366,9 +374,9 @@ class _PipelineTrainable(_Trainable):
                 # and add an estimator before each call to fit in _train(),
                 # training the ensemble incrementally.
                 self.estimator_config[
-                    f"{self.main_estimator.steps[-1][0]}__warm_start"] = True
+                    f"{self.base_estimator_name}__warm_start"] = True
                 self.estimator_config[
-                    f"{self.main_estimator.steps[-1][0]}__n_estimators"] = 0
+                    f"{self.base_estimator_name}__n_estimators"] = 0
 
         return n_splits
 
@@ -394,17 +402,10 @@ class _PipelineTrainable(_Trainable):
         """Handles early stopping on XGBoost estimators.
 
         """
-        estimator.fit(X_train, y_train, {
-            f"{self.main_estimator.steps[-1][0]}__xgb_model": self.
-            saved_models[i]
-        })
+        estimator.fit(
+            X_train, y_train,
+            **{f"{self.base_estimator_name}__xgb_model": self.saved_models[i]})
         self.saved_models[i] = estimator.get_booster()
-
-    def _early_stopping_iter(self, i, estimator, X_train, y_train):
-        """Handles early stopping on estimators supporting `warm_start`.
-
-        """
-        estimator.fit(X_train, y_train)
 
     def _early_stopping_ensemble(self, i, estimator, X_train, y_train):
         """Handles early stopping on ensemble estimators.
@@ -413,9 +414,8 @@ class _PipelineTrainable(_Trainable):
         # User will not be able to fine tune the n_estimators
         # parameter using ensemble early stopping
         updated_n_estimators = estimator.get_params(
-        )[f"{self.main_estimator.steps[-1][0]}__n_estimators"] + 1
-        estimator.set_params(
-            **{
-                f"{self.main_estimator.steps[-1][0]}__n_estimators": updated_n_estimators
-            })
+        )[f"{self.base_estimator_name}__n_estimators"] + 1
+        estimator.set_params(**{
+            f"{self.base_estimator_name}__n_estimators": updated_n_estimators
+        })
         estimator.fit(X_train, y_train)
