@@ -95,6 +95,10 @@ class _Trainable(Trainable):
                 # max_iter is to make sklearn only fit for one epoch,
                 # while max_iters (which the user can set) is the usual max
                 # number of calls to _trainable.
+                if "max_iter" in self.estimator_config:
+                    raise ValueError("tune-sklearn uses `max_iter` to warm "
+                                     "start, so this parameter can't be "
+                                     "set when warm start early stopping. ")
                 self.estimator_config["warm_start"] = True
                 self.estimator_config["max_iter"] = 1
 
@@ -103,6 +107,11 @@ class _Trainable(Trainable):
                 # new estimators added to the ensemble. We start with 0
                 # and add an estimator before each call to fit in _train(),
                 # training the ensemble incrementally.
+                if "n_estimators" in self.estimator_config:
+                    raise ValueError(
+                        "tune-sklearn uses `n_estimators` to warm "
+                        "start, so this parameter can't be "
+                        "set when warm start early stopping. ")
                 self.estimator_config["warm_start"] = True
                 self.estimator_config["n_estimators"] = 0
 
