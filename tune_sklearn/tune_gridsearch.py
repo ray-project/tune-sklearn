@@ -118,8 +118,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             for `resources_per_trial`.
         pipeline_detection (bool): Indicates whether to attempt to enable
             early stopping support if the passed estimator is a sklearn
-            Pipeline. Early stopping will only be performed taking the 
-            last step of the pipeline into account. Defaults to True. 
+            Pipeline. Early stopping will only be performed taking the
+            last step of the pipeline into account. Defaults to True.
     """
 
     def __init__(self,

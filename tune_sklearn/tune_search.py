@@ -244,8 +244,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             with the proper CUDA VISIBLE DEVICE settings set.
         pipeline_detection (bool): Indicates whether to attempt to enable
             early stopping support if the passed estimator is a sklearn
-            Pipeline. Early stopping will only be performed taking the 
-            last step of the pipeline into account. Defaults to True. 
+            Pipeline. Early stopping will only be performed taking the
+            last step of the pipeline into account. Defaults to True.
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.

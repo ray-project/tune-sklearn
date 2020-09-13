@@ -328,7 +328,8 @@ class _PipelineTrainable(_Trainable):
     Overrides Ray Tune's Trainable class to specify the setup, train, save,
     and restore routines.
 
-    Runs all checks and configures parameters for the last step of the Pipeline.
+    Runs all checks and configures parameters for the last step of the
+    Pipeline.
 
     """
 
@@ -388,9 +389,10 @@ class _PipelineTrainable(_Trainable):
             estimator.partial_fit(X_train, y_train, np.unique(self.y))
         else:
             # Workaround if the pipeline itself doesn't support partial_fit
-            # (default sklearn doesn't). We set the final step to "passthrough",
-            # so that it doesn't get executed, do fit_transform to get transformed
-            # data, and then call partial_fit on just the final step.
+            # (default sklearn doesn't). We set the final step to
+            # "passthrough", so that it doesn't get executed,
+            # do fit_transform to get transformed data, and then
+            # call partial_fit on just the final step.
             last_step = estimator.steps[-1][1]
             estimator.steps[-1] = (estimator.steps[-1][0], "passthrough")
             X_train_transformed = estimator.fit_transform(X_train, y_train)
