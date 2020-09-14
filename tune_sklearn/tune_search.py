@@ -549,7 +549,8 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         """
         trainable = _Trainable
-        if check_is_pipeline(self.estimator) and self.early_stopping:
+        if self.pipeline_detection and check_is_pipeline(
+                self.estimator) and self.early_stopping:
             trainable = _PipelineTrainable
 
         stop_condition = {"training_iteration": self.max_iters}

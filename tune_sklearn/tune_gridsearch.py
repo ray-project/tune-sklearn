@@ -201,7 +201,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         """
         trainable = _Trainable
-        if check_is_pipeline(self.estimator) and self.early_stopping:
+        if self.pipeline_detection and check_is_pipeline(
+                self.estimator) and self.early_stopping:
             trainable = _PipelineTrainable
 
         if self.early_stopping is not None:
