@@ -242,10 +242,13 @@ class TuneSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will start processes
             with the proper CUDA VISIBLE DEVICE settings set.
-        pipeline_detection (bool): Indicates whether to attempt to enable
-            early stopping support if the passed estimator is a sklearn
-            Pipeline. Early stopping will only be performed taking the
-            last step of the pipeline into account. Defaults to True.
+        pipeline_auto_early_stop (bool): Only relevant if estimator is Pipeline
+            object and early_stopping is enabled/True. If True, early stopping
+            will be performed on the last stage of the pipeline (which must
+            support early stopping). If False, early stopping will be
+            determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
+            capabilities, which are by default not supported by standard
+            SKlearn. Defaults to True.
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
@@ -270,7 +273,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  max_iters=1,
                  search_optimization="random",
                  use_gpu=False,
-                 pipeline_detection=True,
+                 pipeline_auto_early_stop=True,
                  **search_kwargs):
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -331,7 +334,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             local_dir=local_dir,
             max_iters=max_iters,
             use_gpu=use_gpu,
-            pipeline_detection=pipeline_detection)
+            pipeline_auto_early_stop=pipeline_auto_early_stop)
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials
@@ -549,7 +552,7 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         """
         trainable = _Trainable
-        if self.pipeline_detection and check_is_pipeline(
+        if self.pipeline_auto_early_stop and check_is_pipeline(
                 self.estimator) and self.early_stopping:
             trainable = _PipelineTrainable
 

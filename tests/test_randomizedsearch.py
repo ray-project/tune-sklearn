@@ -274,7 +274,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 pipe,
                 parameter_grid,
                 early_stopping=True,
-                pipeline_detection=False,
+                pipeline_auto_early_stop=False,
                 max_iters=10)
         self.assertTrue((
             "Early stopping is not supported because the estimator does "

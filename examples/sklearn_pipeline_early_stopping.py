@@ -32,7 +32,7 @@ random = TuneSearchCV(
     search_optimization="random",
     early_stopping=True,
     max_iters=10,
-    pipeline_detection=True)
+    pipeline_auto_early_stop=True)
 random.fit(X, y)
 print(random.cv_results_)
 
@@ -41,13 +41,13 @@ grid = TuneGridSearchCV(
     param_grid=param_grid,
     early_stopping=True,
     max_iters=10,
-    pipeline_detection=True)
+    pipeline_auto_early_stop=True)
 grid.fit(X, y)
 print(grid.cv_results_)
 
 # warm start iter
 
-pipe = Pipeline([("reduce_dim", PCA()), ("classify", LogisticRegression())])
+pipe = Pipeline([("reduce_dim", PCA()), ("classify", LogisticRegression(max_iter=1000))])
 
 param_grid = [
     {
@@ -61,7 +61,7 @@ random = TuneSearchCV(
     search_optimization="random",
     early_stopping=True,
     max_iters=10,
-    pipeline_detection=True)
+    pipeline_auto_early_stop=True)
 random.fit(X, y)
 print(random.cv_results_)
 
@@ -82,6 +82,6 @@ random = TuneSearchCV(
     search_optimization="random",
     early_stopping=True,
     max_iters=10,
-    pipeline_detection=True)
+    pipeline_auto_early_stop=True)
 random.fit(X, y)
 print(random.cv_results_)
