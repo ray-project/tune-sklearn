@@ -489,7 +489,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                                          f"or 'log-uniform', was {prior}")
                 if prior == "log-uniform":
                     config_space[param_name] = hp.loguniform(
-                        param_name, low, high)
+                        param_name, np.log(low), np.log(high))
                 else:
                     config_space[param_name] = hp.uniform(
                         param_name, low, high)
