@@ -47,7 +47,8 @@ print(grid.cv_results_)
 
 # warm start iter
 
-pipe = Pipeline([("reduce_dim", PCA()), ("classify", LogisticRegression(max_iter=1000))])
+pipe = Pipeline([("reduce_dim", PCA()), ("classify",
+                                         LogisticRegression(max_iter=1000))])
 
 param_grid = [
     {
