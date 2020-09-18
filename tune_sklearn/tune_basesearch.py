@@ -262,7 +262,8 @@ class TuneBaseSearchCV(BaseEstimator):
         if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
             _, self.base_estimator = self.base_estimator.steps[-1]
 
-        self.early_stop_type = get_early_stop_type(self.base_estimator, bool(early_stopping))
+        self.early_stop_type = get_early_stop_type(self.base_estimator,
+                                                   bool(early_stopping))
 
         if not self._can_early_stop():
             if early_stopping:
@@ -288,7 +289,7 @@ class TuneBaseSearchCV(BaseEstimator):
                     "early_stopping is enabled but max_iters = 1. "
                     "To enable partial training, set max_iters > 1.",
                     category=UserWarning)
-            if self.early_stop_type == EarlyStopping.xgb:
+            if self.early_stop_type == EarlyStopping.XGB:
                 warnings.warn(
                     "tune-sklearn implements incremental learning "
                     "for xgboost models following this: "
@@ -417,7 +418,7 @@ class TuneBaseSearchCV(BaseEstimator):
             self.best_params = self._clean_config_dict(best_config)
 
             self.best_estimator_ = clone(self.estimator)
-            if self.early_stop_type == EarlyStopping.warm_start_ensemble:
+            if self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
                 logger.info("tune-sklearn uses `n_estimators` to warm "
                             "start, so this parameter can't be "
                             "set when warm start early stopping. "
@@ -527,7 +528,7 @@ class TuneBaseSearchCV(BaseEstimator):
             bool: if the estimator can early stop
 
         """
-        return self.early_stop_type != EarlyStopping.no_early_stop
+        return self.early_stop_type != EarlyStopping.NO_EARLY_STOP
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.

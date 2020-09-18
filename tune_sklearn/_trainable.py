@@ -69,7 +69,7 @@ class _Trainable(Trainable):
             for i in range(n_splits):
                 self.estimator_list[i].set_params(**self.estimator_config)
 
-            if self.early_stop_type == EarlyStopping.xgb:
+            if self.early_stop_type == EarlyStopping.XGB:
                 self.saved_models = [None for _ in range(n_splits)]
         else:
             self.main_estimator.set_params(**self.estimator_config)
@@ -78,7 +78,7 @@ class _Trainable(Trainable):
         n_splits = self.cv.get_n_splits(self.X, self.y)
         self.fold_scores = np.empty(n_splits, dtype=dict)
         self.fold_train_scores = np.empty(n_splits, dtype=dict)
-        if self.early_stop_type == EarlyStopping.warm_start_iter:
+        if self.early_stop_type == EarlyStopping.WARM_START_ITER:
             # max_iter here is different than the max_iters the user sets.
             # max_iter is to make sklearn only fit for one epoch,
             # while max_iters (which the user can set) is the usual max
@@ -86,7 +86,7 @@ class _Trainable(Trainable):
             self.estimator_config["warm_start"] = True
             self.estimator_config["max_iter"] = 1
 
-        elif self.early_stop_type == EarlyStopping.warm_start_ensemble:
+        elif self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
             # Each additional call on a warm start ensemble only trains
             # new estimators added to the ensemble. We start with 0
             # and add an estimator before each call to fit in _train(),
@@ -156,14 +156,14 @@ class _Trainable(Trainable):
                                                train)
                 X_test, y_test = _safe_split(
                     estimator, self.X, self.y, test, train_indices=train)
-                if self.early_stop_type == EarlyStopping.partial_fit:
+                if self.early_stop_type == EarlyStopping.PARTIAL_FIT:
                     self._early_stopping_partial_fit(i, estimator, X_train,
                                                      y_train)
-                elif self.early_stop_type == EarlyStopping.xgb:
+                elif self.early_stop_type == EarlyStopping.XGB:
                     self._early_stopping_xgb(i, estimator, X_train, y_train)
-                elif self.early_stop_type == EarlyStopping.warm_start_iter:
+                elif self.early_stop_type == EarlyStopping.WARM_START_ITER:
                     self._early_stopping_iter(i, estimator, X_train, y_train)
-                elif self.early_stop_type == EarlyStopping.warm_start_ensemble:
+                elif self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
                     self._early_stopping_ensemble(i, estimator, X_train,
                                                   y_train)
                 else:
@@ -321,7 +321,7 @@ class _PipelineTrainable(_Trainable):
         n_splits = self.cv.get_n_splits(self.X, self.y)
         self.fold_scores = np.empty(n_splits, dtype=dict)
         self.fold_train_scores = np.empty(n_splits, dtype=dict)
-        if self.early_stop_type == EarlyStopping.warm_start_iter:
+        if self.early_stop_type == EarlyStopping.WARM_START_ITER:
             # max_iter here is different than the max_iters the user sets.
             # max_iter is to make sklearn only fit for one epoch,
             # while max_iters (which the user can set) is the usual max
@@ -330,7 +330,7 @@ class _PipelineTrainable(_Trainable):
                 f"{self.base_estimator_name}__warm_start"] = True
             self.estimator_config[f"{self.base_estimator_name}__max_iter"] = 1
 
-        elif self.early_stop_type == EarlyStopping.warm_start_ensemble:
+        elif self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
             # Each additional call on a warm start ensemble only trains
             # new estimators added to the ensemble. We start with 0
             # and add an estimator before each call to fit in _train(),
