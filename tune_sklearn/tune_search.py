@@ -276,7 +276,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                  use_gpu=False,
                  pipeline_auto_early_stop=True,
                  **search_kwargs):
-        check_error_warm_start(estimator, param_distributions)
         search_optimization = search_optimization.lower()
         available_optimizations = [
             "random",
@@ -337,6 +336,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             max_iters=max_iters,
             use_gpu=use_gpu,
             pipeline_auto_early_stop=pipeline_auto_early_stop)
+
+        if self.early_stopping:
+            check_error_warm_start(self.early_stop_type, param_distributions)
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials

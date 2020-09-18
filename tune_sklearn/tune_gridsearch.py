@@ -141,7 +141,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  max_iters=1,
                  use_gpu=False,
                  pipeline_auto_early_stop=True):
-        check_error_warm_start(estimator, param_grid)
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
@@ -157,6 +156,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             verbose=verbose,
             use_gpu=use_gpu,
             pipeline_auto_early_stop=pipeline_auto_early_stop)
+
+        if self.early_stopping:
+            check_error_warm_start(self.early_stop_type, param_grid)
 
         _check_param_grid(param_grid)
         self.param_grid = param_grid

@@ -40,8 +40,7 @@ def check_warm_start_ensemble(estimator):
             and hasattr(estimator, "n_estimators") and is_ensemble_subclass)
 
 
-def check_error_warm_start(estimator, estimator_config):
-    early_stop_type = get_early_stop_type(estimator)
+def check_error_warm_start(early_stop_type, estimator_config):
     if (early_stop_type == EarlyStopping.warm_start_iter
             and "max_iter" in estimator_config):
         raise ValueError("tune-sklearn uses `max_iter` to warm "
