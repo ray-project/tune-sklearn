@@ -22,15 +22,15 @@ import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler)
-from ray.tune.logger import (UnifiedLogger, TBXLogger, JsonLogger, CSVLogger,
-                             MLFLowLogger, Logger)
-from ray.tune.logger import DEFAULT_LOGGERS
+from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
+                             Logger)
 from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
 import os
+import inspect
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
 from tune_sklearn.utils import (check_warm_start_iter,
@@ -77,28 +77,26 @@ def resolve_loggers(loggers):
     if not isinstance(loggers, list):
         raise TypeError("`loggers` must be a list of str or tune " "loggers.")
 
-    init_loggers = []
+    init_loggers = {JsonLogger}
     for log in loggers:
-        if isinstance(log, str) and log in TuneBaseSearchCV.defined_loggers:
-            if log == "UnifiedLogger":
-                init_loggers.append(UnifiedLogger)
-            elif log == "TBXLogger":
-                init_loggers.append(TBXLogger)
-            elif log == "JsonLogger":
-                init_loggers.append(JsonLogger)
-            elif log == "CSVLogger":
-                init_loggers.append(CSVLogger)
-            elif log == "MLFLowLogger":
-                init_loggers.append(MLFLowLogger)
-        elif issubclass(log, Logger):
-            init_loggers.append(log)
+        if isinstance(log, str):
+            if log == "tensorboard":
+                init_loggers.add(TBXLogger)
+            elif log == "csv":
+                init_loggers.add(CSVLogger)
+            elif log == "mlflow":
+                init_loggers.add(MLFLowLogger)
+            elif log == "json":
+                init_loggers.add(JsonLogger)
+            else:
+                raise ValueError("{} is not a defined logger. "
+                                 "Check the list of available loggers."
+                                 .format(log))
+        elif inspect.isclass(log) and issubclass(log, Logger):
+            init_loggers.add(log)
         else:
             raise TypeError("`loggers` must be a list of str or tune "
                             "loggers.")
-
-    for log in DEFAULT_LOGGERS:
-        if log not in init_loggers:
-            init_loggers.append(log)
 
     return init_loggers
 
@@ -110,10 +108,7 @@ class TuneBaseSearchCV(BaseEstimator):
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
         "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler"
     ]
-    defined_loggers = [
-        "UnifiedLogger", "TBXLogger", "JsonLogger", "CSVLogger",
-        "MLFLowLogger", "Logger"
-    ]
+    defined_loggers = ["tensorboard", "csv", "mlflow", "json"]
 
     @property
     def _estimator_type(self):
@@ -436,6 +431,8 @@ class TuneBaseSearchCV(BaseEstimator):
         config["n_jobs"] = self.sk_n_jobs
 
         self._fill_config_hyperparam(config)
+        import pdb
+        pdb.set_trace()
         analysis = self._tune_run(config, resources_per_trial)
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
