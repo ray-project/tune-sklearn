@@ -46,7 +46,7 @@ class TrainableTest(unittest.TestCase):
         config["X_id"] = self.X_id
         config["y_id"] = self.y_id
         config["early_stopping"] = False
-        config["early_stop_tyoe"] = get_early_stop_type(estimator_list[0])
+        config["early_stop_type"] = get_early_stop_type(estimator_list[0])
         config["max_iters"] = 1
         config["groups"] = None
         config["cv"] = cv
