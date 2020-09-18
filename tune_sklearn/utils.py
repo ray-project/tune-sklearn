@@ -6,11 +6,11 @@ from enum import Enum
 
 
 class EarlyStopping(Enum):
-    partial_fit = 1
-    warm_start_iter = 2
-    warm_start_ensemble = 3
-    xgb = 4
-    no_early_stop = 5
+    PARTIAL_FIT = 1
+    WARM_START_ITER = 2
+    WARM_START_ENSEMBLE = 3
+    XGB = 4
+    NO_EARLY_STOP = 5
 
 
 def check_partial_fit(estimator):
@@ -41,34 +41,36 @@ def check_warm_start_ensemble(estimator):
 
 
 def check_error_warm_start(early_stop_type, estimator_config):
-    if (early_stop_type == EarlyStopping.warm_start_iter
+    if (early_stop_type == EarlyStopping.WARM_START_ITER
             and "max_iter" in estimator_config):
         raise ValueError("tune-sklearn uses `max_iter` to warm "
                          "start, so this parameter can't be "
                          "set when warm start early stopping. ")
-    if (early_stop_type == EarlyStopping.warm_start_ensemble
+    if (early_stop_type == EarlyStopping.WARM_START_ENSEMBLE
             and "n_estimators" in estimator_config):
         raise ValueError("tune-sklearn uses `n_estimators` to warm "
                          "start, so this parameter can't be "
                          "set when warm start early stopping. ")
 
 
-def get_early_stop_type(estimator):
+def get_early_stop_type(estimator, early_stopping):
+    if not early_stopping:
+        return EarlyStopping.NO_EARLY_STOP
     can_partial_fit = check_partial_fit(estimator)
     can_warm_start_iter = check_warm_start_iter(estimator)
     can_warm_start_ensemble = check_warm_start_ensemble(estimator)
     is_xgb = is_xgboost_model(estimator)
 
     if can_partial_fit:
-        return EarlyStopping.partial_fit
+        return EarlyStopping.PARTIAL_FIT
     elif can_warm_start_iter:
-        return EarlyStopping.warm_start_iter
+        return EarlyStopping.WARM_START_ITER
     elif can_warm_start_ensemble:
-        return EarlyStopping.warm_start_ensemble
+        return EarlyStopping.WARM_START_ENSEMBLE
     elif is_xgb:
-        return EarlyStopping.xgb
+        return EarlyStopping.XGB
     else:
-        return EarlyStopping.no_early_stop
+        return EarlyStopping.NO_EARLY_STOP
 
 
 def _aggregate_score_dicts(scores):

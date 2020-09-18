@@ -15,6 +15,7 @@ import unittest
 from unittest.mock import patch
 import os
 from tune_sklearn._detect_xgboost import has_xgboost
+from tune_sklearn.utils import EarlyStopping
 
 
 class RandomizedSearchTest(unittest.TestCase):
@@ -175,7 +176,8 @@ class RandomizedSearchTest(unittest.TestCase):
             n_jobs=1,
             max_iters=10,
             local_dir="./test-result")
-        self.assertFalse(tune_search._can_early_stop())
+        self.assertEqual(tune_search.early_stop_type,
+                         EarlyStopping.NO_EARLY_STOP)
 
         from sklearn.tree import DecisionTreeClassifier
         clf = DecisionTreeClassifier(random_state=0)
@@ -185,7 +187,8 @@ class RandomizedSearchTest(unittest.TestCase):
             n_jobs=1,
             max_iters=10,
             local_dir="./test-result")
-        self.assertFalse(tune_search2._can_early_stop())
+        self.assertEqual(tune_search2.early_stop_type,
+                         EarlyStopping.NO_EARLY_STOP)
 
         from sklearn.linear_model import LogisticRegression
         clf = LogisticRegression()
@@ -196,7 +199,29 @@ class RandomizedSearchTest(unittest.TestCase):
             max_iters=10,
             local_dir="./test-result")
 
-        self.assertTrue(tune_search3._can_early_stop())
+        self.assertEqual(tune_search3.early_stop_type,
+                         EarlyStopping.NO_EARLY_STOP)
+
+        tune_search4 = TuneSearchCV(
+            clf,
+            parameter_grid,
+            early_stopping=True,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertEqual(tune_search4.early_stop_type,
+                         EarlyStopping.WARM_START_ITER)
+
+        clf = RandomForestClassifier()
+        tune_search5 = TuneSearchCV(
+            clf,
+            parameter_grid,
+            early_stopping=True,
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertEqual(tune_search5.early_stop_type,
+                         EarlyStopping.WARM_START_ENSEMBLE)
 
     def test_warm_start_error(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
