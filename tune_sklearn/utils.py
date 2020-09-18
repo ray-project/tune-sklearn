@@ -1,6 +1,16 @@
 from sklearn.metrics import check_scoring
 from sklearn.pipeline import Pipeline
+from tune_sklearn._detect_xgboost import is_xgboost_model
 import numpy as np
+from enum import Enum
+
+
+class EarlyStopping(Enum):
+    partial_fit = 1
+    warm_start_iter = 2
+    warm_start_ensemble = 3
+    xgb = 4
+    no_early_stop = 5
 
 
 def check_partial_fit(estimator):
@@ -28,6 +38,38 @@ def check_warm_start_ensemble(estimator):
 
     return (hasattr(estimator, "warm_start")
             and hasattr(estimator, "n_estimators") and is_ensemble_subclass)
+
+
+def check_error_warm_start(estimator, estimator_config):
+    early_stop_type = get_early_stop_type(estimator)
+    if (early_stop_type == EarlyStopping.warm_start_iter
+            and "max_iter" in estimator_config):
+        raise ValueError("tune-sklearn uses `max_iter` to warm "
+                         "start, so this parameter can't be "
+                         "set when warm start early stopping. ")
+    if (early_stop_type == EarlyStopping.warm_start_ensemble
+            and "n_estimators" in estimator_config):
+        raise ValueError("tune-sklearn uses `n_estimators` to warm "
+                         "start, so this parameter can't be "
+                         "set when warm start early stopping. ")
+
+
+def get_early_stop_type(estimator):
+    can_partial_fit = check_partial_fit(estimator)
+    can_warm_start_iter = check_warm_start_iter(estimator)
+    can_warm_start_ensemble = check_warm_start_ensemble(estimator)
+    is_xgb = is_xgboost_model(estimator)
+
+    if can_partial_fit:
+        return EarlyStopping.partial_fit
+    elif can_warm_start_iter:
+        return EarlyStopping.warm_start_iter
+    elif can_warm_start_ensemble:
+        return EarlyStopping.warm_start_ensemble
+    elif is_xgb:
+        return EarlyStopping.xgb
+    else:
+        return EarlyStopping.no_early_stop
 
 
 def _aggregate_score_dicts(scores):
