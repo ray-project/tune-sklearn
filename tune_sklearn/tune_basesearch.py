@@ -77,7 +77,7 @@ def resolve_loggers(loggers):
     if not isinstance(loggers, list):
         raise TypeError("`loggers` must be a list of str or tune " "loggers.")
 
-    init_loggers = {JsonLogger}
+    init_loggers = {JsonLogger, CSVLogger}
     for log in loggers:
         if isinstance(log, str):
             if log == "tensorboard":
@@ -98,7 +98,7 @@ def resolve_loggers(loggers):
             raise TypeError("`loggers` must be a list of str or tune "
                             "loggers.")
 
-    return init_loggers
+    return list(init_loggers)
 
 
 class TuneBaseSearchCV(BaseEstimator):
@@ -431,8 +431,6 @@ class TuneBaseSearchCV(BaseEstimator):
         config["n_jobs"] = self.sk_n_jobs
 
         self._fill_config_hyperparam(config)
-        import pdb
-        pdb.set_trace()
         analysis = self._tune_run(config, resources_per_trial)
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
