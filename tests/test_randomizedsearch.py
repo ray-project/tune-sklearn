@@ -205,7 +205,7 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search4 = TuneSearchCV(
             clf,
             parameter_grid,
-            early_stopping=True
+            early_stopping=True,
             n_jobs=1,
             max_iters=10,
             local_dir="./test-result")
@@ -216,11 +216,11 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search5 = TuneSearchCV(
             clf,
             parameter_grid,
-            early_stopping=True
+            early_stopping=True,
             n_jobs=1,
             max_iters=10,
             local_dir="./test-result")
-        self.assertEqual(tune_search4.early_stop_type,
+        self.assertEqual(tune_search5.early_stop_type,
                          EarlyStopping.WARM_START_ENSEMBLE)
 
     def test_warm_start_error(self):
