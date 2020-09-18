@@ -54,7 +54,9 @@ def check_error_warm_start(estimator, estimator_config):
                          "set when warm start early stopping. ")
 
 
-def get_early_stop_type(estimator):
+def get_early_stop_type(estimator, early_stopping):
+    if not early_stopping:
+        return EarlyStopping.no_early_stop
     can_partial_fit = check_partial_fit(estimator)
     can_warm_start_iter = check_warm_start_iter(estimator)
     can_warm_start_ensemble = check_warm_start_ensemble(estimator)

@@ -415,13 +415,19 @@ class TuneBaseSearchCV(BaseEstimator):
             best_config = analysis.get_best_config(
                 metric=metric, mode="max", scope="last")
             self.best_params = self._clean_config_dict(best_config)
+
+            self.best_estimator_ = clone(self.estimator)
             if self.early_stop_type == EarlyStopping.warm_start_ensemble:
                 logger.info("tune-sklearn uses `n_estimators` to warm "
                             "start, so this parameter can't be "
                             "set when warm start early stopping. "
                             "`n_estimators` defaults to `max_iters`.")
-                self.best_params["n_estimators"] = self.max_iters
-            self.best_estimator_ = clone(self.estimator)
+                if check_is_pipeline(self.estimator):
+                    cloned_base_estimator = self.best_estimator_.steps[-1][1]
+                    cloned_base_estimator.set_params(
+                        **{"n_estimators": self.max_iters})
+                else:
+                    self.best_params["n_estimators"] = self.max_iters
             self.best_estimator_.set_params(**self.best_params)
             self.best_estimator_.fit(X, y, **fit_params)
 
