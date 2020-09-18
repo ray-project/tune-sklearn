@@ -200,7 +200,28 @@ class RandomizedSearchTest(unittest.TestCase):
             local_dir="./test-result")
 
         self.assertEqual(tune_search3.early_stop_type,
+                         EarlyStopping.NO_EARLY_STOP)
+
+        tune_search4 = TuneSearchCV(
+            clf,
+            parameter_grid,
+            early_stopping=True
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertEqual(tune_search4.early_stop_type,
                          EarlyStopping.WARM_START_ITER)
+
+        clf = RandomForestClassifier()
+        tune_search5 = TuneSearchCV(
+            clf,
+            parameter_grid,
+            early_stopping=True
+            n_jobs=1,
+            max_iters=10,
+            local_dir="./test-result")
+        self.assertEqual(tune_search4.early_stop_type,
+                         EarlyStopping.WARM_START_ENSEMBLE)
 
     def test_warm_start_error(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
