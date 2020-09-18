@@ -262,7 +262,7 @@ class TuneBaseSearchCV(BaseEstimator):
         if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
             _, self.base_estimator = self.base_estimator.steps[-1]
 
-        self.early_stop_type = get_early_stop_type(self.base_estimator)
+        self.early_stop_type = get_early_stop_type(self.base_estimator, bool(early_stopping))
 
         if not self._can_early_stop():
             if early_stopping:
