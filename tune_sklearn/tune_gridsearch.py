@@ -125,26 +125,23 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             SKlearn. Defaults to True.
     """
 
-<<<<<<< HEAD
-    def __init__(
-            self,
-            estimator,
-            param_grid,
-            early_stopping=None,
-            scoring=None,
-            n_jobs=None,
-            sk_n_jobs=-1,
-            cv=5,
-            refit=True,
-            verbose=0,
-            error_score="raise",
-            return_train_score=False,
-            local_dir="~/ray_results",
-            max_iters=1,
-            use_gpu=False,
-            loggers=None,
-            pipeline_auto_early_stop=True
-    ):
+    def __init__(self,
+                 estimator,
+                 param_grid,
+                 early_stopping=None,
+                 scoring=None,
+                 n_jobs=None,
+                 sk_n_jobs=-1,
+                 cv=5,
+                 refit=True,
+                 verbose=0,
+                 error_score="raise",
+                 return_train_score=False,
+                 local_dir="~/ray_results",
+                 max_iters=1,
+                 use_gpu=False,
+                 loggers=None,
+                 pipeline_auto_early_stop=True):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
