@@ -71,13 +71,13 @@ def resolve_early_stopping(early_stopping, max_iters):
 
 
 def resolve_loggers(loggers):
+    init_loggers = {JsonLogger, CSVLogger}
     if loggers is None:
-        return None
+        return list(init_loggers)
 
     if not isinstance(loggers, list):
         raise TypeError("`loggers` must be a list of str or tune loggers.")
 
-    init_loggers = {JsonLogger, CSVLogger}
     for log in loggers:
         if isinstance(log, str):
             if log == "tensorboard":
@@ -89,7 +89,8 @@ def resolve_loggers(loggers):
             elif log == "json":
                 init_loggers.add(JsonLogger)
             else:
-                raise ValueError(("{} is not one of the defined loggers. " + str(TuneBaseSearchCV.defined_schedulers))
+                raise ValueError(("{} is not one of the defined loggers. " +
+                                  str(TuneBaseSearchCV.defined_schedulers))
                                  .format(log))
         elif inspect.isclass(log) and issubclass(log, Logger):
             init_loggers.add(log)
