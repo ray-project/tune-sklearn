@@ -75,7 +75,7 @@ def resolve_loggers(loggers):
         return None
 
     if not isinstance(loggers, list):
-        raise TypeError("`loggers` must be a list of str or tune " "loggers.")
+        raise TypeError("`loggers` must be a list of str or tune loggers.")
 
     init_loggers = {JsonLogger, CSVLogger}
     for log in loggers:
