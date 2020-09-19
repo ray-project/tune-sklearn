@@ -35,7 +35,7 @@ import inspect
 from tune_sklearn._detect_xgboost import is_xgboost_model
 from tune_sklearn.utils import (check_warm_start_iter,
                                 check_warm_start_ensemble, check_partial_fit,
-                                _check_multimetric_scoring)
+                                check_is_pipeline, _check_multimetric_scoring)
 
 logger = logging.getLogger(__name__)
 
@@ -289,10 +289,16 @@ class TuneBaseSearchCV(BaseEstimator):
                  local_dir="~/ray_results",
                  max_iters=1,
                  use_gpu=False,
-                 loggers=None):
+                 loggers=None,
+                 pipeline_auto_early_stop=True):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
+        self.base_estimator = estimator
+        self.pipeline_auto_early_stop = pipeline_auto_early_stop
+
+        if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
+            _, self.base_estimator = self.base_estimator.steps[-1]
 
         if not self._can_early_stop():
             if early_stopping:
@@ -554,10 +560,11 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
 
-        can_partial_fit = check_partial_fit(self.estimator)
-        can_warm_start = check_warm_start_iter(self.estimator)
-        can_warm_start_ensemble = check_warm_start_ensemble(self.estimator)
-        is_gbm = is_xgboost_model(self.estimator)
+        can_partial_fit = check_partial_fit(self.base_estimator)
+        can_warm_start = check_warm_start_iter(self.base_estimator)
+        can_warm_start_ensemble = check_warm_start_ensemble(
+            self.base_estimator)
+        is_gbm = is_xgboost_model(self.base_estimator)
 
         return (can_partial_fit or can_warm_start or can_warm_start_ensemble
                 or is_gbm)

@@ -86,25 +86,7 @@ class _Trainable(Trainable):
         self.saved_models = []  # XGBoost specific
 
         if self.early_stopping:
-            assert self._can_early_start()
-            n_splits = self.cv.get_n_splits(self.X, self.y)
-            self.fold_scores = np.empty(n_splits, dtype=dict)
-            self.fold_train_scores = np.empty(n_splits, dtype=dict)
-            if not self._can_partial_fit() and self._can_warm_start_iter():
-                # max_iter here is different than the max_iters the user sets.
-                # max_iter is to make sklearn only fit for one epoch,
-                # while max_iters (which the user can set) is the usual max
-                # number of calls to _trainable.
-                self.estimator_config["warm_start"] = True
-                self.estimator_config["max_iter"] = 1
-
-            if not self._can_partial_fit() and self._can_warm_start_ensemble():
-                # Each additional call on a warm start ensemble only trains
-                # new estimators added to the ensemble. We start with 0
-                # and add an estimator before each call to fit in _train(),
-                # training the ensemble incrementally.
-                self.estimator_config["warm_start"] = True
-                self.estimator_config["n_estimators"] = 0
+            n_splits = self._setup_early_stopping()
 
             for i in range(n_splits):
                 self.estimator_list[i].set_params(**self.estimator_config)
@@ -113,6 +95,30 @@ class _Trainable(Trainable):
                 self.saved_models = [None for _ in range(n_splits)]
         else:
             self.main_estimator.set_params(**self.estimator_config)
+
+    def _setup_early_stopping(self):
+        assert self._can_early_start()
+        n_splits = self.cv.get_n_splits(self.X, self.y)
+        self.fold_scores = np.empty(n_splits, dtype=dict)
+        self.fold_train_scores = np.empty(n_splits, dtype=dict)
+        if not self._can_partial_fit():
+            if self._can_warm_start_iter():
+                # max_iter here is different than the max_iters the user sets.
+                # max_iter is to make sklearn only fit for one epoch,
+                # while max_iters (which the user can set) is the usual max
+                # number of calls to _trainable.
+                self.estimator_config["warm_start"] = True
+                self.estimator_config["max_iter"] = 1
+
+            elif self._can_warm_start_ensemble():
+                # Each additional call on a warm start ensemble only trains
+                # new estimators added to the ensemble. We start with 0
+                # and add an estimator before each call to fit in _train(),
+                # training the ensemble incrementally.
+                self.estimator_config["warm_start"] = True
+                self.estimator_config["n_estimators"] = 0
+
+        return n_splits
 
     def step(self):
         # forward-compatbility
@@ -314,3 +320,102 @@ class _Trainable(Trainable):
         self.config = new_config
         self._setup(new_config)
         return True
+
+
+class _PipelineTrainable(_Trainable):
+    """Class to be passed in as the first argument of tune.run to train models.
+
+    Overrides Ray Tune's Trainable class to specify the setup, train, save,
+    and restore routines.
+
+    Runs all checks and configures parameters for the last step of the
+    Pipeline.
+
+    """
+
+    @property
+    def base_estimator_name(self):
+        return self.main_estimator.steps[-1][0]
+
+    @property
+    def base_estimator(self):
+        return self.main_estimator.steps[-1][1]
+
+    def _can_partial_fit(self):
+        return check_partial_fit(self.base_estimator)
+
+    def _can_warm_start_iter(self):
+        return check_warm_start_iter(self.base_estimator)
+
+    def _can_warm_start_ensemble(self):
+        return check_warm_start_ensemble(self.base_estimator)
+
+    def _is_xgb(self):
+        return is_xgboost_model(self.base_estimator)
+
+    def _setup_early_stopping(self):
+        assert self._can_early_start()
+        n_splits = self.cv.get_n_splits(self.X, self.y)
+        self.fold_scores = np.empty(n_splits, dtype=dict)
+        self.fold_train_scores = np.empty(n_splits, dtype=dict)
+        if not self._can_partial_fit():
+            if self._can_warm_start_iter():
+                # max_iter here is different than the max_iters the user sets.
+                # max_iter is to make sklearn only fit for one epoch,
+                # while max_iters (which the user can set) is the usual max
+                # number of calls to _trainable.
+                self.estimator_config[
+                    f"{self.base_estimator_name}__warm_start"] = True
+                self.estimator_config[
+                    f"{self.base_estimator_name}__max_iter"] = 1
+
+            elif self._can_warm_start_ensemble():
+                # Each additional call on a warm start ensemble only trains
+                # new estimators added to the ensemble. We start with 0
+                # and add an estimator before each call to fit in _train(),
+                # training the ensemble incrementally.
+                self.estimator_config[
+                    f"{self.base_estimator_name}__warm_start"] = True
+                self.estimator_config[
+                    f"{self.base_estimator_name}__n_estimators"] = 0
+
+        return n_splits
+
+    def _early_stopping_partial_fit(self, i, estimator, X_train, y_train):
+        """Handles early stopping on estimators that support `partial_fit`.
+
+        """
+        if hasattr(estimator, "partial_fit"):
+            estimator.partial_fit(X_train, y_train, np.unique(self.y))
+        else:
+            # Workaround if the pipeline itself doesn't support partial_fit
+            # (default sklearn doesn't). We set the final step to
+            # "passthrough", so that it doesn't get executed,
+            # do fit_transform to get transformed data, and then
+            # call partial_fit on just the final step.
+            last_step = estimator.steps[-1][1]
+            estimator.steps[-1] = (estimator.steps[-1][0], "passthrough")
+            X_train_transformed = estimator.fit_transform(X_train, y_train)
+            estimator.steps[-1] = (estimator.steps[-1][0], last_step)
+            estimator.steps[-1][1].partial_fit(X_train_transformed, y_train,
+                                               np.unique(self.y))
+
+    def _early_stopping_xgb(self, i, estimator, X_train, y_train):
+        """Handles early stopping on XGBoost estimators.
+
+        """
+        estimator.fit(
+            X_train, y_train,
+            **{f"{self.base_estimator_name}__xgb_model": self.saved_models[i]})
+        self.saved_models[i] = estimator.get_booster()
+
+    def _early_stopping_ensemble(self, i, estimator, X_train, y_train):
+        """Handles early stopping on ensemble estimators.
+
+        """
+        # User will not be able to fine tune the n_estimators
+        # parameter using ensemble early stopping
+        n_estimator_key = f"{self.base_estimator_name}__n_estimators"
+        updated_n_estimators = estimator.get_params()[n_estimator_key] + 1
+        estimator.set_params(**{n_estimator_key: updated_n_estimators})
+        estimator.fit(X_train, y_train)

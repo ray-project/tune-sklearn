@@ -2,8 +2,10 @@
     -- Anthony Yu and Michael Chau
 """
 import logging
+from tune_sklearn.utils import check_is_pipeline
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
+from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.base import clone
 from ray import tune
 from ray.tune.suggest import ConcurrencyLimiter
@@ -240,6 +242,13 @@ class TuneSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will start processes
             with the proper CUDA VISIBLE DEVICE settings set.
+        pipeline_auto_early_stop (bool): Only relevant if estimator is Pipeline
+            object and early_stopping is enabled/True. If True, early stopping
+            will be performed on the last stage of the pipeline (which must
+            support early stopping). If False, early stopping will be
+            determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
+            capabilities, which are by default not supported by standard
+            SKlearn. Defaults to True.
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
@@ -265,6 +274,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  search_optimization="random",
                  use_gpu=False,
                  loggers=None,
+                 pipeline_auto_early_stop=True,
                  **search_kwargs):
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -325,7 +335,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             local_dir=local_dir,
             max_iters=max_iters,
             use_gpu=use_gpu,
-            loggers=loggers)
+            loggers=loggers,
+            pipeline_auto_early_stop=pipeline_auto_early_stop)
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials
@@ -480,7 +491,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                                          f"or 'log-uniform', was {prior}")
                 if prior == "log-uniform":
                     config_space[param_name] = hp.loguniform(
-                        param_name, low, high)
+                        param_name, np.log(low), np.log(high))
                 else:
                     config_space[param_name] = hp.uniform(
                         param_name, low, high)
@@ -542,6 +553,11 @@ class TuneSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
+        trainable = _Trainable
+        if self.pipeline_auto_early_stop and check_is_pipeline(
+                self.estimator) and self.early_stopping:
+            trainable = _PipelineTrainable
+
         stop_condition = {"training_iteration": self.max_iters}
         if self.early_stopping is not None:
             config["estimator_list"] = [
@@ -572,7 +588,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 run_args["search_alg"] = RandomListSearcher(
                     self.param_distributions)
 
-            analysis = tune.run(_Trainable, **run_args)
+            analysis = tune.run(trainable, **run_args)
             return analysis
 
         elif self.search_optimization == "bayesian":
@@ -618,7 +634,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 search_algo, max_concurrent=self.n_jobs)
 
         analysis = tune.run(
-            _Trainable,
+            trainable,
             search_alg=search_algo,
             scheduler=self.early_stopping,
             reuse_actors=True,

@@ -4,11 +4,13 @@
 
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
+from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.model_selection._search import _check_param_grid
 from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
+from tune_sklearn.utils import check_is_pipeline
 import os
 
 
@@ -114,8 +116,16 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.
+        pipeline_auto_early_stop (bool): Only relevant if estimator is Pipeline
+            object and early_stopping is enabled/True. If True, early stopping
+            will be performed on the last stage of the pipeline (which must
+            support early stopping). If False, early stopping will be
+            determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
+            capabilities, which are by default not supported by standard
+            SKlearn. Defaults to True.
     """
 
+<<<<<<< HEAD
     def __init__(
             self,
             estimator,
@@ -133,6 +143,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             max_iters=1,
             use_gpu=False,
             loggers=None,
+            pipeline_auto_early_stop=True
     ):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
@@ -148,7 +159,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             max_iters=max_iters,
             verbose=verbose,
             use_gpu=use_gpu,
-            loggers=loggers)
+            loggers=loggers,
+            pipeline_auto_early_stop=pipeline_auto_early_stop)
 
         _check_param_grid(param_grid)
         self.param_grid = param_grid
@@ -196,6 +208,11 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
+        trainable = _Trainable
+        if self.pipeline_auto_early_stop and check_is_pipeline(
+                self.estimator) and self.early_stopping:
+            trainable = _PipelineTrainable
+
         if self.early_stopping is not None:
             config["estimator_list"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
@@ -205,7 +222,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         if isinstance(self.param_grid, list):
             analysis = tune.run(
-                _Trainable,
+                trainable,
                 search_alg=ListSearcher(self.param_grid),
                 num_samples=self._list_grid_num_samples(),
                 scheduler=self.early_stopping,
@@ -219,7 +236,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 loggers=self.loggers)
         else:
             analysis = tune.run(
-                _Trainable,
+                trainable,
                 scheduler=self.early_stopping,
                 reuse_actors=True,
                 verbose=self.verbose,
