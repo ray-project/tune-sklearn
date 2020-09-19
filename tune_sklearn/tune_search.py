@@ -337,7 +337,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             pipeline_auto_early_stop=pipeline_auto_early_stop)
 
-        check_error_warm_start(self.early_stop_type, param_distributions)
+        check_error_warm_start(self.early_stop_type, param_distributions,
+                               estimator)
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials
