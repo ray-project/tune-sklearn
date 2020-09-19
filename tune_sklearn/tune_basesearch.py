@@ -89,8 +89,7 @@ def resolve_loggers(loggers):
             elif log == "json":
                 init_loggers.add(JsonLogger)
             else:
-                raise ValueError("{} is not a defined logger. "
-                                 "Check the list of available loggers."
+                raise ValueError(("{} is not one of the defined loggers. " + str(TuneBaseSearchCV.defined_schedulers))
                                  .format(log))
         elif inspect.isclass(log) and issubclass(log, Logger):
             init_loggers.add(log)

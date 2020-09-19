@@ -242,6 +242,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will start processes
             with the proper CUDA VISIBLE DEVICE settings set.
+        loggers (list): A list of the names of the Tune loggers as strings
+            to be used to log results. Possible values are "tensorboard",
+            "csv", "mlflow", and "json"
         pipeline_auto_early_stop (bool): Only relevant if estimator is Pipeline
             object and early_stopping is enabled/True. If True, early stopping
             will be performed on the last stage of the pipeline (which must
