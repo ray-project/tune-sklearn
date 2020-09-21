@@ -242,6 +242,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will start processes
             with the proper CUDA VISIBLE DEVICE settings set.
+        loggers (list): A list of the names of the Tune loggers as strings
+            to be used to log results. Possible values are "tensorboard",
+            "csv", "mlflow", and "json"
         pipeline_auto_early_stop (bool): Only relevant if estimator is Pipeline
             object and early_stopping is enabled/True. If True, early stopping
             will be performed on the last stage of the pipeline (which must
@@ -273,6 +276,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  max_iters=1,
                  search_optimization="random",
                  use_gpu=False,
+                 loggers=None,
                  pipeline_auto_early_stop=True,
                  **search_kwargs):
         search_optimization = search_optimization.lower()
@@ -334,6 +338,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             local_dir=local_dir,
             max_iters=max_iters,
             use_gpu=use_gpu,
+            loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop)
 
         self.param_distributions = param_distributions
@@ -579,7 +584,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
+                local_dir=os.path.expanduser(self.local_dir),
+                loggers=self.loggers)
 
             if isinstance(self.param_distributions, list):
                 run_args["search_alg"] = RandomListSearcher(
@@ -641,6 +647,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             config=config,
             fail_fast=True,
             resources_per_trial=resources_per_trial,
-            local_dir=os.path.expanduser(self.local_dir))
+            local_dir=os.path.expanduser(self.local_dir),
+            loggers=self.loggers)
 
         return analysis

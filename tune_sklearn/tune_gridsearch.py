@@ -116,6 +116,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.
+        loggers (list): A list of the names of the Tune loggers as strings
+            to be used to log results. Possible values are "tensorboard",
+            "csv", "mlflow", and "json"
         pipeline_auto_early_stop (bool): Only relevant if estimator is Pipeline
             object and early_stopping is enabled/True. If True, early stopping
             will be performed on the last stage of the pipeline (which must
@@ -140,6 +143,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  local_dir="~/ray_results",
                  max_iters=1,
                  use_gpu=False,
+                 loggers=None,
                  pipeline_auto_early_stop=True):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
@@ -155,6 +159,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             max_iters=max_iters,
             verbose=verbose,
             use_gpu=use_gpu,
+            loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop)
 
         _check_param_grid(param_grid)
@@ -227,7 +232,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
+                local_dir=os.path.expanduser(self.local_dir),
+                loggers=self.loggers)
         else:
             analysis = tune.run(
                 trainable,
@@ -238,6 +244,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 config=config,
                 fail_fast=True,
                 resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir))
+                local_dir=os.path.expanduser(self.local_dir),
+                loggers=self.loggers)
 
         return analysis

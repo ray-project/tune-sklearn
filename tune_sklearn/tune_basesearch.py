@@ -22,12 +22,15 @@ import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler)
+from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
+                             Logger)
 from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
 import multiprocessing
 import os
+import inspect
 
 from tune_sklearn._detect_xgboost import is_xgboost_model
 from tune_sklearn.utils import (check_warm_start_iter,
@@ -67,6 +70,37 @@ def resolve_early_stopping(early_stopping, max_iters):
                         f"or tune scheduler. Got {type(early_stopping)}.")
 
 
+def resolve_loggers(loggers):
+    init_loggers = {JsonLogger, CSVLogger}
+    if loggers is None:
+        return list(init_loggers)
+
+    if not isinstance(loggers, list):
+        raise TypeError("`loggers` must be a list of str or tune loggers.")
+
+    for log in loggers:
+        if isinstance(log, str):
+            if log == "tensorboard":
+                init_loggers.add(TBXLogger)
+            elif log == "csv":
+                init_loggers.add(CSVLogger)
+            elif log == "mlflow":
+                init_loggers.add(MLFLowLogger)
+            elif log == "json":
+                init_loggers.add(JsonLogger)
+            else:
+                raise ValueError(("{} is not one of the defined loggers. " +
+                                  str(TuneBaseSearchCV.defined_schedulers))
+                                 .format(log))
+        elif inspect.isclass(log) and issubclass(log, Logger):
+            init_loggers.add(log)
+        else:
+            raise TypeError("`loggers` must be a list of str or tune "
+                            "loggers.")
+
+    return list(init_loggers)
+
+
 class TuneBaseSearchCV(BaseEstimator):
     """Abstract base class for TuneGridSearchCV and TuneSearchCV"""
 
@@ -74,6 +108,7 @@ class TuneBaseSearchCV(BaseEstimator):
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
         "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler"
     ]
+    defined_loggers = ["tensorboard", "csv", "mlflow", "json"]
 
     @property
     def _estimator_type(self):
@@ -254,6 +289,7 @@ class TuneBaseSearchCV(BaseEstimator):
                  local_dir="~/ray_results",
                  max_iters=1,
                  use_gpu=False,
+                 loggers=None,
                  pipeline_auto_early_stop=True):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
@@ -320,6 +356,7 @@ class TuneBaseSearchCV(BaseEstimator):
         self.return_train_score = return_train_score
         self.local_dir = local_dir
         self.use_gpu = use_gpu
+        self.loggers = resolve_loggers(loggers)
         assert isinstance(self.n_jobs, int)
 
     def _fit(self, X, y=None, groups=None, **fit_params):
