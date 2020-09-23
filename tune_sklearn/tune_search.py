@@ -10,6 +10,7 @@ from sklearn.base import clone
 from ray import tune
 from ray.tune.suggest import ConcurrencyLimiter
 from tune_sklearn.list_searcher import RandomListSearcher
+from tune_sklearn.utils import check_error_warm_start
 import numpy as np
 import warnings
 import os
@@ -340,6 +341,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop)
+
+        check_error_warm_start(self.early_stop_type, param_distributions,
+                               estimator)
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials

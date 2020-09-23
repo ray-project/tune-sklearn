@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.model_selection import check_cv
 from sklearn.svm import SVC
 
-from tune_sklearn.utils import _check_multimetric_scoring
+from tune_sklearn.utils import _check_multimetric_scoring, get_early_stop_type
 
 
 def create_xgboost():
@@ -46,6 +46,8 @@ class TrainableTest(unittest.TestCase):
         config["X_id"] = self.X_id
         config["y_id"] = self.y_id
         config["early_stopping"] = False
+        config["early_stop_type"] = get_early_stop_type(
+            estimator_list[0], False)
         config["max_iters"] = 1
         config["groups"] = None
         config["cv"] = cv
@@ -68,6 +70,8 @@ class TrainableTest(unittest.TestCase):
             estimator_list=[create_xgboost(),
                             create_xgboost()])
         config["early_stopping"] = True
+        config["early_stop_type"] = get_early_stop_type(
+            config["estimator_list"][0], True)
         trainable = _Trainable(config)
         trainable.train()
         assert all(trainable.saved_models)
@@ -89,6 +93,8 @@ class TrainableTest(unittest.TestCase):
     def testPartialFit(self):
         config = self.base_params([SGDClassifier(), SGDClassifier()])
         config["early_stopping"] = True
+        config["early_stop_type"] = get_early_stop_type(
+            config["estimator_list"][0], True)
         trainable = _Trainable(config)
         trainable.train()
         assert trainable.estimator_list[0].t_ > 0
@@ -111,6 +117,8 @@ class TrainableTest(unittest.TestCase):
         # Hard to get introspection so we just test that it runs.
         config = self.base_params([LogisticRegression(), LogisticRegression()])
         config["early_stopping"] = True
+        config["early_stop_type"] = get_early_stop_type(
+            config["estimator_list"][0], True)
         trainable = _Trainable(config)
         trainable.train()
         trainable.train()

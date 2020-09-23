@@ -10,7 +10,7 @@ from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
-from tune_sklearn.utils import check_is_pipeline
+from tune_sklearn.utils import check_is_pipeline, check_error_warm_start
 import os
 
 
@@ -161,6 +161,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop)
+
+        check_error_warm_start(self.early_stop_type, param_grid, estimator)
 
         _check_param_grid(param_grid)
         self.param_grid = param_grid
