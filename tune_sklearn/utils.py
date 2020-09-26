@@ -40,18 +40,30 @@ def check_warm_start_ensemble(estimator):
             and hasattr(estimator, "n_estimators") and is_ensemble_subclass)
 
 
-def check_error_warm_start(estimator, estimator_config):
-    early_stop_type = get_early_stop_type(estimator)
-    if (early_stop_type == EarlyStopping.WARM_START_ITER
-            and "max_iter" in estimator_config):
-        raise ValueError("tune-sklearn uses `max_iter` to warm "
-                         "start, so this parameter can't be "
-                         "set when warm start early stopping. ")
-    if (early_stop_type == EarlyStopping.WARM_START_ENSEMBLE
-            and "n_estimators" in estimator_config):
-        raise ValueError("tune-sklearn uses `n_estimators` to warm "
-                         "start, so this parameter can't be "
-                         "set when warm start early stopping. ")
+def check_error_warm_start(early_stop_type, estimator_config, estimator):
+    if check_is_pipeline(estimator):
+        if (early_stop_type == EarlyStopping.WARM_START_ITER
+                and f"{estimator.steps[-1][0]}__max_iter" in estimator_config):
+            raise ValueError("tune-sklearn uses `max_iter` to warm "
+                             "start, so this parameter can't be "
+                             "set when warm start early stopping. ")
+
+        if (early_stop_type == EarlyStopping.WARM_START_ENSEMBLE and
+                f"{estimator.steps[-1][0]}__n_estimators" in estimator_config):
+            raise ValueError("tune-sklearn uses `n_estimators` to warm "
+                             "start, so this parameter can't be "
+                             "set when warm start early stopping. ")
+    else:
+        if (early_stop_type == EarlyStopping.WARM_START_ITER
+                and "max_iter" in estimator_config):
+            raise ValueError("tune-sklearn uses `max_iter` to warm "
+                             "start, so this parameter can't be "
+                             "set when warm start early stopping. ")
+        if (early_stop_type == EarlyStopping.WARM_START_ENSEMBLE
+                and "n_estimators" in estimator_config):
+            raise ValueError("tune-sklearn uses `n_estimators` to warm "
+                             "start, so this parameter can't be "
+                             "set when warm start early stopping. ")
 
 
 def get_early_stop_type(estimator, early_stopping):

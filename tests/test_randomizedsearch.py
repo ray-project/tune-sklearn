@@ -245,6 +245,30 @@ class RandomizedSearchTest(unittest.TestCase):
                 max_iters=10,
                 local_dir="./test-result")
 
+        from sklearn.linear_model import LogisticRegression
+        clf = LogisticRegression()
+        with self.assertRaises(ValueError):
+            parameter_grid = {"max_iter": [1, 2]}
+            TuneSearchCV(
+                clf,
+                parameter_grid,
+                early_stopping=True,
+                n_jobs=1,
+                max_iters=10,
+                local_dir="./test-result")
+
+        from sklearn.ensemble import RandomForestClassifier
+        clf = RandomForestClassifier()
+        with self.assertRaises(ValueError):
+            parameter_grid = {"n_estimators": [1, 2]}
+            TuneSearchCV(
+                clf,
+                parameter_grid,
+                early_stopping=True,
+                n_jobs=1,
+                max_iters=10,
+                local_dir="./test-result")
+
     def test_warn_reduce_maxiters(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
         from sklearn.ensemble import RandomForestClassifier
