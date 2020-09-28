@@ -125,8 +125,6 @@ class _Trainable(Trainable):
         """Handles early stopping on CatBoost estimators.
 
         """
-        # catboost doesn't allow changing params in fitted models
-        estimator = clone(estimator)
         estimator.fit(X_train, y_train, init_model=self.saved_models[i])
         self.saved_models[i] = estimator
 
@@ -406,8 +404,6 @@ class _PipelineTrainable(_Trainable):
         """Handles early stopping on CatBoost estimators.
 
         """
-        # catboost doesn't allow changing params in fitted models
-        estimator.steps[-1] = (estimator.steps[-1][0], clone(estimator.steps[-1][1]))
         estimator.fit(
             X_train, y_train, **{
                 f"{self.base_estimator_name}__init_model": self.saved_models[i]
