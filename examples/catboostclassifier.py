@@ -18,12 +18,10 @@ params = {
     "depth": [3, 4, 5],
 }
 
-lgbm = CatBoostClassifier(
-    n_estimators=50,
-)
+catboostclf = CatBoostClassifier(n_estimators=50, )
 
 digit_search = TuneSearchCV(
-    lgbm,
+    catboostclf,
     param_distributions=params,
     n_trials=3,
     # use_gpu=True # Commented out for testing on travis,

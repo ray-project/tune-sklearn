@@ -69,7 +69,8 @@ class _Trainable(Trainable):
             for i in range(n_splits):
                 self.estimator_list[i].set_params(**self.estimator_config)
 
-            if self.early_stop_type in (EarlyStopping.XGB, EarlyStopping.LGBM, EarlyStopping.CATBOOST):
+            if self.early_stop_type in (EarlyStopping.XGB, EarlyStopping.LGBM,
+                                        EarlyStopping.CATBOOST):
                 self.saved_models = [None for _ in range(n_splits)]
         else:
             self.main_estimator.set_params(**self.estimator_config)
@@ -178,7 +179,8 @@ class _Trainable(Trainable):
                 elif self.early_stop_type == EarlyStopping.LGBM:
                     self._early_stopping_lgbm(i, estimator, X_train, y_train)
                 elif self.early_stop_type == EarlyStopping.CATBOOST:
-                    self._early_stopping_catboost(i, estimator, X_train, y_train)
+                    self._early_stopping_catboost(i, estimator, X_train,
+                                                  y_train)
                 elif self.early_stop_type == EarlyStopping.WARM_START_ITER:
                     self._early_stopping_iter(i, estimator, X_train, y_train)
                 elif self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
@@ -393,8 +395,9 @@ class _PipelineTrainable(_Trainable):
 
         """
         estimator.fit(
-            X_train, y_train,
-            **{f"{self.base_estimator_name}__init_model": self.saved_models[i]})
+            X_train, y_train, **{
+                f"{self.base_estimator_name}__init_model": self.saved_models[i]
+            })
         self.saved_models[i] = estimator.booster_
 
     def _early_stopping_catboost(self, i, estimator, X_train, y_train):
@@ -402,8 +405,9 @@ class _PipelineTrainable(_Trainable):
 
         """
         estimator.fit(
-            X_train, y_train,
-            **{f"{self.base_estimator_name}__init_model": self.saved_models[i]})
+            X_train, y_train, **{
+                f"{self.base_estimator_name}__init_model": self.saved_models[i]
+            })
         self.saved_models[i] = estimator
 
     def _early_stopping_ensemble(self, i, estimator, X_train, y_train):

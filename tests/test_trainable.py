@@ -22,18 +22,14 @@ def create_xgboost():
 
 def create_lightgbm():
     from lightgbm import LGBMClassifier
-    return LGBMClassifier(
-        learning_rate=0.02,
-        n_estimators=5,
-        n_jobs=4)
+    return LGBMClassifier(learning_rate=0.02, n_estimators=5, n_jobs=4)
 
 
 def create_catboost():
     from catboost import CatBoostClassifier
     return CatBoostClassifier(
-        learning_rate=0.02,
-        n_estimators=5,
-        thread_count=4)
+        learning_rate=0.02, n_estimators=5, thread_count=4)
+
 
 class TrainableTest(unittest.TestCase):
     X_id = None
