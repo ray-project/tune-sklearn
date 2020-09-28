@@ -323,7 +323,8 @@ class TuneBaseSearchCV(BaseEstimator):
             if not self._can_early_stop() and is_lightgbm_model(
                     self.base_estimator):
                 warnings.warn(
-                    "lightgbm>=3.0.0 required for early_stopping functionality."
+                    "lightgbm>=3.0.0 required for early_stopping "
+                    "functionality."
                 )
             assert self._can_early_stop()
             if max_iters == 1:

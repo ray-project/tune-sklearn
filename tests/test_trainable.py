@@ -103,7 +103,7 @@ class TrainableTest(unittest.TestCase):
         trainable.stop()
 
     @unittest.skipIf(not has_required_lightgbm_version(),
-                     "lightgbm not installed")
+                     "lightgbm>=3.0.0 not installed")
     def testLGBMEarlyStop(self):
         config = self.base_params(
             estimator_list=[create_lightgbm(),
@@ -119,7 +119,7 @@ class TrainableTest(unittest.TestCase):
         trainable.stop()
 
     @unittest.skipIf(not has_required_lightgbm_version(),
-                     "lightgbm not installed")
+                     "lightgbm>=3.0.0 not installed")
     def testLGBMNoEarlyStop(self):
         config = self.base_params(
             estimator_list=[create_lightgbm(),
