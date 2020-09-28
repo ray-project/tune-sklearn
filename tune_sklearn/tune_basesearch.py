@@ -38,29 +38,29 @@ from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
 logger = logging.getLogger(__name__)
 
 
-def resolve_early_stopping(early_stopping, max_iters):
+def resolve_early_stopping(early_stopping, max_iters, metric_name):
     if isinstance(early_stopping, str):
         if early_stopping in TuneBaseSearchCV.defined_schedulers:
             if early_stopping == "PopulationBasedTraining":
                 return PopulationBasedTraining(
-                    metric="average_test_score", mode="max")
+                    metric=metric_name, mode="max")
             elif early_stopping == "AsyncHyperBandScheduler":
                 return AsyncHyperBandScheduler(
-                    metric="average_test_score", mode="max", max_t=max_iters)
+                    metric=metric_name, mode="max", max_t=max_iters)
             elif early_stopping == "HyperBandScheduler":
                 return HyperBandScheduler(
-                    metric="average_test_score", mode="max", max_t=max_iters)
+                    metric=metric_name, mode="max", max_t=max_iters)
             elif early_stopping == "MedianStoppingRule":
                 return MedianStoppingRule(
-                    metric="average_test_score", mode="max")
+                    metric=metric_name, mode="max")
             elif early_stopping == "ASHAScheduler":
                 return ASHAScheduler(
-                    metric="average_test_score", mode="max", max_t=max_iters)
+                    metric=metric_name, mode="max", max_t=max_iters)
         raise ValueError("{} is not a defined scheduler. "
                          "Check the list of available schedulers."
                          .format(early_stopping))
     elif isinstance(early_stopping, TrialScheduler):
-        early_stopping._metric = "average_test_score"
+        early_stopping._metric = metric_name
         early_stopping._mode = "max"
         return early_stopping
     else:
@@ -318,6 +318,20 @@ class TuneBaseSearchCV(BaseEstimator):
                 category=UserWarning)
             max_iters = 1
 
+        ## Get metric scoring name here
+        self.scoring = scoring
+        self.refit = refit
+        if not hasattr(self, "is_multi"):
+            self.scoring, self.is_multi = _check_multimetric_scoring(
+                self.estimator, self.scoring)
+
+        if self.is_multi:
+            scoring_name = self.refit
+        else:
+            scoring_name = "score"
+
+        self._metric_name = "average_test_%s" % scoring_name
+
         if early_stopping:
             assert self._can_early_stop()
             if max_iters == 1:
@@ -339,19 +353,19 @@ class TuneBaseSearchCV(BaseEstimator):
                 # the next block
                 early_stopping = "AsyncHyperBandScheduler"
             # Resolve the early stopping object
-            early_stopping = resolve_early_stopping(early_stopping, max_iters)
+            early_stopping = resolve_early_stopping(early_stopping, max_iters, self._metric_name)
 
         self.early_stopping = early_stopping
         self.max_iters = max_iters
 
         self.cv = cv
-        self.scoring = scoring
         self.n_jobs = int(n_jobs or -1)
         if os.environ.get("SKLEARN_N_JOBS") is not None:
             self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
         else:
             self.sk_n_jobs = sk_n_jobs
-        self.refit = refit
+
+
         self.verbose = verbose
         self.error_score = error_score
         self.return_train_score = return_train_score
@@ -443,12 +457,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
-        if self.is_multi:
-            scoring_name = self.refit
-        else:
-            scoring_name = "score"
-
-        metric = "average_test_%s" % scoring_name
+        metric = self._metric_name
         if self.refit:
             best_config = analysis.get_best_config(
                 metric=metric, mode="max", scope="last")
@@ -547,7 +556,7 @@ class TuneBaseSearchCV(BaseEstimator):
             float: computed score
 
         """
-        self._check_is_fitted("score")
+        self._check_is_fitted(self._metric_name)
         if self.is_multi:
             scorer_name = self.refit
         else:
