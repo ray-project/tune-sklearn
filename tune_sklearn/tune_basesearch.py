@@ -42,8 +42,7 @@ def resolve_early_stopping(early_stopping, max_iters, metric_name):
     if isinstance(early_stopping, str):
         if early_stopping in TuneBaseSearchCV.defined_schedulers:
             if early_stopping == "PopulationBasedTraining":
-                return PopulationBasedTraining(
-                    metric=metric_name, mode="max")
+                return PopulationBasedTraining(metric=metric_name, mode="max")
             elif early_stopping == "AsyncHyperBandScheduler":
                 return AsyncHyperBandScheduler(
                     metric=metric_name, mode="max", max_t=max_iters)
@@ -51,8 +50,7 @@ def resolve_early_stopping(early_stopping, max_iters, metric_name):
                 return HyperBandScheduler(
                     metric=metric_name, mode="max", max_t=max_iters)
             elif early_stopping == "MedianStoppingRule":
-                return MedianStoppingRule(
-                    metric=metric_name, mode="max")
+                return MedianStoppingRule(metric=metric_name, mode="max")
             elif early_stopping == "ASHAScheduler":
                 return ASHAScheduler(
                     metric=metric_name, mode="max", max_t=max_iters)
@@ -318,7 +316,7 @@ class TuneBaseSearchCV(BaseEstimator):
                 category=UserWarning)
             max_iters = 1
 
-        ## Get metric scoring name here
+        # Get metric scoring name
         self.scoring = scoring
         self.refit = refit
         if not hasattr(self, "is_multi"):
@@ -353,7 +351,8 @@ class TuneBaseSearchCV(BaseEstimator):
                 # the next block
                 early_stopping = "AsyncHyperBandScheduler"
             # Resolve the early stopping object
-            early_stopping = resolve_early_stopping(early_stopping, max_iters, self._metric_name)
+            early_stopping = resolve_early_stopping(early_stopping, max_iters,
+                                                    self._metric_name)
 
         self.early_stopping = early_stopping
         self.max_iters = max_iters
@@ -364,7 +363,6 @@ class TuneBaseSearchCV(BaseEstimator):
             self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
         else:
             self.sk_n_jobs = sk_n_jobs
-
 
         self.verbose = verbose
         self.error_score = error_score

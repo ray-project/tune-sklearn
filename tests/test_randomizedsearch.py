@@ -147,7 +147,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
         scoring = ("accuracy", "f1_micro")
-        search_methods = ['random', 'bayesian', 'hyperopt', 'bohb']
+        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
         for search_method in search_methods:
 
             tune_search = TuneSearchCV(
@@ -155,7 +155,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 parameter_grid,
                 scoring=scoring,
                 search_optimization=search_method,
-                cv = 2,
+                cv=2,
                 n_trials=3,
                 n_jobs=1,
                 refit="accuracy")
@@ -167,7 +167,8 @@ class RandomizedSearchTest(unittest.TestCase):
 
             p = tune_search.cv_results_["params"]
             scores = tune_search.cv_results_["mean_test_accuracy"]
-            cv_best_param = max(list(zip(scores, p)), key=lambda pair: pair[0])[1]
+            cv_best_param = max(
+                list(zip(scores, p)), key=lambda pair: pair[0])[1]
             self.assertEqual(tune_search.best_params_, cv_best_param)
 
     def test_multi_best_classification_scoring_dict(self):
@@ -177,9 +178,8 @@ class RandomizedSearchTest(unittest.TestCase):
         model = SGDClassifier()
 
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
-        scoring = {'acc': 'accuracy',
-                   'f1': 'f1_micro'}
-        search_methods = ['random', 'bayesian', 'hyperopt', 'bohb']
+        scoring = {"acc": "accuracy", "f1": "f1_micro"}
+        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
         for search_method in search_methods:
 
             tune_search = TuneSearchCV(
@@ -187,7 +187,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 parameter_grid,
                 scoring=scoring,
                 search_optimization=search_method,
-                cv = 2,
+                cv=2,
                 n_trials=3,
                 n_jobs=1,
                 refit="acc")
@@ -199,7 +199,8 @@ class RandomizedSearchTest(unittest.TestCase):
 
             p = tune_search.cv_results_["params"]
             scores = tune_search.cv_results_["mean_test_acc"]
-            cv_best_param = max(list(zip(scores, p)), key=lambda pair: pair[0])[1]
+            cv_best_param = max(
+                list(zip(scores, p)), key=lambda pair: pair[0])[1]
             self.assertEqual(tune_search.best_params_, cv_best_param)
 
     def test_multi_best_regression(self):
@@ -209,7 +210,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         scoring = ("neg_mean_absolute_error", "neg_mean_squared_error")
 
-        search_methods = ['random', 'bayesian', 'hyperopt', 'bohb']
+        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
         for search_method in search_methods:
 
             tune_search = TuneSearchCV(
@@ -217,19 +218,22 @@ class RandomizedSearchTest(unittest.TestCase):
                 parameter_grid,
                 scoring=scoring,
                 search_optimization=search_method,
-                cv = 2,
+                cv=2,
                 n_trials=3,
                 n_jobs=1,
                 refit="neg_mean_absolute_error")
             tune_search.fit(x, y)
             self.assertAlmostEqual(
                 tune_search.best_score_,
-                max(tune_search.cv_results_["mean_test_neg_mean_absolute_error"]),
+                max(tune_search.cv_results_[
+                    "mean_test_neg_mean_absolute_error"]),
                 places=10)
 
             p = tune_search.cv_results_["params"]
-            scores = tune_search.cv_results_["mean_test_neg_mean_absolute_error"]
-            cv_best_param = max(list(zip(scores, p)), key=lambda pair: pair[0])[1]
+            scores = tune_search.cv_results_[
+                "mean_test_neg_mean_absolute_error"]
+            cv_best_param = max(
+                list(zip(scores, p)), key=lambda pair: pair[0])[1]
             self.assertEqual(tune_search.best_params_, cv_best_param)
 
     def test_warm_start_detection(self):
@@ -401,6 +405,7 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search = TuneSearchCV(
             pipe, parameter_grid, early_stopping=True, max_iters=10)
         tune_search.fit(x, y)
+
 
 if __name__ == "__main__":
     unittest.main()
