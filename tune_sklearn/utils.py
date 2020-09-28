@@ -1,8 +1,8 @@
 from sklearn.metrics import check_scoring
 from sklearn.pipeline import Pipeline
 from tune_sklearn._detect_booster import (
-    is_xgboost_model, is_lightgbm_model, is_catboost_model
-)
+    is_xgboost_model, is_lightgbm_model, is_lightgbm_model_of_required_version,
+    is_catboost_model)
 import numpy as np
 from enum import Enum, auto
 
@@ -77,7 +77,7 @@ def get_early_stop_type(estimator, early_stopping):
     can_warm_start_iter = check_warm_start_iter(estimator)
     can_warm_start_ensemble = check_warm_start_ensemble(estimator)
     is_xgb = is_xgboost_model(estimator)
-    is_lgbm = is_lightgbm_model(estimator)
+    is_lgbm = is_lightgbm_model_of_required_version(estimator)
     is_catboost = is_catboost_model(estimator)
     if is_xgb:
         return EarlyStopping.XGB

@@ -1,9 +1,8 @@
 import unittest
 import ray
 from tune_sklearn._trainable import _Trainable
-from tune_sklearn._detect_booster import (
-    has_xgboost, has_catboost, has_lightgbm
-)
+from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
+                                          has_required_lightgbm_version)
 
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression, SGDClassifier
@@ -103,7 +102,8 @@ class TrainableTest(unittest.TestCase):
         assert not any(trainable.saved_models)
         trainable.stop()
 
-    @unittest.skipIf(not has_lightgbm(), "lightgbm not installed")
+    @unittest.skipIf(not has_required_lightgbm_version(),
+                     "lightgbm not installed")
     def testLGBMEarlyStop(self):
         config = self.base_params(
             estimator_list=[create_lightgbm(),
@@ -118,7 +118,8 @@ class TrainableTest(unittest.TestCase):
         assert all(trainable.saved_models)
         trainable.stop()
 
-    @unittest.skipIf(not has_lightgbm(), "lightgbm not installed")
+    @unittest.skipIf(not has_required_lightgbm_version(),
+                     "lightgbm not installed")
     def testLGBMNoEarlyStop(self):
         config = self.base_params(
             estimator_list=[create_lightgbm(),

@@ -14,9 +14,8 @@ from ray.tune.schedulers import MedianStoppingRule
 import unittest
 from unittest.mock import patch
 import os
-from tune_sklearn._detect_booster import (
-    has_xgboost, has_catboost, has_lightgbm
-)
+from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
+                                          has_required_lightgbm_version)
 from tune_sklearn.utils import EarlyStopping
 
 
@@ -307,7 +306,8 @@ class RandomizedSearchTest(unittest.TestCase):
                 early_stopping=True,
                 max_iters=1)
 
-    @unittest.skipIf(not has_lightgbm(), "lightgbm not installed")
+    @unittest.skipIf(not has_required_lightgbm_version(),
+                     "lightgbm not installed")
     def test_early_stop_lightgbm_warn(self):
         from lightgbm import LGBMClassifier
         with self.assertWarnsRegex(UserWarning, "lightgbm"):

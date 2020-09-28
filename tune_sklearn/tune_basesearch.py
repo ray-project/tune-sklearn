@@ -34,6 +34,7 @@ import inspect
 
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
                                 check_is_pipeline, _check_multimetric_scoring)
+from tune_sklearn._detect_booster import is_lightgbm_model
 
 logger = logging.getLogger(__name__)
 
@@ -319,13 +320,17 @@ class TuneBaseSearchCV(BaseEstimator):
             max_iters = 1
 
         if early_stopping:
+            if not self._can_early_stop() and is_lightgbm_model(
+                    self.base_estimator):
+                warnings.warn(
+                    "lightgbm>=3.0.0 required for early_stopping functionality."
+                )
             assert self._can_early_stop()
             if max_iters == 1:
                 warnings.warn(
                     "early_stopping is enabled but max_iters = 1. "
                     "To enable partial training, set max_iters > 1.",
                     category=UserWarning)
-            if early_stopping is True:
                 if self.early_stop_type == EarlyStopping.XGB:
                     warnings.warn(
                         "tune-sklearn implements incremental learning "
@@ -352,6 +357,7 @@ class TuneBaseSearchCV(BaseEstimator):
                         "This may negatively impact performance. To "
                         "disable, set `early_stopping=False`.",
                         category=UserWarning)
+            if early_stopping is True:
                 # Override the early_stopping variable so
                 # that it is resolved appropriately in
                 # the next block
