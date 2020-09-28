@@ -347,7 +347,7 @@ class TuneBaseSearchCV(BaseEstimator):
                     warnings.warn(
                         "tune-sklearn implements incremental learning "
                         "for Catboost models following this: "
-                        "https://catboost.ai/docs/concepts/python-usages-
+                        "https://catboost.ai/docs/concepts/python-usages-"
                         "examples.html#training-continuation "
                         "This may negatively impact performance. To "
                         "disable, set `early_stopping=False`.",
