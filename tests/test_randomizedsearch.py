@@ -324,7 +324,7 @@ class RandomizedSearchTest(unittest.TestCase):
     @unittest.skipIf(not has_catboost(), "catboost not installed")
     def test_early_stop_catboost_warn(self):
         from catboost import CatBoostClassifier
-        with self.assertWarnsRegex(UserWarning, "catboost"):
+        with self.assertWarnsRegex(UserWarning, "Catboost"):
             TuneSearchCV(
                 CatBoostClassifier(), {"learning_rate": [0.1, 0.5]},
                 early_stopping=True,
