@@ -1,7 +1,9 @@
 import unittest
 import ray
 from tune_sklearn._trainable import _Trainable
-from tune_sklearn._detect_booster import has_xgboost, has_catboost, has_lightgbm
+from tune_sklearn._detect_booster import (
+    has_xgboost, has_catboost, has_lightgbm
+)
 
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression, SGDClassifier

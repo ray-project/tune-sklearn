@@ -338,7 +338,8 @@ class TuneBaseSearchCV(BaseEstimator):
                     warnings.warn(
                         "tune-sklearn implements incremental learning "
                         "for lightgbm models following this: "
-                        "https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMModel.html#lightgbm.LGBMModel.fit "
+                        "https://lightgbm.readthedocs.io/en/latest/pythonapi/"
+                        "lightgbm.LGBMModel.html#lightgbm.LGBMModel.fit "
                         "This may negatively impact performance. To "
                         "disable, set `early_stopping=False`.",
                         category=UserWarning)
@@ -346,7 +347,8 @@ class TuneBaseSearchCV(BaseEstimator):
                     warnings.warn(
                         "tune-sklearn implements incremental learning "
                         "for Catboost models following this: "
-                        "https://catboost.ai/docs/concepts/python-usages-examples.html#training-continuation "
+                        "https://catboost.ai/docs/concepts/python-usages-
+                        "examples.html#training-continuation "
                         "This may negatively impact performance. To "
                         "disable, set `early_stopping=False`.",
                         category=UserWarning)

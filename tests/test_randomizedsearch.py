@@ -14,7 +14,9 @@ from ray.tune.schedulers import MedianStoppingRule
 import unittest
 from unittest.mock import patch
 import os
-from tune_sklearn._detect_booster import has_xgboost, has_catboost, has_lightgbm
+from tune_sklearn._detect_booster import (
+    has_xgboost, has_catboost, has_lightgbm
+)
 from tune_sklearn.utils import EarlyStopping
 
 
