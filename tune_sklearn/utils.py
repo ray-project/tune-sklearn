@@ -1,16 +1,18 @@
 from sklearn.metrics import check_scoring
 from sklearn.pipeline import Pipeline
-from tune_sklearn._detect_xgboost import is_xgboost_model
+from tune_sklearn._detect_booster import is_xgboost_model, is_lightgbm_model, is_catboost_model
 import numpy as np
-from enum import Enum
+from enum import Enum, auto
 
 
 class EarlyStopping(Enum):
-    PARTIAL_FIT = 1
-    WARM_START_ITER = 2
-    WARM_START_ENSEMBLE = 3
-    XGB = 4
-    NO_EARLY_STOP = 5
+    PARTIAL_FIT = auto()
+    WARM_START_ITER = auto()
+    WARM_START_ENSEMBLE = auto()
+    XGB = auto()
+    LGBM = auto()
+    CATBOOST = auto()
+    NO_EARLY_STOP = auto()
 
 
 def check_partial_fit(estimator):
@@ -73,15 +75,20 @@ def get_early_stop_type(estimator, early_stopping):
     can_warm_start_iter = check_warm_start_iter(estimator)
     can_warm_start_ensemble = check_warm_start_ensemble(estimator)
     is_xgb = is_xgboost_model(estimator)
-
-    if can_partial_fit:
+    is_lgbm = is_lightgbm_model(estimator)
+    is_catboost = is_catboost_model(estimator)
+    if is_xgb:
+        return EarlyStopping.XGB
+    elif is_lgbm:
+        return EarlyStopping.LGBM
+    elif is_catboost:
+        return EarlyStopping.CATBOOST
+    elif can_partial_fit:
         return EarlyStopping.PARTIAL_FIT
     elif can_warm_start_iter:
         return EarlyStopping.WARM_START_ITER
     elif can_warm_start_ensemble:
         return EarlyStopping.WARM_START_ENSEMBLE
-    elif is_xgb:
-        return EarlyStopping.XGB
     else:
         return EarlyStopping.NO_EARLY_STOP
 

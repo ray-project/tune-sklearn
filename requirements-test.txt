@@ -14,3 +14,4 @@ lightgbm
 keras
 tensorflow
 click
+catboost

@@ -5,6 +5,7 @@ https://scikit-learn.org/stable/auto_examples/compose/
 plot_compare_reduction.html
 """
 
+import ray
 from tune_sklearn import TuneSearchCV
 from tune_sklearn import TuneGridSearchCV
 from sklearn.datasets import load_digits
@@ -14,6 +15,13 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
 
 X, y = load_digits(return_X_y=True)
+
+ray.init(
+    memory=12884895290,
+    local_mode=False,
+    configure_logging=False,
+    ignore_reinit_error=True,
+    include_dashboard=False)
 
 # partial_fit
 
@@ -32,6 +40,7 @@ random = TuneSearchCV(
     search_optimization="random",
     early_stopping=True,
     max_iters=10,
+    verbose=2,
     pipeline_auto_early_stop=True)
 random.fit(X, y)
 print(random.cv_results_)
@@ -41,6 +50,7 @@ grid = TuneGridSearchCV(
     param_grid=param_grid,
     early_stopping=True,
     max_iters=10,
+    verbose=2,
     pipeline_auto_early_stop=True)
 grid.fit(X, y)
 print(grid.cv_results_)
@@ -62,6 +72,7 @@ random = TuneSearchCV(
     search_optimization="random",
     early_stopping=True,
     max_iters=10,
+    verbose=2,
     pipeline_auto_early_stop=True)
 random.fit(X, y)
 print(random.cv_results_)
@@ -83,6 +94,7 @@ random = TuneSearchCV(
     search_optimization="random",
     early_stopping=True,
     max_iters=10,
+    verbose=2,
     pipeline_auto_early_stop=True)
 random.fit(X, y)
 print(random.cv_results_)

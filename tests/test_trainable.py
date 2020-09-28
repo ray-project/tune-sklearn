@@ -1,7 +1,7 @@
 import unittest
 import ray
 from tune_sklearn._trainable import _Trainable
-from tune_sklearn._detect_xgboost import has_xgboost
+from tune_sklearn._detect_booster import has_xgboost, has_catboost, has_lightgbm
 
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression, SGDClassifier
@@ -19,6 +19,21 @@ def create_xgboost():
         objective="binary:logistic",
         nthread=4)
 
+
+def create_lightgbm():
+    from lightgbm import LGBMClassifier
+    return LGBMClassifier(
+        learning_rate=0.02,
+        n_estimators=5,
+        n_jobs=4)
+
+
+def create_catboost():
+    from catboost import CatBoostClassifier
+    return CatBoostClassifier(
+        learning_rate=0.02,
+        n_estimators=5,
+        thread_count=4)
 
 class TrainableTest(unittest.TestCase):
     X_id = None
@@ -84,6 +99,58 @@ class TrainableTest(unittest.TestCase):
         config = self.base_params(
             estimator_list=[create_xgboost(),
                             create_xgboost()])
+        config["early_stopping"] = False
+        trainable = _Trainable(config)
+        trainable.train()
+        assert not any(trainable.saved_models)
+        trainable.stop()
+
+    @unittest.skipIf(not has_lightgbm(), "lightgbm not installed")
+    def testLGBMEarlyStop(self):
+        config = self.base_params(
+            estimator_list=[create_lightgbm(),
+                            create_lightgbm()])
+        config["early_stopping"] = True
+        config["early_stop_type"] = get_early_stop_type(
+            config["estimator_list"][0], True)
+        trainable = _Trainable(config)
+        trainable.train()
+        assert all(trainable.saved_models)
+        trainable.train()
+        assert all(trainable.saved_models)
+        trainable.stop()
+
+    @unittest.skipIf(not has_lightgbm(), "lightgbm not installed")
+    def testLGBMNoEarlyStop(self):
+        config = self.base_params(
+            estimator_list=[create_lightgbm(),
+                            create_lightgbm()])
+        config["early_stopping"] = False
+        trainable = _Trainable(config)
+        trainable.train()
+        assert not any(trainable.saved_models)
+        trainable.stop()
+
+    @unittest.skipIf(not has_catboost(), "catboost not installed")
+    def testCatboostEarlyStop(self):
+        config = self.base_params(
+            estimator_list=[create_catboost(),
+                            create_catboost()])
+        config["early_stopping"] = True
+        config["early_stop_type"] = get_early_stop_type(
+            config["estimator_list"][0], True)
+        trainable = _Trainable(config)
+        trainable.train()
+        assert all(trainable.saved_models)
+        trainable.train()
+        assert all(trainable.saved_models)
+        trainable.stop()
+
+    @unittest.skipIf(not has_catboost(), "catboost not installed")
+    def testCatboostNoEarlyStop(self):
+        config = self.base_params(
+            estimator_list=[create_catboost(),
+                            create_catboost()])
         config["early_stopping"] = False
         trainable = _Trainable(config)
         trainable.train()

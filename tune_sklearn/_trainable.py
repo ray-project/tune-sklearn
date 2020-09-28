@@ -69,7 +69,7 @@ class _Trainable(Trainable):
             for i in range(n_splits):
                 self.estimator_list[i].set_params(**self.estimator_config)
 
-            if self.early_stop_type == EarlyStopping.XGB:
+            if self.early_stop_type in (EarlyStopping.XGB, EarlyStopping.LGBM, EarlyStopping.CATBOOST):
                 self.saved_models = [None for _ in range(n_splits)]
         else:
             self.main_estimator.set_params(**self.estimator_config)
@@ -112,6 +112,20 @@ class _Trainable(Trainable):
         """
         estimator.fit(X_train, y_train, xgb_model=self.saved_models[i])
         self.saved_models[i] = estimator.get_booster()
+
+    def _early_stopping_lgbm(self, i, estimator, X_train, y_train):
+        """Handles early stopping on LightGBM estimators.
+
+        """
+        estimator.fit(X_train, y_train, init_model=self.saved_models[i])
+        self.saved_models[i] = estimator.booster_
+
+    def _early_stopping_catboost(self, i, estimator, X_train, y_train):
+        """Handles early stopping on CatBoost estimators.
+
+        """
+        estimator.fit(X_train, y_train, init_model=self.saved_models[i])
+        self.saved_models[i] = estimator
 
     def _early_stopping_iter(self, i, estimator, X_train, y_train):
         """Handles early stopping on estimators supporting `warm_start`.
@@ -161,6 +175,10 @@ class _Trainable(Trainable):
                                                      y_train)
                 elif self.early_stop_type == EarlyStopping.XGB:
                     self._early_stopping_xgb(i, estimator, X_train, y_train)
+                elif self.early_stop_type == EarlyStopping.LGBM:
+                    self._early_stopping_lgbm(i, estimator, X_train, y_train)
+                elif self.early_stop_type == EarlyStopping.CATBOOST:
+                    self._early_stopping_catboost(i, estimator, X_train, y_train)
                 elif self.early_stop_type == EarlyStopping.WARM_START_ITER:
                     self._early_stopping_iter(i, estimator, X_train, y_train)
                 elif self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
@@ -369,6 +387,24 @@ class _PipelineTrainable(_Trainable):
             X_train, y_train,
             **{f"{self.base_estimator_name}__xgb_model": self.saved_models[i]})
         self.saved_models[i] = estimator.get_booster()
+
+    def _early_stopping_lgbm(self, i, estimator, X_train, y_train):
+        """Handles early stopping on LightGBM estimators.
+
+        """
+        estimator.fit(
+            X_train, y_train,
+            **{f"{self.base_estimator_name}__init_model": self.saved_models[i]})
+        self.saved_models[i] = estimator.booster_
+
+    def _early_stopping_catboost(self, i, estimator, X_train, y_train):
+        """Handles early stopping on CatBoost estimators.
+
+        """
+        estimator.fit(
+            X_train, y_train,
+            **{f"{self.base_estimator_name}__init_model": self.saved_models[i]})
+        self.saved_models[i] = estimator
 
     def _early_stopping_ensemble(self, i, estimator, X_train, y_train):
         """Handles early stopping on ensemble estimators.
