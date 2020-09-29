@@ -105,7 +105,10 @@ class _Trainable(Trainable):
         """Handles early stopping on estimators that support `partial_fit`.
 
         """
-        estimator.partial_fit(X_train, y_train, np.unique(self.y))
+        try:
+            estimator.partial_fit(X_train, y_train, classes=np.unique(self.y))
+        except AttributeError:
+            estimator.partial_fit(X_train, y_train)
 
     def _early_stopping_xgb(self, i, estimator, X_train, y_train):
         """Handles early stopping on XGBoost estimators.
@@ -378,8 +381,12 @@ class _PipelineTrainable(_Trainable):
             estimator.steps[-1] = (estimator.steps[-1][0], "passthrough")
             X_train_transformed = estimator.fit_transform(X_train, y_train)
             estimator.steps[-1] = (estimator.steps[-1][0], last_step)
-            estimator.steps[-1][1].partial_fit(X_train_transformed, y_train,
-                                               np.unique(self.y))
+            try:
+                estimator.steps[-1][1].partial_fit(
+                    X_train_transformed, y_train, classes=np.unique(self.y))
+            except AttributeError:
+                estimator.steps[-1][1].partial_fit(X_train_transformed,
+                                                   y_train)
 
     def _early_stopping_xgb(self, i, estimator, X_train, y_train):
         """Handles early stopping on XGBoost estimators.
