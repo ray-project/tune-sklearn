@@ -35,6 +35,7 @@ digit_search = TuneSearchCV(
     xgb,
     param_distributions=params,
     n_trials=3,
+    early_stopping=True,
     # use_gpu=True # Commented out for testing on travis,
     # but this is how you would use gpu
 )
