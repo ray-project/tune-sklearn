@@ -1,12 +1,12 @@
 from tune_sklearn import TuneSearchCV
 import numpy as np
 from numpy.testing import assert_array_equal
-from sklearn.datasets import make_classification
+from sklearn.datasets import make_classification, make_regression
 from sklearn.decomposition import PCA
 from scipy.stats import expon
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.linear_model import SGDClassifier
+from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.pipeline import Pipeline
 from sklearn import datasets
 from skopt.space.space import Real
@@ -139,31 +139,102 @@ class RandomizedSearchTest(unittest.TestCase):
             tune_search.fit(x, y)
         self.assertTrue(wrapped_init.call_args[1]["local_mode"])
 
-    def test_multi_best(self):
+    def test_multi_best_classification(self):
         digits = datasets.load_digits()
         x = digits.data
         y = digits.target
+        model = SGDClassifier()
 
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
-
         scoring = ("accuracy", "f1_micro")
+        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        for search_method in search_methods:
 
-        tune_search = TuneSearchCV(
-            SGDClassifier(),
-            parameter_grid,
-            scoring=scoring,
-            max_iters=20,
-            refit="accuracy")
-        tune_search.fit(x, y)
-        self.assertAlmostEqual(
-            tune_search.best_score_,
-            max(tune_search.cv_results_["mean_test_accuracy"]),
-            places=10)
+            tune_search = TuneSearchCV(
+                model,
+                parameter_grid,
+                scoring=scoring,
+                search_optimization=search_method,
+                cv=2,
+                n_trials=3,
+                n_jobs=1,
+                refit="accuracy")
+            tune_search.fit(x, y)
+            self.assertAlmostEqual(
+                tune_search.best_score_,
+                max(tune_search.cv_results_["mean_test_accuracy"]),
+                places=10)
 
-        p = tune_search.cv_results_["params"]
-        scores = tune_search.cv_results_["mean_test_accuracy"]
-        cv_best_param = max(list(zip(scores, p)), key=lambda pair: pair[0])[1]
-        self.assertEqual(tune_search.best_params_, cv_best_param)
+            p = tune_search.cv_results_["params"]
+            scores = tune_search.cv_results_["mean_test_accuracy"]
+            cv_best_param = max(
+                list(zip(scores, p)), key=lambda pair: pair[0])[1]
+            self.assertEqual(tune_search.best_params_, cv_best_param)
+
+    def test_multi_best_classification_scoring_dict(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+        model = SGDClassifier()
+
+        parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
+        scoring = {"acc": "accuracy", "f1": "f1_micro"}
+        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        for search_method in search_methods:
+
+            tune_search = TuneSearchCV(
+                model,
+                parameter_grid,
+                scoring=scoring,
+                search_optimization=search_method,
+                cv=2,
+                n_trials=3,
+                n_jobs=1,
+                refit="acc")
+            tune_search.fit(x, y)
+            self.assertAlmostEqual(
+                tune_search.best_score_,
+                max(tune_search.cv_results_["mean_test_acc"]),
+                places=10)
+
+            p = tune_search.cv_results_["params"]
+            scores = tune_search.cv_results_["mean_test_acc"]
+            cv_best_param = max(
+                list(zip(scores, p)), key=lambda pair: pair[0])[1]
+            self.assertEqual(tune_search.best_params_, cv_best_param)
+
+    def test_multi_best_regression(self):
+        x, y = make_regression(n_samples=100, n_features=10, n_informative=5)
+        model = SGDRegressor()
+        parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
+
+        scoring = ("neg_mean_absolute_error", "neg_mean_squared_error")
+
+        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        for search_method in search_methods:
+
+            tune_search = TuneSearchCV(
+                model,
+                parameter_grid,
+                scoring=scoring,
+                search_optimization=search_method,
+                cv=2,
+                n_trials=3,
+                n_jobs=1,
+                refit="neg_mean_absolute_error")
+            tune_search.fit(x, y)
+            self.assertAlmostEqual(
+                tune_search.best_score_,
+                max(tune_search.cv_results_[
+                    "mean_test_neg_mean_absolute_error"]),
+                places=10)
+
+            p = tune_search.cv_results_["params"]
+            scores = tune_search.cv_results_[
+                "mean_test_neg_mean_absolute_error"]
+            cv_best_param = max(
+                list(zip(scores, p)), key=lambda pair: pair[0])[1]
+            self.assertEqual(tune_search.best_params_, cv_best_param)
 
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}

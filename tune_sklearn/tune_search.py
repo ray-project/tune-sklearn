@@ -319,12 +319,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                 for dist in p.values():
                     _check_distribution(dist, search_optimization)
 
-        if search_optimization == "bohb":
-            from ray.tune.schedulers import HyperBandForBOHB
-            if not isinstance(early_stopping, HyperBandForBOHB):
-                early_stopping = HyperBandForBOHB(
-                    metric="average_test_score", mode="max", max_t=max_iters)
-
         super(TuneSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
@@ -341,6 +335,12 @@ class TuneSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop)
+
+        if search_optimization == "bohb":
+            from ray.tune.schedulers import HyperBandForBOHB
+            if not isinstance(early_stopping, HyperBandForBOHB):
+                early_stopping = HyperBandForBOHB(
+                    metric=self._metric_name, mode="max", max_t=max_iters)
 
         check_error_warm_start(self.early_stop_type, param_distributions,
                                estimator)
@@ -605,7 +605,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             search_algo = SkOptSearch(
                 Optimizer(spaces),
                 hyperparameter_names,
-                metric="average_test_score",
+                metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)
 
@@ -614,7 +614,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             config_space = self._get_bohb_config_space()
             search_algo = TuneBOHB(
                 config_space,
-                metric="average_test_score",
+                metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)
 
@@ -623,7 +623,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             config_space = self._get_optuna_params()
             search_algo = OptunaSearch(
                 config_space,
-                metric="average_test_score",
+                metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)
 
@@ -632,7 +632,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             config_space = self._get_hyperopt_params()
             search_algo = HyperOptSearch(
                 config_space,
-                metric="average_test_score",
+                metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)
 
