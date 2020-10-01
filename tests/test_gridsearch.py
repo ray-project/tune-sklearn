@@ -568,12 +568,12 @@ class GridSearchTest(unittest.TestCase):
             max_iters=20,
             refit=False)
         tune_search.fit(X, y)
-        self.assertTrue(tune_search.is_multi)
+        self.assertTrue(tune_search.multimetric_)
 
         tune_search = TuneGridSearchCV(
             SGDClassifier(), parameter_grid, scoring="f1_micro", max_iters=20)
         tune_search.fit(X, y)
-        self.assertFalse(tune_search.is_multi)
+        self.assertFalse(tune_search.multimetric_)
 
         # Make sure error is raised when refit isn't set properly
         tune_search = TuneGridSearchCV(

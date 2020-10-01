@@ -31,6 +31,8 @@ import warnings
 import multiprocessing
 import os
 import inspect
+import time
+import numbers
 
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
                                 check_is_pipeline, _check_multimetric_scoring)
@@ -124,8 +126,24 @@ class TuneBaseSearchCV(BaseEstimator):
         specified.
 
         """
-        self._check_if_refit("best_params_")
+        self._check_is_fitted("best_params_")
         return self.best_params
+
+    @property
+    def best_index_(self):
+        """int: The index (of the ``cv_results_`` arrays) 
+        which corresponds to the best candidate parameter setting.
+
+        The dict at ``search.cv_results_['params'][search.best_index_]`` gives
+        the parameter setting for the best model, that gives the highest
+        mean score (``search.best_score_``).
+
+        For multi-metric evaluation, this is present only if ``refit`` is
+        specified.
+
+        """
+        self._check_is_fitted("best_index_")
+        return self.best_index
 
     @property
     def best_score_(self):
@@ -135,14 +153,56 @@ class TuneBaseSearchCV(BaseEstimator):
         is specified.
 
         """
-        self._check_if_refit("best_score_")
+        self._check_is_fitted("best_score_")
         return self.best_score
+
+    @property
+    def multimetric_(self):
+        """bool: Whether evaluation performed was multi-metric."""
+        return self.is_multi
 
     @property
     def classes_(self):
         """list: Get the list of unique classes found in the target `y`."""
         self._check_is_fitted("classes_")
         return self.best_estimator_.classes_
+
+    @property
+    def n_splits_(self):
+        """int: The number of cross-validation splits (folds/iterations)."""
+        self._check_is_fitted("n_splits_")
+        return self.n_splits_
+
+    @property
+    def best_estimator_(self):
+        """estimator: Estimator that was chosen by the search,
+        i.e. estimator which gave highest score (or smallest loss if
+        specified) on the left out data. Not available if ``refit=False``.
+
+        See ``refit`` parameter for more information on allowed values.
+        """
+        self._check_is_fitted("best_estimator_")
+        return self.best_estimator_
+
+    @property
+    def refit_time_(self):
+        """float: Seconds used for refitting the best model on the
+        whole dataset.
+
+        This is present only if ``refit`` is not False.
+        """
+        self._check_if_refit("refit_time_")
+        return self.refit_time
+
+    @property
+    def scorer_(self):
+        """function or a dict: Scorer function used on the held out
+        data to choose the best parameters for the model.
+
+        For multi-metric evaluation, this attribute holds the validated
+        ``scoring`` dict which maps the scorer key to the scorer callable.
+        """
+        return self.scoring
 
     @property
     def decision_function(self):
@@ -325,11 +385,11 @@ class TuneBaseSearchCV(BaseEstimator):
                 self.estimator, self.scoring)
 
         if self.is_multi:
-            scoring_name = self.refit
+            self._base_metric_name = self.refit
         else:
-            scoring_name = "score"
+            self._base_metric_name = "score"
 
-        self._metric_name = "average_test_%s" % scoring_name
+        self._metric_name = "average_test_%s" % self._base_metric_name
 
         if early_stopping:
             if not self._can_early_stop() and is_lightgbm_model(
@@ -478,30 +538,52 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
-        metric = self._metric_name
-        if self.refit:
-            best_config = analysis.get_best_config(
-                metric=metric, mode="max", scope="last")
-            self.best_params = self._clean_config_dict(best_config)
+        base_metric = self._base_metric_name
 
-            self.best_estimator_ = clone(self.estimator)
+        # For multi-metric evaluation, store the best_index, best_params and
+        # best_score iff refit is one of the scorer names
+        # In single metric evaluation, refit_metric is "score"
+        if self.refit or not self.is_multi:
+            # If callable, refit is expected to return the index of the best
+            # parameter set.
+            if callable(self.refit):
+                self.best_index = self.refit(self.cv_results_)
+                if not isinstance(self.best_index, numbers.Integral):
+                    raise TypeError('best_index returned is not an integer')
+                if (self.best_index < 0
+                        or self.best_index >= len(self.cv_results_["params"])):
+                    raise IndexError('best_index index out of range')
+            else:
+                self.best_index = self.cv_results_["rank_test_%s" %
+                                                   base_metric].argmin()
+                self.best_score = self.cv_results_[
+                    "mean_test_%s" % base_metric][self.best_index]
+            self.best_params = self.cv_results_["params"][self.best_index]
+
+        if self.refit:
+            base_estimator = clone(self.estimator)
             if self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
                 logger.info("tune-sklearn uses `n_estimators` to warm "
                             "start, so this parameter can't be "
                             "set when warm start early stopping. "
                             "`n_estimators` defaults to `max_iters`.")
-                if check_is_pipeline(self.estimator):
-                    cloned_base_estimator = self.best_estimator_.steps[-1][1]
-                    cloned_base_estimator.set_params(
+                if check_is_pipeline(base_estimator):
+                    cloned_final_estimator = base_estimator.steps[-1][1]
+                    cloned_final_estimator.set_params(
                         **{"n_estimators": self.max_iters})
                 else:
                     self.best_params["n_estimators"] = self.max_iters
-            self.best_estimator_.set_params(**self.best_params)
-            self.best_estimator_.fit(X, y, **fit_params)
-
-            best_result = analysis.get_best_trial(
-                metric=metric, mode="max", scope="last").last_result
-            self.best_score = float(best_result[metric])
+            # we clone again after setting params in case some
+            # of the params are estimators as well.
+            self.best_estimator = clone(
+                base_estimator.set_params(**self.best_params))
+            refit_start_time = time.time()
+            if y is not None:
+                self.best_estimator.fit(X, y, **fit_params)
+            else:
+                self.best_estimator.fit(X, **fit_params)
+            refit_end_time = time.time()
+            self.refit_time = refit_end_time - refit_start_time
 
         return self
 
