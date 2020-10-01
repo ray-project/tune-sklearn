@@ -14,7 +14,8 @@ from ray.tune.schedulers import MedianStoppingRule
 import unittest
 from unittest.mock import patch
 import os
-from tune_sklearn._detect_xgboost import has_xgboost
+from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
+                                          has_required_lightgbm_version)
 from tune_sklearn.utils import EarlyStopping
 
 
@@ -373,6 +374,35 @@ class RandomizedSearchTest(unittest.TestCase):
         with self.assertWarnsRegex(UserWarning, "max_iters"):
             TuneSearchCV(
                 XGBClassifier(), {"C": [1, 2]},
+                early_stopping=True,
+                max_iters=1)
+
+    @unittest.skipIf(not has_required_lightgbm_version(),
+                     "lightgbm not installed")
+    def test_early_stop_lightgbm_warn(self):
+        from lightgbm import LGBMClassifier
+        with self.assertWarnsRegex(UserWarning, "lightgbm"):
+            TuneSearchCV(
+                LGBMClassifier(), {"learning_rate": [0.1, 0.5]},
+                early_stopping=True,
+                max_iters=10)
+        with self.assertWarnsRegex(UserWarning, "max_iters"):
+            TuneSearchCV(
+                LGBMClassifier(), {"learning_rate": [0.1, 0.5]},
+                early_stopping=True,
+                max_iters=1)
+
+    @unittest.skipIf(not has_catboost(), "catboost not installed")
+    def test_early_stop_catboost_warn(self):
+        from catboost import CatBoostClassifier
+        with self.assertWarnsRegex(UserWarning, "Catboost"):
+            TuneSearchCV(
+                CatBoostClassifier(), {"learning_rate": [0.1, 0.5]},
+                early_stopping=True,
+                max_iters=10)
+        with self.assertWarnsRegex(UserWarning, "max_iters"):
+            TuneSearchCV(
+                CatBoostClassifier(), {"learning_rate": [0.1, 0.5]},
                 early_stopping=True,
                 max_iters=1)
 

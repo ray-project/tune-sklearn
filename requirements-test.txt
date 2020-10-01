@@ -10,7 +10,8 @@ xgboost
 torch
 torchvision
 skorch
-lightgbm
+lightgbm>=3.0.0
 keras
 tensorflow
 click
+catboost

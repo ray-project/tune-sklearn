@@ -1,38 +1,32 @@
 """
-An example training a XGBClassifier, performing
+An example training a LGBMClassifier, performing
 randomized search using TuneSearchCV.
 """
 
 from tune_sklearn import TuneSearchCV
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
-from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
 
 digits = datasets.load_digits()
 x = digits.data
 y = digits.target
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.2)
 
-# A parameter grid for XGBoost
 params = {
-    "min_child_weight": [1, 5, 10],
-    "gamma": [0.5, 1, 1.5, 2, 5],
-    "subsample": [0.6, 0.8, 1.0],
-    "colsample_bytree": [0.6, 0.8, 1.0],
+    "min_split_gain": [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+    "reg_alpha": [0.5, 1, 1.5, 2, 5],
+    "reg_lambda": [0.5, 1, 1.5, 2, 5],
     "max_depth": [3, 4, 5],
 }
 
-xgb = XGBClassifier(
+lgbm = LGBMClassifier(
     learning_rate=0.02,
     n_estimators=50,
-    objective="binary:logistic",
-    nthread=4,
-    # tree_method="gpu_hist"  # this enables GPU.
-    # See https://github.com/dmlc/xgboost/issues/2819
 )
 
 digit_search = TuneSearchCV(
-    xgb,
+    lgbm,
     param_distributions=params,
     n_trials=3,
     early_stopping=True,

@@ -34,6 +34,7 @@ import inspect
 
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
                                 check_is_pipeline, _check_multimetric_scoring)
+from tune_sklearn._detect_booster import is_lightgbm_model
 
 logger = logging.getLogger(__name__)
 
@@ -331,6 +332,10 @@ class TuneBaseSearchCV(BaseEstimator):
         self._metric_name = "average_test_%s" % scoring_name
 
         if early_stopping:
+            if not self._can_early_stop() and is_lightgbm_model(
+                    self.base_estimator):
+                warnings.warn("lightgbm>=3.0.0 required for early_stopping "
+                              "functionality.")
             assert self._can_early_stop()
             if max_iters == 1:
                 warnings.warn(
@@ -342,6 +347,24 @@ class TuneBaseSearchCV(BaseEstimator):
                     "tune-sklearn implements incremental learning "
                     "for xgboost models following this: "
                     "https://github.com/dmlc/xgboost/issues/1686. "
+                    "This may negatively impact performance. To "
+                    "disable, set `early_stopping=False`.",
+                    category=UserWarning)
+            elif self.early_stop_type == EarlyStopping.LGBM:
+                warnings.warn(
+                    "tune-sklearn implements incremental learning "
+                    "for lightgbm models following this: "
+                    "https://lightgbm.readthedocs.io/en/latest/pythonapi/"
+                    "lightgbm.LGBMModel.html#lightgbm.LGBMModel.fit "
+                    "This may negatively impact performance. To "
+                    "disable, set `early_stopping=False`.",
+                    category=UserWarning)
+            elif self.early_stop_type == EarlyStopping.CATBOOST:
+                warnings.warn(
+                    "tune-sklearn implements incremental learning "
+                    "for Catboost models following this: "
+                    "https://catboost.ai/docs/concepts/python-usages-"
+                    "examples.html#training-continuation "
                     "This may negatively impact performance. To "
                     "disable, set `early_stopping=False`.",
                     category=UserWarning)
