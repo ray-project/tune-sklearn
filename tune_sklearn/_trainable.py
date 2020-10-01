@@ -11,6 +11,7 @@ import os
 from pickle import PicklingError
 import ray.cloudpickle as cpickle
 import warnings
+import inspect
 
 from tune_sklearn.utils import (EarlyStopping, _aggregate_score_dicts)
 
@@ -105,9 +106,9 @@ class _Trainable(Trainable):
         """Handles early stopping on estimators that support `partial_fit`.
 
         """
-        try:
+        if "classes" in inspect.getfullargspec(estimator.partial_fit).args:
             estimator.partial_fit(X_train, y_train, classes=np.unique(self.y))
-        except AttributeError:
+        else:
             estimator.partial_fit(X_train, y_train)
 
     def _early_stopping_xgb(self, i, estimator, X_train, y_train):
@@ -381,10 +382,11 @@ class _PipelineTrainable(_Trainable):
             estimator.steps[-1] = (estimator.steps[-1][0], "passthrough")
             X_train_transformed = estimator.fit_transform(X_train, y_train)
             estimator.steps[-1] = (estimator.steps[-1][0], last_step)
-            try:
+            if "classes" in inspect.getfullargspec(
+                    estimator.steps[-1][1].partial_fit).args:
                 estimator.steps[-1][1].partial_fit(
                     X_train_transformed, y_train, classes=np.unique(self.y))
-            except AttributeError:
+            else:
                 estimator.steps[-1][1].partial_fit(X_train_transformed,
                                                    y_train)
 
