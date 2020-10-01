@@ -126,7 +126,7 @@ class TuneBaseSearchCV(BaseEstimator):
         specified.
 
         """
-        self._check_is_fitted("best_params_")
+        check_is_fitted(self)
         return self.best_params
 
     @property
@@ -142,7 +142,7 @@ class TuneBaseSearchCV(BaseEstimator):
         specified.
 
         """
-        self._check_is_fitted("best_index_")
+        check_is_fitted(self)
         return self.best_index
 
     @property
@@ -153,7 +153,7 @@ class TuneBaseSearchCV(BaseEstimator):
         is specified.
 
         """
-        self._check_is_fitted("best_score_")
+        check_is_fitted(self)
         return self.best_score
 
     @property
@@ -170,7 +170,7 @@ class TuneBaseSearchCV(BaseEstimator):
     @property
     def n_splits_(self):
         """int: The number of cross-validation splits (folds/iterations)."""
-        self._check_is_fitted("n_splits_")
+        check_is_fitted(self)
         return self.n_splits_
 
     @property
@@ -181,7 +181,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         See ``refit`` parameter for more information on allowed values.
         """
-        self._check_is_fitted("best_estimator_")
+        check_is_fitted(self)
         return self.best_estimator
 
     @property
