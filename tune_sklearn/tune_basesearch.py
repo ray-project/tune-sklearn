@@ -182,7 +182,7 @@ class TuneBaseSearchCV(BaseEstimator):
         See ``refit`` parameter for more information on allowed values.
         """
         self._check_is_fitted("best_estimator_")
-        return self.best_estimator_
+        return self.best_estimator
 
     @property
     def refit_time_(self):
