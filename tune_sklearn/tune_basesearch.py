@@ -131,7 +131,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
     @property
     def best_index_(self):
-        """int: The index (of the ``cv_results_`` arrays) 
+        """int: The index (of the ``cv_results_`` arrays)
         which corresponds to the best candidate parameter setting.
 
         The dict at ``search.cv_results_['params'][search.best_index_]`` gives
@@ -538,6 +538,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
+        metric = self._metric_name
         base_metric = self._base_metric_name
 
         # For multi-metric evaluation, store the best_index, best_params and
@@ -549,16 +550,18 @@ class TuneBaseSearchCV(BaseEstimator):
             if callable(self.refit):
                 self.best_index = self.refit(self.cv_results_)
                 if not isinstance(self.best_index, numbers.Integral):
-                    raise TypeError('best_index returned is not an integer')
+                    raise TypeError("best_index returned is not an integer")
                 if (self.best_index < 0
                         or self.best_index >= len(self.cv_results_["params"])):
-                    raise IndexError('best_index index out of range')
+                    raise IndexError("best_index index out of range")
             else:
                 self.best_index = self.cv_results_["rank_test_%s" %
                                                    base_metric].argmin()
                 self.best_score = self.cv_results_[
                     "mean_test_%s" % base_metric][self.best_index]
-            self.best_params = self.cv_results_["params"][self.best_index]
+            best_config = analysis.get_best_config(
+                metric=metric, mode="max", scope="last")
+            self.best_params = self._clean_config_dict(best_config)
 
         if self.refit:
             base_estimator = clone(self.estimator)
