@@ -86,7 +86,8 @@ class _Trainable(Trainable):
             # epochs, while max_iters (which the user can set) is the usual
             # max number of calls to _trainable.
             self.estimator_config["warm_start"] = True
-            self.estimator_config["max_iter"] = self.main_estimator.max_iter // self.max_iters
+            self.estimator_config[
+                "max_iter"] = self.main_estimator.max_iter // self.max_iters
 
         elif self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
             # Each additional call on a warm start ensemble only trains
@@ -145,7 +146,8 @@ class _Trainable(Trainable):
         """
         # User will not be able to fine tune the n_estimators
         # parameter using ensemble early stopping
-        updated_n_estimators = estimator.get_params()["n_estimators"] + self.resource_step
+        updated_n_estimators = estimator.get_params(
+        )["n_estimators"] + self.resource_step
         estimator.set_params(**{"n_estimators": updated_n_estimators})
         estimator.fit(X_train, y_train)
 
@@ -353,14 +355,15 @@ class _PipelineTrainable(_Trainable):
             # max number of calls to _trainable.
             self.estimator_config[
                 f"{self.base_estimator_name}__warm_start"] = True
-            self.estimator_config[f"{self.base_estimator_name}__max_iter"] = self.main_estimator.max_iter // self.max_iters
+            self.estimator_config[
+                f"{self.base_estimator_name}__max_iter"] = self.base_estimator.max_iter // self.max_iters
 
         elif self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
             # Each additional call on a warm start ensemble only trains
             # new estimators added to the ensemble. We start with 0
             # and add self.resource_step estimators before each call to fit
             # in _train(), training the ensemble incrementally.
-            self.resource_step = self.main_estimator.n_estimators // self.max_iters
+            self.resource_step = self.base_estimator.n_estimators // self.max_iters
             self.estimator_config[
                 f"{self.base_estimator_name}__warm_start"] = True
             self.estimator_config[
@@ -428,6 +431,7 @@ class _PipelineTrainable(_Trainable):
         # User will not be able to fine tune the n_estimators
         # parameter using ensemble early stopping
         n_estimator_key = f"{self.base_estimator_name}__n_estimators"
-        updated_n_estimators = estimator.get_params()[n_estimator_key] + self.resource_step
+        updated_n_estimators = estimator.get_params(
+        )[n_estimator_key] + self.resource_step
         estimator.set_params(**{n_estimator_key: updated_n_estimators})
         estimator.fit(X_train, y_train)
