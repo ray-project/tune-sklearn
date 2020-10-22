@@ -94,7 +94,8 @@ class _Trainable(Trainable):
             # new estimators added to the ensemble. We start with 0
             # and add self.resource_step estimators before each call to fit
             # in _train(), training the ensemble incrementally.
-            self.resource_step = self.main_estimator.n_estimators // self.max_iters
+            self.resource_step = (
+                self.main_estimator.n_estimators // self.max_iters)
             self.estimator_config["warm_start"] = True
             self.estimator_config["n_estimators"] = 0
 
@@ -355,15 +356,16 @@ class _PipelineTrainable(_Trainable):
             # max number of calls to _trainable.
             self.estimator_config[
                 f"{self.base_estimator_name}__warm_start"] = True
-            self.estimator_config[
-                f"{self.base_estimator_name}__max_iter"] = self.base_estimator.max_iter // self.max_iters
+            self.estimator_config[f"{self.base_estimator_name}__max_iter"] = (
+                self.base_estimator.max_iter // self.max_iters)
 
         elif self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
             # Each additional call on a warm start ensemble only trains
             # new estimators added to the ensemble. We start with 0
             # and add self.resource_step estimators before each call to fit
             # in _train(), training the ensemble incrementally.
-            self.resource_step = self.base_estimator.n_estimators // self.max_iters
+            self.resource_step = (
+                self.base_estimator.n_estimators // self.max_iters)
             self.estimator_config[
                 f"{self.base_estimator_name}__warm_start"] = True
             self.estimator_config[
