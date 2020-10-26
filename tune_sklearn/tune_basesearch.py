@@ -191,7 +191,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         This is present only if ``refit`` is not False.
         """
-        self._check_if_refit("refit_time_")
+        self._check_is_fitted("refit_time_")
         return self.refit_time
 
     @property
