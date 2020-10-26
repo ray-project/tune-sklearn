@@ -221,8 +221,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_trials``).
             This parameter is used for early stopping. Defaults to 1.
-            When using warm start to early stop on ensembles, this will
-            determine `n_estimators` for the final refitted ensemble.`
+            When using warm start to early stop on ensembles, each iteration
+            will fit `ensemble_estimator.n_estimators // max_iters` new
+            estimators.
         search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"):
             Randomized search is invoked with ``search_optimization`` set to
             ``"random"`` and behaves like scikit-learn's
