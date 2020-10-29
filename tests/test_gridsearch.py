@@ -271,13 +271,13 @@ class GridSearchTest(unittest.TestCase):
         grid_search = TuneGridSearchCV(
             clf, {"foo_param": [1, 2, 3]}, refit=False, cv=3)
         grid_search.fit(X, y)
-        self.assertFalse(hasattr(grid_search, "best_estimator_"))
-        self.assertTrue(hasattr(grid_search, "best_index_"))
-        self.assertTrue(hasattr(grid_search, "best_score_"))
-        self.assertTrue(hasattr(grid_search, "best_params_"))
+        grid_search.best_index_
+        grid_search.best_score_
+        grid_search.best_params_
 
         # Make sure the predict/transform etc fns raise meaningful error msg
         for fn_name in (
+                "best_estimator_"
                 "predict",
                 "predict_proba",
                 "predict_log_proba",
