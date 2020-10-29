@@ -277,7 +277,7 @@ class GridSearchTest(unittest.TestCase):
 
         # Make sure the predict/transform etc fns raise meaningful error msg
         for fn_name in (
-                "best_estimator_"
+                "best_estimator_",
                 "predict",
                 "predict_proba",
                 "predict_log_proba",
