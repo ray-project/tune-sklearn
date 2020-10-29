@@ -318,12 +318,13 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
         if not self.refit:
-            if check_refit == "multimetric" and self.is_multi:
-                msg = ("This {0} instance was initialized with refit=False. "
-                       "For multi-metric evaluation, {1} "
-                       "is available only after refitting on the best "
-                       "parameters.").format(type(self).__name__, method_name)
-                raise NotFittedError(msg)
+            if check_refit == "multimetric":
+                if self.is_multi:
+                    msg = ("This {0} instance was initialized with refit=False. "
+                           "For multi-metric evaluation, {1} "
+                           "is available only after refitting on the best "
+                           "parameters.").format(type(self).__name__, method_name)
+                    raise NotFittedError(msg)
             elif check_refit:
                 msg = (
                     "This {0} instance was initialized with refit=False. {1} "
