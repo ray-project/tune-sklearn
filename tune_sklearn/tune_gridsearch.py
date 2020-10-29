@@ -115,8 +115,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
            (`resource_param = max_iter or n_estimators`) will be detected.
            The value of `resource_param` will be treated as a
            "max resource value", and all classifiers will be
-           initialized with `max resource value // max_iters`, where 
-           `max_iters` is this defined parameter. On each epoch, 
+           initialized with `max resource value // max_iters`, where
+           `max_iters` is this defined parameter. On each epoch,
            resource_param (max_iter or n_estimators) is
            incremented by `max resource value // max_iters`.
         use_gpu (bool): Indicates whether to use gpu for fitting.
