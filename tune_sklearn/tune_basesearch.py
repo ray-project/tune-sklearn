@@ -318,7 +318,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
         if not self.refit:
-            if check_refit == "multimetric":
+            if check_refit == "multimetric" and self.is_multi:
                 msg = ("This {0} instance was initialized with refit=False. "
                        "For multi-metric evaluation, {1} "
                        "is available only after refitting on the best "
