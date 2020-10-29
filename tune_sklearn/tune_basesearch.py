@@ -317,20 +317,20 @@ class TuneBaseSearchCV(BaseEstimator):
                 the sklearn estimator interface).
 
         """
-        if check_refit and not self.refit:
+        if not self.refit:
             if check_refit == "multimetric":
                 msg = ("This {0} instance was initialized with refit=False. "
                        "For multi-metric evaluation, {1} "
                        "is available only after refitting on the best "
                        "parameters.").format(type(self).__name__, method_name)
-            else:
+                raise NotFittedError(msg)
+            elif check_refit:
                 msg = (
                     "This {0} instance was initialized with refit=False. {1} "
                     "is available only after refitting on the best "
                     "parameters.").format(type(self).__name__, method_name)
-            raise NotFittedError(msg)
-        else:
-            check_is_fitted(self)
+                raise NotFittedError(msg)
+        check_is_fitted(self)
 
     def _is_multimetric(self, scoring):
         """Helper method to see if multimetric scoring is
