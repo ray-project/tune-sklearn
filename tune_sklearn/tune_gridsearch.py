@@ -111,9 +111,14 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled.
             This parameter is used for early stopping. Defaults to 1.
-            When using warm start to early stop on ensembles, each iteration
-            will fit `ensemble_estimator.n_estimators // max_iters` new
-            estimators.
+           Depending on the classifier type provided, a resource parameter
+           (`resource_param = max_iter or n_estimators`) will be detected.
+           The value of `resource_param` will be treated as a
+           "max resource value", and all classifiers will be
+           initialized with `max resource value // max_iters`, where 
+           `max_iters` is this defined parameter. On each epoch, 
+           resource_param (max_iter or n_estimators) is
+           incremented by `max resource value // max_iters`.
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.
