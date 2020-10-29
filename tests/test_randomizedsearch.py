@@ -237,6 +237,38 @@ class RandomizedSearchTest(unittest.TestCase):
                 list(zip(scores, p)), key=lambda pair: pair[0])[1]
             self.assertEqual(tune_search.best_params_, cv_best_param)
 
+    def test_multi_refit_false(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+        model = SGDClassifier()
+
+        parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
+        scoring = ("accuracy", "f1_micro")
+
+        tune_search = TuneSearchCV(
+            model,
+            parameter_grid,
+            scoring=scoring,
+            search_optimization="random",
+            cv=2,
+            n_trials=3,
+            n_jobs=1,
+            refit=False)
+        tune_search.fit(x, y)
+        with self.assertRaises(ValueError) as exc:
+            tune_search.best_score_
+        self.assertTrue(("instance was initialized with refit=False. "
+                         "For multi-metric evaluation,") in str(exc.exception))
+        with self.assertRaises(ValueError) as exc:
+            tune_search.best_index_
+        self.assertTrue(("instance was initialized with refit=False. "
+                         "For multi-metric evaluation,") in str(exc.exception))
+        with self.assertRaises(ValueError) as exc:
+            tune_search.best_params_
+        self.assertTrue(("instance was initialized with refit=False. "
+                         "For multi-metric evaluation,") in str(exc.exception))
+
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
         from sklearn.ensemble import VotingClassifier, RandomForestClassifier

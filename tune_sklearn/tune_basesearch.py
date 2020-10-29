@@ -126,7 +126,7 @@ class TuneBaseSearchCV(BaseEstimator):
         specified.
 
         """
-        self._check_is_fitted("best_params_", check_refit=False)
+        self._check_is_fitted("best_params_", check_refit="multimetric")
         return self.best_params
 
     @property
@@ -142,7 +142,7 @@ class TuneBaseSearchCV(BaseEstimator):
         specified.
 
         """
-        self._check_is_fitted("best_index_", check_refit=False)
+        self._check_is_fitted("best_index_", check_refit="multimetric")
         return self.best_index
 
     @property
@@ -153,7 +153,7 @@ class TuneBaseSearchCV(BaseEstimator):
         is specified.
 
         """
-        self._check_is_fitted("best_score_", check_refit=False)
+        self._check_is_fitted("best_score_", check_refit="multimetric")
         return self.best_score
 
     @property
@@ -307,8 +307,9 @@ class TuneBaseSearchCV(BaseEstimator):
         Args:
             method_name (str): String of the method name called from the user.
 
-            check_refit(bool)=True: Whether to also check for `self.refit`
-            param.
+            check_refit(bool/str)=True: Whether to also check for `self.refit`
+            param. If "multimetric", will only check if `self.multimetric`
+            param is also True.
 
         Raises:
             NotFittedError: If the estimator has not been fitted.
@@ -317,9 +318,16 @@ class TuneBaseSearchCV(BaseEstimator):
 
         """
         if check_refit and not self.refit:
-            msg = ("This {0} instance was initialized with refit=False. {1} "
-                   "is available only after refitting on the best "
-                   "parameters.").format(type(self).__name__, method_name)
+            if check_refit == "multimetric":
+                msg = ("This {0} instance was initialized with refit=False. "
+                       "For multi-metric evaluation, {1} "
+                       "is available only after refitting on the best "
+                       "parameters.").format(type(self).__name__, method_name)
+            else:
+                msg = (
+                    "This {0} instance was initialized with refit=False. {1} "
+                    "is available only after refitting on the best "
+                    "parameters.").format(type(self).__name__, method_name)
             raise NotFittedError(msg)
         else:
             check_is_fitted(self)
