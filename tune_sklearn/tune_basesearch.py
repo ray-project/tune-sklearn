@@ -308,8 +308,8 @@ class TuneBaseSearchCV(BaseEstimator):
             method_name (str): String of the method name called from the user.
 
             check_refit (bool|str): Whether to also check for `self.refit`
-            param. If "multimetric", will only check if `self.multimetric`
-            param is also True. Defaults to True.
+                param. If "multimetric", will only check if `self.multimetric`
+                param is also True. Defaults to True.
 
         Raises:
             NotFittedError: If the estimator has not been fitted.
