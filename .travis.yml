@@ -67,6 +67,8 @@ matrix:
     - os: linux
       env: DOC_BUILD=1 PYTHONWARNINGS=ignore
       install:
+        - if [ "$OS" == "MAC" ]; then brew install -q libomp > /dev/null ; fi
+        - pip3 install -e .
         - git clone https://github.com/ray-project/ray
         - pip install -U -r ray/doc/requirements-rtd.txt
         - pip install -r ray/doc/requirements-doc.txt
