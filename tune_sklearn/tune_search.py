@@ -388,7 +388,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         samples = 1
         all_lists = True
         for key, distribution in self.param_distributions.items():
-            if isinstance(distribution, list):
+            if isinstance(distribution, Domain):
+                config[key] = distribution
+            elif isinstance(distribution, list):
                 import random
 
                 def get_sample(dist):
