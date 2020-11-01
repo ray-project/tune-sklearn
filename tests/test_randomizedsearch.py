@@ -444,7 +444,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         clf = SGDClassifier()
         parameter_grid = {
-            "alpha": tune.uniform(1e-4, 1e-1, 1),
+            "alpha": tune.uniform(1e-4, 1),
             "epsilon": tune.uniform(0.01, 0.1),
             "penalty": tune.choice(["l1", "l2"]),
         }
