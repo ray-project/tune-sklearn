@@ -8,6 +8,7 @@ from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.base import clone
 from ray import tune
+from ray.tune.sample import Sampler
 from ray.tune.suggest import ConcurrencyLimiter
 from tune_sklearn.list_searcher import RandomListSearcher
 from tune_sklearn.utils import check_error_warm_start
@@ -19,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 
 def _check_distribution(dist, search_optimization):
+    # Tune Sampler is always good
+    if isinstance(dist, Sampler):
+        return
+
     if search_optimization == "random":
         if not (isinstance(dist, list) or hasattr(dist, "rvs")):
             raise ValueError("distribution must be a list or scipy "
@@ -401,12 +406,17 @@ class TuneSearchCV(TuneBaseSearchCV):
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
-    def _get_skopt_params(self):
-        hyperparameter_names = list(self.param_distributions.keys())
-        spaces = list(self.param_distributions.values())
+    def _is_param_distributions_all_tune_samplers(self):
+        return all([isinstance(v, Sampler) for k, v in self.param_distributions.items()])
 
-        return hyperparameter_names, spaces
+    def _leave_tune_samplers_as_is(self, f):
+        def wrapper():
+            if self._is_param_distributions_all_tune_samplers():
+                return self.param_distributions
+            return f()
+        return wrapper
 
+    @_leave_tune_samplers_as_is
     def _get_bohb_config_space(self):
         import ConfigSpace as CS
         config_space = CS.ConfigurationSpace()
@@ -446,6 +456,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space.add_hyperparameter(space)
         return config_space
 
+    @_leave_tune_samplers_as_is
     def _get_optuna_params(self):
         from ray.tune.suggest.optuna import param
         config_space = []
@@ -481,6 +492,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space.append(space)
         return config_space
 
+    @_leave_tune_samplers_as_is
     def _get_hyperopt_params(self):
         from hyperopt import hp
         config_space = {}
@@ -605,12 +617,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             return analysis
 
         elif self.search_optimization == "bayesian":
-            from skopt import Optimizer
             from ray.tune.suggest.skopt import SkOptSearch
-            hyperparameter_names, spaces = self._get_skopt_params()
             search_algo = SkOptSearch(
-                Optimizer(spaces),
-                hyperparameter_names,
+                space=self.param_distributions,
                 metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)

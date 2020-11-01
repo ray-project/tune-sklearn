@@ -10,6 +10,7 @@ from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.pipeline import Pipeline
 from sklearn import datasets
 from skopt.space.space import Real
+from ray import tune
 from ray.tune.schedulers import MedianStoppingRule
 import unittest
 from unittest.mock import patch
@@ -436,6 +437,28 @@ class RandomizedSearchTest(unittest.TestCase):
             pipe, parameter_grid, early_stopping=True, max_iters=10)
         tune_search.fit(x, y)
 
+    def test_tune_search_spaces(self):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+
+        clf = SGDClassifier()
+        parameter_grid = {
+            "alpha": tune.uniform(1e-4, 1e-1, 1),
+            "epsilon": tune.uniform(0.01, 0.1),
+            "penalty": tune.choice(["l1", "l2"]),
+        }
+        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        for search_method in search_methods:
+            tune_search = TuneSearchCV(
+                clf,
+                parameter_grid,
+                search_optimization=search_method,
+                cv=2,
+                n_trials=3,
+                n_jobs=1,
+                refit=False)
+            tune_search.fit(x, y)
 
 if __name__ == "__main__":
     unittest.main()
