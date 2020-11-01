@@ -8,7 +8,7 @@ from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.base import clone
 from ray import tune
-from ray.tune.sample import Sampler
+from ray.tune.sample import Domain
 from ray.tune.suggest import ConcurrencyLimiter
 from tune_sklearn.list_searcher import RandomListSearcher
 from tune_sklearn.utils import check_error_warm_start
@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 def _check_distribution(dist, search_optimization):
-    # Tune Sampler is always good
-    if isinstance(dist, Sampler):
+    # Tune Domain is always good
+    if isinstance(dist, Domain):
         return
 
     if search_optimization == "random":
@@ -406,14 +406,14 @@ class TuneSearchCV(TuneBaseSearchCV):
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
-    def _is_param_distributions_all_tune_samplers(self):
+    def _is_param_distributions_all_tune_domains(self):
         return all([
-            isinstance(v, Sampler)
+            isinstance(v, Domain)
             for k, v in self.param_distributions.items()
         ])
 
     def _get_bohb_config_space(self):
-        if self._is_param_distributions_all_tune_samplers():
+        if self._is_param_distributions_all_tune_domains():
             return self.param_distributions
 
         import ConfigSpace as CS
@@ -455,7 +455,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         return config_space
 
     def _get_optuna_params(self):
-        if self._is_param_distributions_all_tune_samplers():
+        if self._is_param_distributions_all_tune_domains():
             return self.param_distributions
 
         from ray.tune.suggest.optuna import param
@@ -493,7 +493,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         return config_space
 
     def _get_hyperopt_params(self):
-        if self._is_param_distributions_all_tune_samplers():
+        if self._is_param_distributions_all_tune_domains():
             return self.param_distributions
 
         from hyperopt import hp
