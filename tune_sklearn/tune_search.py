@@ -407,17 +407,15 @@ class TuneSearchCV(TuneBaseSearchCV):
             self.num_samples = min(self.num_samples, samples)
 
     def _is_param_distributions_all_tune_samplers(self):
-        return all([isinstance(v, Sampler) for k, v in self.param_distributions.items()])
+        return all([
+            isinstance(v, Sampler)
+            for k, v in self.param_distributions.items()
+        ])
 
-    def _leave_tune_samplers_as_is(self, f):
-        def wrapper():
-            if self._is_param_distributions_all_tune_samplers():
-                return self.param_distributions
-            return f()
-        return wrapper
-
-    @_leave_tune_samplers_as_is
     def _get_bohb_config_space(self):
+        if self._is_param_distributions_all_tune_samplers():
+            return self.param_distributions
+
         import ConfigSpace as CS
         config_space = CS.ConfigurationSpace()
 
@@ -456,8 +454,10 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space.add_hyperparameter(space)
         return config_space
 
-    @_leave_tune_samplers_as_is
     def _get_optuna_params(self):
+        if self._is_param_distributions_all_tune_samplers():
+            return self.param_distributions
+
         from ray.tune.suggest.optuna import param
         config_space = []
 
@@ -492,8 +492,10 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space.append(space)
         return config_space
 
-    @_leave_tune_samplers_as_is
     def _get_hyperopt_params(self):
+        if self._is_param_distributions_all_tune_samplers():
+            return self.param_distributions
+
         from hyperopt import hp
         config_space = {}
 
