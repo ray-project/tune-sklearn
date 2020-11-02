@@ -442,12 +442,17 @@ class RandomizedSearchTest(unittest.TestCase):
         x = digits.data
         y = digits.target
 
-        clf = SGDClassifier()
+        clf = SGDClassifier(alpha=1, epsilon=0.1, penalty="l2")
         parameter_grid = {
-            "alpha": tune.uniform(1e-4, 1),
-            "epsilon": tune.uniform(0.01, 0.1),
-            "penalty": tune.choice(["l1", "l2"]),
+            "alpha": tune.uniform(1e-4, 0.5),
+            "epsilon": tune.uniform(0.01, 0.05),
+            "penalty": tune.choice(["elasticnet", "l1"]),
         }
+        print({
+            k: v
+            for k, v in clf.get_params().items()
+            if k in ("alpha", "epsilon", "penalty")
+        })
         search_methods = ["random", "bayesian", "hyperopt", "bohb"]
         for search_method in search_methods:
             tune_search = TuneSearchCV(
@@ -457,8 +462,17 @@ class RandomizedSearchTest(unittest.TestCase):
                 cv=2,
                 n_trials=3,
                 n_jobs=1,
-                refit=False)
+                refit=True)
             tune_search.fit(x, y)
+            params = tune_search.best_estimator_.get_params()
+            print({
+                k: v
+                for k, v in params.items()
+                if k in ("alpha", "epsilon", "penalty")
+            })
+            self.assertTrue(1e-4 <= params["alpha"] <= 0.5)
+            self.assertTrue(0.01 <= params["epsilon"] <= 0.05)
+            self.assertTrue(params["penalty"] in ("elasticnet", "l1"))
 
 
 if __name__ == "__main__":
