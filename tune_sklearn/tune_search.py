@@ -456,9 +456,6 @@ class TuneSearchCV(TuneBaseSearchCV):
         return config_space
 
     def _get_optuna_params(self):
-        if self._is_param_distributions_all_tune_domains():
-            return self.param_distributions
-
         from ray.tune.suggest.optuna import param
         config_space = []
 
@@ -494,9 +491,6 @@ class TuneSearchCV(TuneBaseSearchCV):
         return config_space
 
     def _get_hyperopt_params(self):
-        if self._is_param_distributions_all_tune_domains():
-            return self.param_distributions
-
         from hyperopt import hp
         config_space = {}
 
