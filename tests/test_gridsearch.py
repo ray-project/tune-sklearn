@@ -271,13 +271,13 @@ class GridSearchTest(unittest.TestCase):
         grid_search = TuneGridSearchCV(
             clf, {"foo_param": [1, 2, 3]}, refit=False, cv=3)
         grid_search.fit(X, y)
-        self.assertFalse(hasattr(grid_search, "best_estimator_"))
-        self.assertFalse(hasattr(grid_search, "best_index_"))
-        self.assertFalse(hasattr(grid_search, "best_score_"))
-        self.assertFalse(hasattr(grid_search, "best_params_"))
+        grid_search.best_index_
+        grid_search.best_score_
+        grid_search.best_params_
 
         # Make sure the predict/transform etc fns raise meaningful error msg
         for fn_name in (
+                "best_estimator_",
                 "predict",
                 "predict_proba",
                 "predict_log_proba",
@@ -568,12 +568,12 @@ class GridSearchTest(unittest.TestCase):
             max_iters=20,
             refit=False)
         tune_search.fit(X, y)
-        self.assertTrue(tune_search.is_multi)
+        self.assertTrue(tune_search.multimetric_)
 
         tune_search = TuneGridSearchCV(
             SGDClassifier(), parameter_grid, scoring="f1_micro", max_iters=20)
         tune_search.fit(X, y)
-        self.assertFalse(tune_search.is_multi)
+        self.assertFalse(tune_search.multimetric_)
 
         # Make sure error is raised when refit isn't set properly
         tune_search = TuneGridSearchCV(

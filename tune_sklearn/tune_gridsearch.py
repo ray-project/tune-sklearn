@@ -107,18 +107,18 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             computationally expensive and is not strictly required to select
             the parameters that yield the best generalization performance.
         local_dir (str): A string that defines where checkpoints will
-            be stored. Defaults to "~/ray_results"
+            be stored. Defaults to "~/ray_results".
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled.
             This parameter is used for early stopping. Defaults to 1.
-           Depending on the classifier type provided, a resource parameter
-           (`resource_param = max_iter or n_estimators`) will be detected.
-           The value of `resource_param` will be treated as a
-           "max resource value", and all classifiers will be
-           initialized with `max resource value // max_iters`, where
-           `max_iters` is this defined parameter. On each epoch,
-           resource_param (max_iter or n_estimators) is
-           incremented by `max resource value // max_iters`.
+            Depending on the classifier type provided, a resource parameter
+            (`resource_param = max_iter or n_estimators`) will be detected.
+            The value of `resource_param` will be treated as a
+            "max resource value", and all classifiers will be
+            initialized with `max resource value // max_iters`, where
+            `max_iters` is this defined parameter. On each epoch,
+            resource_param (max_iter or n_estimators) is
+            incremented by `max resource value // max_iters`.
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will use 1 gpu
             for `resources_per_trial`.

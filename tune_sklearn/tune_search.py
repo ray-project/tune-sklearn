@@ -182,8 +182,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             available if ``refit`` is set and all of them will be determined
             w.r.t this specific scorer. If refit not needed, set to False.
             See ``scoring`` parameter to know more about multiple metric
-            evaluation.
-            Defaults to True.
+            evaluation. Defaults to True.
         cv (int, `cross-validation generator` or `iterable`): Determines
             the cross-validation splitting strategy.
             Possible inputs for cv are:
@@ -226,14 +225,14 @@ class TuneSearchCV(TuneBaseSearchCV):
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled (specified by ``n_trials``).
             This parameter is used for early stopping. Defaults to 1.
-           Depending on the classifier type provided, a resource parameter
-           (`resource_param = max_iter or n_estimators`) will be detected.
-           The value of `resource_param` will be treated as a
-           "max resource value", and all classifiers will be
-           initialized with `max resource value // max_iters`, where
-           `max_iters` is this defined parameter. On each epoch,
-           resource_param (max_iter or n_estimators) is
-           incremented by `max resource value // max_iters`.
+            Depending on the classifier type provided, a resource parameter
+            (`resource_param = max_iter or n_estimators`) will be detected.
+            The value of `resource_param` will be treated as a
+            "max resource value", and all classifiers will be
+            initialized with `max resource value // max_iters`, where
+            `max_iters` is this defined parameter. On each epoch,
+            resource_param (max_iter or n_estimators) is
+            incremented by `max resource value // max_iters`.
         search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"):
             Randomized search is invoked with ``search_optimization`` set to
             ``"random"`` and behaves like scikit-learn's
