@@ -627,6 +627,7 @@ class TuneBaseSearchCV(BaseEstimator):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
+        logger.error("Test test")
         ray_init = ray.is_initialized()
         try:
             if not ray_init:
@@ -657,8 +658,7 @@ class TuneBaseSearchCV(BaseEstimator):
         except Exception as e:
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
-            if type(e) != TuneError:
-                raise
+            raise e
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.
