@@ -325,7 +325,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             elif not isinstance(early_stopping, HyperBandForBOHB):
                 if early_stopping != "HyperBandForBOHB":
                     warnings.warn(
-                        "Ignoring early_stopping value, as BOHB requires HyperBandForBOHB"
+                        "Ignoring early_stopping value, as BOHB requires HyperBandForBOHB as the EarlyStopping scheduler"
                     )
                 early_stopping = "HyperBandForBOHB"
         elif early_stopping == "HyperBandForBOHB" or isinstance(
