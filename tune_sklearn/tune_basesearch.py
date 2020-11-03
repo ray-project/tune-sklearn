@@ -361,12 +361,14 @@ class TuneBaseSearchCV(BaseEstimator):
                  max_iters=1,
                  use_gpu=False,
                  loggers=None,
-                 pipeline_auto_early_stop=True):
+                 pipeline_auto_early_stop=True,
+                 time_budget_s=None):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
         self.base_estimator = estimator
         self.pipeline_auto_early_stop = pipeline_auto_early_stop
+        self.time_budget_s = time_budget_s
 
         if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
             _, self.base_estimator = self.base_estimator.steps[-1]

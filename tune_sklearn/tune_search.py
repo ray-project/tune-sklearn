@@ -258,6 +258,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
             capabilities, which are by default not supported by standard
             SKlearn. Defaults to True.
+        time_budget_s (int|float|datetime.timedelta): Global time budget in
+            seconds after which all trials are stopped. Can also be a
+            ``datetime.timedelta`` object.
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
@@ -284,6 +287,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
+                 time_budget_s=None,
                  **search_kwargs):
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -339,7 +343,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             max_iters=max_iters,
             use_gpu=use_gpu,
             loggers=loggers,
-            pipeline_auto_early_stop=pipeline_auto_early_stop)
+            pipeline_auto_early_stop=pipeline_auto_early_stop,
+            time_budget_s=time_budget_s)
 
         if search_optimization == "bohb":
             from ray.tune.schedulers import HyperBandForBOHB
@@ -593,7 +598,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             fail_fast=True,
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
-            loggers=self.loggers)
+            loggers=self.loggers,
+            time_budget_s=self.time_budget_s)
 
         if self.search_optimization == "random":
             if isinstance(self.param_distributions, list):

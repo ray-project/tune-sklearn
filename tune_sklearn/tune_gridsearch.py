@@ -132,6 +132,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
             capabilities, which are by default not supported by standard
             SKlearn. Defaults to True.
+        time_budget_s (int|float|datetime.timedelta): Global time budget in
+            seconds after which all trials are stopped. Can also be a
+            ``datetime.timedelta`` object.
     """
 
     def __init__(self,
@@ -150,7 +153,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  max_iters=1,
                  use_gpu=False,
                  loggers=None,
-                 pipeline_auto_early_stop=True):
+                 pipeline_auto_early_stop=True,
+                 time_budget_s=None):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
@@ -166,7 +170,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             verbose=verbose,
             use_gpu=use_gpu,
             loggers=loggers,
-            pipeline_auto_early_stop=pipeline_auto_early_stop)
+            pipeline_auto_early_stop=pipeline_auto_early_stop,
+            time_budget_s=time_budget_s)
 
         check_error_warm_start(self.early_stop_type, param_grid, estimator)
 
@@ -237,7 +242,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             fail_fast=True,
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
-            loggers=self.loggers)
+            loggers=self.loggers,
+            time_budget_s=self.time_budget_s)
 
         if isinstance(self.param_grid, list):
             run_args.update(
