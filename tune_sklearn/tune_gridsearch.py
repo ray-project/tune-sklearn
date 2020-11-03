@@ -228,31 +228,22 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         else:
             config["estimator_list"] = [self.estimator]
 
-        if isinstance(self.param_grid, list):
-            analysis = tune.run(
-                trainable,
-                search_alg=ListSearcher(self.param_grid),
-                num_samples=self._list_grid_num_samples(),
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.max_iters},
-                config=config,
-                fail_fast=True,
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir),
-                loggers=self.loggers)
-        else:
-            analysis = tune.run(
-                trainable,
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.max_iters},
-                config=config,
-                fail_fast=True,
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir),
-                loggers=self.loggers)
+        run_args = dict(
+            scheduler=self.early_stopping,
+            reuse_actors=True,
+            verbose=self.verbose,
+            stop={"training_iteration": self.max_iters},
+            config=config,
+            fail_fast=True,
+            resources_per_trial=resources_per_trial,
+            local_dir=os.path.expanduser(self.local_dir),
+            loggers=self.loggers)
 
+        if isinstance(self.param_grid, list):
+            run_args.update(
+                dict(
+                    search_alg=ListSearcher(self.param_grid),
+                    num_samples=self._list_grid_num_samples()))
+
+        analysis = tune.run(trainable, **run_args)
         return analysis

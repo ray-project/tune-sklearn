@@ -8,7 +8,7 @@ from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.base import clone
 from ray import tune
-from ray.tune.suggest import ConcurrencyLimiter
+from ray.tune.suggest import ConcurrencyLimiter, BasicVariantGenerator
 from tune_sklearn.list_searcher import RandomListSearcher
 from tune_sklearn.utils import check_error_warm_start
 import numpy as np
@@ -583,71 +583,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         else:
             config["estimator_list"] = [self.estimator]
 
-        if self.search_optimization == "random":
-            run_args = dict(
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop=stop_condition,
-                num_samples=self.num_samples,
-                config=config,
-                fail_fast=True,
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir),
-                loggers=self.loggers)
-
-            if isinstance(self.param_distributions, list):
-                run_args["search_alg"] = RandomListSearcher(
-                    self.param_distributions)
-
-            analysis = tune.run(trainable, **run_args)
-            return analysis
-
-        elif self.search_optimization == "bayesian":
-            from skopt import Optimizer
-            from ray.tune.suggest.skopt import SkOptSearch
-            hyperparameter_names, spaces = self._get_skopt_params()
-            search_algo = SkOptSearch(
-                Optimizer(spaces),
-                hyperparameter_names,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-
-        elif self.search_optimization == "bohb":
-            from ray.tune.suggest.bohb import TuneBOHB
-            config_space = self._get_bohb_config_space()
-            search_algo = TuneBOHB(
-                config_space,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-
-        elif self.search_optimization == "optuna":
-            from ray.tune.suggest.optuna import OptunaSearch
-            config_space = self._get_optuna_params()
-            search_algo = OptunaSearch(
-                config_space,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-
-        elif self.search_optimization == "hyperopt":
-            from ray.tune.suggest.hyperopt import HyperOptSearch
-            config_space = self._get_hyperopt_params()
-            search_algo = HyperOptSearch(
-                config_space,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-
-        if isinstance(self.n_jobs, int) and self.n_jobs > 0:
-            search_algo = ConcurrencyLimiter(
-                search_algo, max_concurrent=self.n_jobs)
-
-        analysis = tune.run(
-            trainable,
-            search_alg=search_algo,
+        run_args = dict(
             scheduler=self.early_stopping,
             reuse_actors=True,
             verbose=self.verbose,
@@ -659,4 +595,65 @@ class TuneSearchCV(TuneBaseSearchCV):
             local_dir=os.path.expanduser(self.local_dir),
             loggers=self.loggers)
 
+        if self.search_optimization == "random":
+            if isinstance(self.param_distributions, list):
+                search_algo = RandomListSearcher(self.param_distributions)
+            else:
+                search_algo = BasicVariantGenerator()
+            run_args["search_alg"] = search_algo
+
+        elif self.search_optimization == "bayesian":
+            from skopt import Optimizer
+            from ray.tune.suggest.skopt import SkOptSearch
+            hyperparameter_names, spaces = self._get_skopt_params()
+            search_algo = SkOptSearch(
+                Optimizer(spaces),
+                hyperparameter_names,
+                metric=self._metric_name,
+                mode="max",
+                **self.search_kwargs)
+            run_args["search_alg"] = search_algo
+
+        elif self.search_optimization == "bohb":
+            from ray.tune.suggest.bohb import TuneBOHB
+            config_space = self._get_bohb_config_space()
+            search_algo = TuneBOHB(
+                config_space,
+                metric=self._metric_name,
+                mode="max",
+                **self.search_kwargs)
+            run_args["search_alg"] = search_algo
+
+        elif self.search_optimization == "optuna":
+            from ray.tune.suggest.optuna import OptunaSearch
+            config_space = self._get_optuna_params()
+            search_algo = OptunaSearch(
+                config_space,
+                metric=self._metric_name,
+                mode="max",
+                **self.search_kwargs)
+            run_args["search_alg"] = search_algo
+
+        elif self.search_optimization == "hyperopt":
+            from ray.tune.suggest.hyperopt import HyperOptSearch
+            config_space = self._get_hyperopt_params()
+            search_algo = HyperOptSearch(
+                config_space,
+                metric=self._metric_name,
+                mode="max",
+                **self.search_kwargs)
+            run_args["search_alg"] = search_algo
+
+        else:
+            # This should not happen as we validate the input before calling
+            # this method. Still, just to be sure, raise an error here.
+            raise ValueError(
+                f"Invalid search optimizer: {self.search_optimization}")
+
+        if isinstance(self.n_jobs, int) and self.n_jobs > 0:
+            search_algo = ConcurrencyLimiter(
+                search_algo, max_concurrent=self.n_jobs)
+            run_args["search_alg"] = search_algo
+
+        analysis = tune.run(trainable, **run_args)
         return analysis
