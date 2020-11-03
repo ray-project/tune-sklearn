@@ -627,7 +627,6 @@ class TuneBaseSearchCV(BaseEstimator):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
-        logger.error("Test test")
         ray_init = ray.is_initialized()
         try:
             if not ray_init:
