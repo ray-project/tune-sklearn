@@ -314,10 +314,24 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         can_use_param_distributions = False
 
+        from ray.tune.schedulers import HyperBandForBOHB
         if search_optimization == "bohb":
             import ConfigSpace as CS
             can_use_param_distributions = isinstance(check_param_distributions,
                                                      CS.ConfigurationSpace)
+            if early_stopping is False:
+                raise ValueError(
+                    "early_stopping must not be False when using BOHB")
+            elif not isinstance(early_stopping, HyperBandForBOHB):
+                if early_stopping != "HyperBandForBOHB":
+                    warnings.warn(
+                        "Ignoring early_stopping value, as BOHB requires HyperBandForBOHB"
+                    )
+                early_stopping = "HyperBandForBOHB"
+        elif early_stopping == "HyperBandForBOHB" or isinstance(
+                early_stopping, HyperBandForBOHB):
+            raise ValueError(
+                "early_stopping can be HyperBandForBOHB only when using BOHB")
 
         if not can_use_param_distributions:
             for p in check_param_distributions:
@@ -340,12 +354,6 @@ class TuneSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop)
-
-        if search_optimization == "bohb":
-            from ray.tune.schedulers import HyperBandForBOHB
-            if not isinstance(early_stopping, HyperBandForBOHB):
-                early_stopping = HyperBandForBOHB(
-                    metric=self._metric_name, mode="max", max_t=max_iters)
 
         check_error_warm_start(self.early_stop_type, param_distributions,
                                estimator)

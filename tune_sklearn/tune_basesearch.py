@@ -21,7 +21,7 @@ from sklearn.exceptions import NotFittedError
 import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
-    MedianStoppingRule, TrialScheduler, ASHAScheduler)
+    MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
 from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
                              Logger)
 from ray.tune.error import TuneError
@@ -56,6 +56,9 @@ def resolve_early_stopping(early_stopping, max_iters, metric_name):
                 return MedianStoppingRule(metric=metric_name, mode="max")
             elif early_stopping == "ASHAScheduler":
                 return ASHAScheduler(
+                    metric=metric_name, mode="max", max_t=max_iters)
+            elif early_stopping == "HyperBandForBOHB":
+                return HyperBandForBOHB(
                     metric=metric_name, mode="max", max_t=max_iters)
         raise ValueError("{} is not a defined scheduler. "
                          "Check the list of available schedulers."
@@ -105,7 +108,8 @@ class TuneBaseSearchCV(BaseEstimator):
 
     defined_schedulers = [
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
-        "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler"
+        "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler",
+        "HyperBandForBOHB"
     ]
     defined_loggers = ["tensorboard", "csv", "mlflow", "json"]
 
