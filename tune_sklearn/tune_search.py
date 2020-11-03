@@ -228,10 +228,10 @@ class TuneSearchCV(TuneBaseSearchCV):
             `max_iters` is this defined parameter. On each epoch,
             resource_param (max_iter or n_estimators) is
             incremented by `max resource value // max_iters`.
-        search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"):
-            Randomized search is invoked with ``search_optimization`` set to
-            ``"random"`` and behaves like scikit-learn's
-            ``RandomizedSearchCV``.
+        search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"
+            or "optuna"): Randomized search is invoked with
+            ``search_optimization`` set to ``"random"`` and behaves like
+            scikit-learn's ``RandomizedSearchCV``.
 
             Bayesian search can be invoked with several values of
             ``search_optimization``.
@@ -291,7 +291,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             "bayesian",  # scikit-optimize/SkOpt
             "bohb",
             "hyperopt",
-            # "optuna",  # optuna is not yet in stable ray.tune
+            "optuna",
         ]
         if (search_optimization not in available_optimizations):
             raise ValueError("Search optimization must be one of "

@@ -148,7 +148,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
         scoring = ("accuracy", "f1_micro")
-        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        search_methods = ["random", "bayesian", "hyperopt", "bohb", "optuna"]
         for search_method in search_methods:
 
             tune_search = TuneSearchCV(
@@ -180,7 +180,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
         scoring = {"acc": "accuracy", "f1": "f1_micro"}
-        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        search_methods = ["random", "bayesian", "hyperopt", "bohb", "optuna"]
         for search_method in search_methods:
 
             tune_search = TuneSearchCV(
@@ -211,7 +211,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         scoring = ("neg_mean_absolute_error", "neg_mean_squared_error")
 
-        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        search_methods = ["random", "bayesian", "hyperopt", "bohb", "optuna"]
         for search_method in search_methods:
 
             tune_search = TuneSearchCV(
