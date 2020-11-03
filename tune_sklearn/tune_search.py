@@ -409,8 +409,7 @@ class TuneSearchCV(TuneBaseSearchCV):
 
     def _is_param_distributions_all_tune_domains(self):
         return all(
-            isinstance(v, Domain) for k, v in self.param_distributions.items()
-        )
+            isinstance(v, Domain) for k, v in self.param_distributions.items())
 
     def _get_bohb_config_space(self):
         if self._is_param_distributions_all_tune_domains():
