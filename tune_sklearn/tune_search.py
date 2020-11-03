@@ -331,7 +331,8 @@ class TuneSearchCV(TuneBaseSearchCV):
         elif early_stopping == "HyperBandForBOHB" or isinstance(
                 early_stopping, HyperBandForBOHB):
             raise ValueError(
-                "early_stopping can be HyperBandForBOHB only when using BOHB")
+                "search_optimization must be set to 'BOHB' if early_stopping is set to HyperBandForBOHB"
+            )
 
         if not can_use_param_distributions:
             for p in check_param_distributions:
