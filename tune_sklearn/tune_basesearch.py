@@ -657,7 +657,8 @@ class TuneBaseSearchCV(BaseEstimator):
         except Exception as e:
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
-            raise e
+            if type(e) != TuneError:
+                raise
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.
