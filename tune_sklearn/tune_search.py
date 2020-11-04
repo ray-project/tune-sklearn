@@ -324,15 +324,14 @@ class TuneSearchCV(TuneBaseSearchCV):
                     "early_stopping must not be False when using BOHB")
             elif not isinstance(early_stopping, HyperBandForBOHB):
                 if early_stopping != "HyperBandForBOHB":
-                    warnings.warn(
-                        "Ignoring early_stopping value, as BOHB requires HyperBandForBOHB as the EarlyStopping scheduler"
-                    )
+                    warnings.warn("Ignoring early_stopping value, "
+                                  "as BOHB requires HyperBandForBOHB "
+                                  "as the EarlyStopping scheduler")
                 early_stopping = "HyperBandForBOHB"
         elif early_stopping == "HyperBandForBOHB" or isinstance(
                 early_stopping, HyperBandForBOHB):
-            raise ValueError(
-                "search_optimization must be set to 'BOHB' if early_stopping is set to HyperBandForBOHB"
-            )
+            raise ValueError("search_optimization must be set to 'BOHB' "
+                             "if early_stopping is set to HyperBandForBOHB")
 
         if not can_use_param_distributions:
             for p in check_param_distributions:
