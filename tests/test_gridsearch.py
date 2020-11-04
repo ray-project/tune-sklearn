@@ -204,13 +204,10 @@ class GridSearchTest(unittest.TestCase):
         ]
         for cv in group_cvs:
             gs = TuneGridSearchCV(clf, grid, cv=cv)
-            try:
-                with self.assertLogs("ray.tune") as cm:
-                    gs.fit(X, y)
-                self.assertTrue((
-                    "parameter should not be None.") in str(cm.output))
-            except ValueError as exc:
-                self.assertTrue("parameter should not be None" in str(exc))
+            with self.assertRaises(ValueError) as exc:
+                gs.fit(X, y)
+            self.assertTrue(
+                "parameter should not be None" in str(exc.exception))
 
             gs.fit(X, y, groups=groups)
 
@@ -298,10 +295,10 @@ class GridSearchTest(unittest.TestCase):
 
         clf = LinearSVC()
         cv = TuneGridSearchCV(clf, {"C": [0.1, 1.0]})
-        with self.assertLogs("ray.tune") as cm:
+        with self.assertRaises(ValueError) as exc:
             cv.fit(X_[:180], y_)
-        self.assertTrue(("ValueError: Found input variables with inconsistent "
-                         "numbers of samples: [180, 200]") in str(cm.output))
+        self.assertTrue(("Found input variables with inconsistent numbers of "
+                         "samples: [180, 200]") in str(exc.exception))
 
     def test_grid_search_one_grid_point(self):
         X_, y_ = make_classification(
@@ -429,11 +426,11 @@ class GridSearchTest(unittest.TestCase):
         # test error is raised when the precomputed kernel is not array-like
         # or sparse
         # with self.assertRaises(TuneError):
-        with self.assertLogs("ray.tune") as cm:
+        with self.assertRaises(ValueError) as exc:
             cv.fit(K_train.tolist(), y_train)
-        self.assertTrue((
-            "ValueError: Precomputed kernels or affinity matrices have "
-            "to be passed as arrays or sparse matrices.") in str(cm.output))
+        self.assertTrue(("Precomputed kernels or affinity matrices have "
+                         "to be passed as arrays or sparse matrices."
+                         ) in str(exc.exception))
 
     def test_grid_search_precomputed_kernel_error_nonsquare(self):
         # Test that grid search returns an error with a non-square precomputed
@@ -443,10 +440,10 @@ class GridSearchTest(unittest.TestCase):
         clf = SVC(kernel="precomputed")
         cv = TuneGridSearchCV(clf, {"C": [0.1, 1.0]})
         # with self.assertRaises(TuneError):
-        with self.assertLogs("ray.tune") as cm:
+        with self.assertRaises(ValueError) as exc:
             cv.fit(K_train, y_train)
-        self.assertTrue(("ValueError: X should be a square kernel matrix"
-                         ) in str(cm.output))
+        self.assertTrue((
+            "X should be a square kernel matrix") in str(exc.exception))
 
     def test_refit(self):
         # Regression test for bug in refitting
