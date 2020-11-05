@@ -15,4 +15,3 @@ keras
 tensorflow
 click
 catboost
-optuna
