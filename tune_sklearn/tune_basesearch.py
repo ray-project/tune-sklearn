@@ -27,6 +27,7 @@ from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
 from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
+import pandas as pd
 import warnings
 import multiprocessing
 import os
@@ -768,7 +769,33 @@ class TuneBaseSearchCV(BaseEstimator):
                 interface's ``cv_results_``.
 
         """
-        dfs = list(out.fetch_trial_dataframes().values())
+        trials = out.trials
+        trial_dirs = [trial.logdir for trial in trials]
+        # The result dtaframes are indexed by their trial logdir
+        trial_dfs = out.fetch_trial_dataframes()
+
+        # Try to find a template df to use for trials that did not return
+        # any results. These trials should copy the structure and fill it
+        # with NaNs so that the later reshape actions work.
+        template_df = None
+        fix_trial_dirs = []  # Holds trial dirs with no results
+        for trial_dir in trial_dirs:
+            if trial_dir in trial_dfs and template_df is None:
+                template_df = trial_dfs[trial_dir]
+            elif trial_dir not in trial_dfs:
+                fix_trial_dirs.append(trial_dir)
+
+        # Create NaN dataframes for trials without results
+        if fix_trial_dirs:
+            if template_df is None:
+                # No trial returned any results
+                return {}
+            for trial_dir in fix_trial_dirs:
+                trial_df = pd.DataFrame().reindex_like(template_df)
+                trial_dfs[trial_dir] = trial_df
+
+        # Keep right order
+        dfs = [trial_dfs[trial_dir] for trial_dir in trial_dirs]
         finished = [df.iloc[[-1]] for df in dfs]
         test_scores = {}
         train_scores = {}
