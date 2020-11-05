@@ -664,7 +664,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             raise ValueError(
                 f"Invalid search optimizer: {self.search_optimization}")
 
-        if isinstance(self.n_jobs, int) and self.n_jobs > 0:
+        if isinstance(self.n_jobs, int) and self.n_jobs > 0 \
+           and not self.search_optimization == "random":
             search_algo = ConcurrencyLimiter(
                 search_algo, max_concurrent=self.n_jobs)
             run_args["search_alg"] = search_algo
