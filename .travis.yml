@@ -78,7 +78,7 @@ notifications:
 
 install:
   - pip3 install -U -q pip
-  - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace scipy dataclasses
+  - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace scipy dataclasses optuna
   - pip3 install -q -r requirements-test.txt
   - pip3 install --upgrade -q keras
   - pip3 install -U -q scikit-learn pytest
