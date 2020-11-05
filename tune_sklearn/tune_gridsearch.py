@@ -1,6 +1,7 @@
 """Class for doing grid search over lists of hyperparameters
     -- Anthony Yu and Michael Chau
 """
+import warnings
 
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
@@ -228,31 +229,33 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         else:
             config["estimator_list"] = [self.estimator]
 
-        if isinstance(self.param_grid, list):
-            analysis = tune.run(
-                trainable,
-                search_alg=ListSearcher(self.param_grid),
-                num_samples=self._list_grid_num_samples(),
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.max_iters},
-                config=config,
-                fail_fast="raise",
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir),
-                loggers=self.loggers)
-        else:
-            analysis = tune.run(
-                trainable,
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.max_iters},
-                config=config,
-                fail_fast="raise",
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir),
-                loggers=self.loggers)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if isinstance(self.param_grid, list):
+                analysis = tune.run(
+                    trainable,
+                    search_alg=ListSearcher(self.param_grid),
+                    num_samples=self._list_grid_num_samples(),
+                    scheduler=self.early_stopping,
+                    reuse_actors=True,
+                    verbose=self.verbose,
+                    stop={"training_iteration": self.max_iters},
+                    config=config,
+                    fail_fast="raise",
+                    resources_per_trial=resources_per_trial,
+                    local_dir=os.path.expanduser(self.local_dir),
+                    loggers=self.loggers)
+            else:
+                analysis = tune.run(
+                    trainable,
+                    scheduler=self.early_stopping,
+                    reuse_actors=True,
+                    verbose=self.verbose,
+                    stop={"training_iteration": self.max_iters},
+                    config=config,
+                    fail_fast="raise",
+                    resources_per_trial=resources_per_trial,
+                    local_dir=os.path.expanduser(self.local_dir),
+                    loggers=self.loggers)
 
         return analysis
