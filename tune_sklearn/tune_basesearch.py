@@ -11,6 +11,8 @@ https://optuna.org
 """
 import logging
 from collections import defaultdict
+
+from ray.tune.trial import Trial
 from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
@@ -769,7 +771,9 @@ class TuneBaseSearchCV(BaseEstimator):
                 interface's ``cv_results_``.
 
         """
-        trials = out.trials
+        trials = [
+            trial for trial in out.trials if trial.status == Trial.TERMINATED
+        ]
         trial_dirs = [trial.logdir for trial in trials]
         # The result dtaframes are indexed by their trial logdir
         trial_dfs = out.fetch_trial_dataframes()
@@ -816,10 +820,9 @@ class TuneBaseSearchCV(BaseEstimator):
             else:
                 train_scores = None
 
-        configs = out.get_all_configs()
+        configs = [trial.config for trial in trials]
         candidate_params = [
-            self._clean_config_dict(configs[config_key])
-            for config_key in configs
+            self._clean_config_dict(config) for config in configs
         ]
 
         results = {"params": candidate_params}
