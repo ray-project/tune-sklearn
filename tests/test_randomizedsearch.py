@@ -1,3 +1,5 @@
+import time
+
 from tune_sklearn import TuneSearchCV
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -17,6 +19,7 @@ import os
 from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
                                           has_required_lightgbm_version)
 from tune_sklearn.utils import EarlyStopping
+from test_utils import SleepClassifier
 
 
 class RandomizedSearchTest(unittest.TestCase):
@@ -467,6 +470,30 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search = TuneSearchCV(
             pipe, parameter_grid, early_stopping=True, max_iters=10)
         tune_search.fit(x, y)
+
+    def test_timeout(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+
+        clf = SleepClassifier()
+        # SleepClassifier sleeps for `foo_param` seconds, `cv` times.
+        # Thus, the time budget is exhausted after testing the first two
+        # `foo_param`s.
+        grid_search = TuneSearchCV(
+            clf, {"foo_param": [1.1, 1.2, 2.5]},
+            time_budget_s=5.0,
+            cv=2,
+            max_iters=5,
+            early_stopping=True)
+
+        start = time.time()
+        grid_search.fit(X, y)
+        taken = time.time() - start
+
+        print(grid_search)
+        # Without timeout we would need over 50 seconds for this to
+        # finish. Allow for some initialization overhead
+        self.assertLess(taken, 18.0)
 
 
 if __name__ == "__main__":
