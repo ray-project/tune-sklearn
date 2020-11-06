@@ -260,7 +260,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             SKlearn. Defaults to True.
         time_budget_s (int|float|datetime.timedelta): Global time budget in
             seconds after which all trials are stopped. Can also be a
-            ``datetime.timedelta`` object.
+            ``datetime.timedelta`` object. The stopping condition is checked
+            after receiving a result, i.e. after each training iteration.
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
