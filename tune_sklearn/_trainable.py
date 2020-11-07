@@ -1,6 +1,5 @@
 """ Helper class to train models using Ray backend
 """
-
 import ray
 from ray.tune import Trainable
 from sklearn.base import clone
@@ -14,7 +13,6 @@ import warnings
 import inspect
 
 from tune_sklearn.utils import (EarlyStopping, _aggregate_score_dicts)
-
 
 class _Trainable(Trainable):
     """Class to be passed in as the first argument of tune.run to train models.
@@ -260,13 +258,6 @@ class _Trainable(Trainable):
                     scoring=self.scoring,
                     return_train_score=self.return_train_score,
                 )
-            except ValueError as e:
-                if "n_splits" in str(e):
-                    raise ValueError(
-                        str(e) + "Try reducing the number of "
-                        "splits by setting the `cv` "
-                        "parameter of your Tune Search "
-                        "object.")
 
             ret = {}
             for name in self.scoring:
