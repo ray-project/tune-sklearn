@@ -260,6 +260,14 @@ class _Trainable(Trainable):
                     scoring=self.scoring,
                     return_train_score=self.return_train_score,
                 )
+            except ValueError as e:
+                if "n_splits" in str(e):
+                    raise ValueError(str(e)+"Try reducing the number of "
+                                            "splits by setting the `cv` "
+                                            "parameter of your Tune Search "
+                                            "object.")
+
+
 
             ret = {}
             for name in self.scoring:

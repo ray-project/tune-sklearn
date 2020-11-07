@@ -563,12 +563,14 @@ class GridSearchTest(unittest.TestCase):
             parameter_grid,
             scoring=("accuracy", "f1_micro"),
             max_iters=20,
+            cv=5,
             refit=False)
         tune_search.fit(X, y)
         self.assertTrue(tune_search.multimetric_)
 
         tune_search = TuneGridSearchCV(
-            SGDClassifier(), parameter_grid, scoring="f1_micro", max_iters=20)
+            SGDClassifier(), parameter_grid, scoring="f1_micro",
+            max_iters=20, cv=2)
         tune_search.fit(X, y)
         self.assertFalse(tune_search.multimetric_)
 
@@ -577,6 +579,7 @@ class GridSearchTest(unittest.TestCase):
             SGDClassifier(),
             parameter_grid,
             scoring=("accuracy", "f1_micro"),
+            cv=2,
             max_iters=20)
         with self.assertRaises(ValueError):
             tune_search.fit(X, y)
