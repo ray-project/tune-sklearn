@@ -600,7 +600,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 run_args["search_alg"] = RandomListSearcher(
                     self.param_distributions)
             with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
+                warnings.filterwarnings("ignore", message="fail_fast='raise' "
+                                                          "detected.")
                 analysis = tune.run(trainable, **run_args)
                 return analysis
 
@@ -647,7 +648,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 search_algo, max_concurrent=self.n_jobs)
 
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+            warnings.filterwarnings("ignore", message="fail_fast='raise' "
+                                                      "detected.")
             analysis = tune.run(
                 trainable,
                 search_alg=search_algo,
