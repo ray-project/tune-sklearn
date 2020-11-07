@@ -674,6 +674,6 @@ class TuneSearchCV(TuneBaseSearchCV):
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore", message="fail_fast='raise' "
-                                  "detected.")
+                "detected.")
             analysis = tune.run(trainable, **run_args)
         return analysis
