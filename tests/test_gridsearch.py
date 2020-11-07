@@ -569,8 +569,11 @@ class GridSearchTest(unittest.TestCase):
         self.assertTrue(tune_search.multimetric_)
 
         tune_search = TuneGridSearchCV(
-            SGDClassifier(), parameter_grid, scoring="f1_micro",
-            max_iters=20, cv=2)
+            SGDClassifier(),
+            parameter_grid,
+            scoring="f1_micro",
+            max_iters=20,
+            cv=2)
         tune_search.fit(X, y)
         self.assertFalse(tune_search.multimetric_)
 

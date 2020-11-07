@@ -24,7 +24,6 @@ from ray.tune.schedulers import (
     MedianStoppingRule, TrialScheduler, ASHAScheduler)
 from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
                              Logger)
-from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
 import warnings
@@ -654,7 +653,7 @@ class TuneBaseSearchCV(BaseEstimator):
 
             return result
 
-        except Exception as e:
+        except Exception:
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
             raise

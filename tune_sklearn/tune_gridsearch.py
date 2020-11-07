@@ -230,8 +230,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             config["estimator_list"] = [self.estimator]
 
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="fail_fast='raise' "
-                                                  "detected.")
+            warnings.filterwarnings(
+                "ignore", message="fail_fast='raise' "
+                "detected.")
             if isinstance(self.param_grid, list):
                 analysis = tune.run(
                     trainable,
