@@ -1,3 +1,5 @@
+import time
+
 import ray
 from tune_sklearn import TuneGridSearchCV
 from tune_sklearn import TuneSearchCV
@@ -35,7 +37,7 @@ from sklearn.neighbors import KernelDensity
 import unittest
 from unittest.mock import patch
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
-                        MockDataFrame)
+                        SleepClassifier, MockDataFrame)
 
 # def test_check_cv_results_array_types(self, cv_results, param_keys,
 #                                       score_keys):
@@ -699,6 +701,27 @@ class GridSearchTest(unittest.TestCase):
 
         self.assertTrue(hasattr(grid_search, "cv_results_"))
         self.assertTrue(wrapped_init.call_args[1]["local_mode"])
+
+    def test_timeout(self):
+        clf = SleepClassifier()
+        # SleepClassifier sleeps for `foo_param` seconds, `cv` times.
+        # Thus, the time budget is exhausted after testing the first two
+        # `foo_param`s.
+        grid_search = TuneGridSearchCV(
+            clf, {"foo_param": [1.1, 1.2, 2.5]},
+            time_budget_s=5.0,
+            cv=2,
+            max_iters=5,
+            early_stopping=True)
+
+        start = time.time()
+        grid_search.fit(X, y)
+        taken = time.time() - start
+
+        print(grid_search)
+        # Without timeout we would need over 50 seconds for this to
+        # finish. Allow for some initialization overhead
+        self.assertLess(taken, 18.0)
 
 
 if __name__ == "__main__":

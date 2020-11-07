@@ -8,7 +8,7 @@ from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.base import clone
 from ray import tune
-from ray.tune.suggest import ConcurrencyLimiter
+from ray.tune.suggest import ConcurrencyLimiter, BasicVariantGenerator
 from tune_sklearn.list_searcher import RandomListSearcher
 from tune_sklearn.utils import check_error_warm_start
 import numpy as np
@@ -228,10 +228,10 @@ class TuneSearchCV(TuneBaseSearchCV):
             `max_iters` is this defined parameter. On each epoch,
             resource_param (max_iter or n_estimators) is
             incremented by `max resource value // max_iters`.
-        search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"):
-            Randomized search is invoked with ``search_optimization`` set to
-            ``"random"`` and behaves like scikit-learn's
-            ``RandomizedSearchCV``.
+        search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"
+            or "optuna"): Randomized search is invoked with
+            ``search_optimization`` set to ``"random"`` and behaves like
+            scikit-learn's ``RandomizedSearchCV``.
 
             Bayesian search can be invoked with several values of
             ``search_optimization``.
@@ -258,6 +258,10 @@ class TuneSearchCV(TuneBaseSearchCV):
             determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
             capabilities, which are by default not supported by standard
             SKlearn. Defaults to True.
+        time_budget_s (int|float|datetime.timedelta): Global time budget in
+            seconds after which all trials are stopped. Can also be a
+            ``datetime.timedelta`` object. The stopping condition is checked
+            after receiving a result, i.e. after each training iteration.
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
@@ -284,6 +288,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
+                 time_budget_s=None,
                  **search_kwargs):
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -291,7 +296,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             "bayesian",  # scikit-optimize/SkOpt
             "bohb",
             "hyperopt",
-            # "optuna",  # optuna is not yet in stable ray.tune
+            "optuna",
         ]
         if (search_optimization not in available_optimizations):
             raise ValueError("Search optimization must be one of "
@@ -314,10 +319,24 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         can_use_param_distributions = False
 
+        from ray.tune.schedulers import HyperBandForBOHB
         if search_optimization == "bohb":
             import ConfigSpace as CS
             can_use_param_distributions = isinstance(check_param_distributions,
                                                      CS.ConfigurationSpace)
+            if early_stopping is False:
+                raise ValueError(
+                    "early_stopping must not be False when using BOHB")
+            elif not isinstance(early_stopping, HyperBandForBOHB):
+                if early_stopping != "HyperBandForBOHB":
+                    warnings.warn("Ignoring early_stopping value, "
+                                  "as BOHB requires HyperBandForBOHB "
+                                  "as the EarlyStopping scheduler")
+                early_stopping = "HyperBandForBOHB"
+        elif early_stopping == "HyperBandForBOHB" or isinstance(
+                early_stopping, HyperBandForBOHB):
+            raise ValueError("search_optimization must be set to 'BOHB' "
+                             "if early_stopping is set to HyperBandForBOHB")
 
         if not can_use_param_distributions:
             for p in check_param_distributions:
@@ -339,13 +358,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             max_iters=max_iters,
             use_gpu=use_gpu,
             loggers=loggers,
-            pipeline_auto_early_stop=pipeline_auto_early_stop)
-
-        if search_optimization == "bohb":
-            from ray.tune.schedulers import HyperBandForBOHB
-            if not isinstance(early_stopping, HyperBandForBOHB):
-                early_stopping = HyperBandForBOHB(
-                    metric=self._metric_name, mode="max", max_t=max_iters)
+            pipeline_auto_early_stop=pipeline_auto_early_stop,
+            time_budget_s=time_budget_s)
 
         check_error_warm_start(self.early_stop_type, param_distributions,
                                estimator)
@@ -583,28 +597,25 @@ class TuneSearchCV(TuneBaseSearchCV):
         else:
             config["estimator_list"] = [self.estimator]
 
-        if self.search_optimization == "random":
-            run_args = dict(
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop=stop_condition,
-                num_samples=self.num_samples,
-                config=config,
-                fail_fast="raise",
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir),
-                loggers=self.loggers)
+        run_args = dict(
+            scheduler=self.early_stopping,
+            reuse_actors=True,
+            verbose=self.verbose,
+            stop=stop_condition,
+            num_samples=self.num_samples,
+            config=config,
+            fail_fast=True,
+            resources_per_trial=resources_per_trial,
+            local_dir=os.path.expanduser(self.local_dir),
+            loggers=self.loggers,
+            time_budget_s=self.time_budget_s)
 
+        if self.search_optimization == "random":
             if isinstance(self.param_distributions, list):
-                run_args["search_alg"] = RandomListSearcher(
-                    self.param_distributions)
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", message="fail_fast='raise' "
-                    "detected.")
-                analysis = tune.run(trainable, **run_args)
-                return analysis
+                search_algo = RandomListSearcher(self.param_distributions)
+            else:
+                search_algo = BasicVariantGenerator()
+            run_args["search_alg"] = search_algo
 
         elif self.search_optimization == "bayesian":
             from skopt import Optimizer
@@ -616,6 +627,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)
+            run_args["search_alg"] = search_algo
 
         elif self.search_optimization == "bohb":
             from ray.tune.suggest.bohb import TuneBOHB
@@ -625,6 +637,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)
+            run_args["search_alg"] = search_algo
 
         elif self.search_optimization == "optuna":
             from ray.tune.suggest.optuna import OptunaSearch
@@ -634,6 +647,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)
+            run_args["search_alg"] = search_algo
 
         elif self.search_optimization == "hyperopt":
             from ray.tune.suggest.hyperopt import HyperOptSearch
@@ -643,27 +657,23 @@ class TuneSearchCV(TuneBaseSearchCV):
                 metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)
+            run_args["search_alg"] = search_algo
 
-        if isinstance(self.n_jobs, int) and self.n_jobs > 0:
+        else:
+            # This should not happen as we validate the input before calling
+            # this method. Still, just to be sure, raise an error here.
+            raise ValueError(
+                f"Invalid search optimizer: {self.search_optimization}")
+
+        if isinstance(self.n_jobs, int) and self.n_jobs > 0 \
+           and not self.search_optimization == "random":
             search_algo = ConcurrencyLimiter(
                 search_algo, max_concurrent=self.n_jobs)
+            run_args["search_alg"] = search_algo
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore", message="fail_fast='raise' "
-                "detected.")
-            analysis = tune.run(
-                trainable,
-                search_alg=search_algo,
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop=stop_condition,
-                num_samples=self.num_samples,
-                config=config,
-                fail_fast="raise",
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir),
-                loggers=self.loggers)
-
+                                  "detected.")
+            analysis = tune.run(trainable, **run_args)
         return analysis

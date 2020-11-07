@@ -120,6 +120,7 @@ It also provides a wrapper for several search optimization algorithms from Ray T
 | SkoptSearch        | `"bayesian"`                | Bayesian Optimization  | [[Scikit-Optimize](https://scikit-optimize.github.io/)] | `scikit-optimize`        |
 | HyperOptSearch     | `"hyperopt"`                | Tree-Parzen Estimators | [[HyperOpt](http://hyperopt.github.io/hyperopt)]        | `hyperopt`               |
 | TuneBOHB           | `"bohb"`                    | Bayesian Opt/HyperBand | [[BOHB](https://github.com/automl/HpBandSter)]          | `hpbandster ConfigSpace` |
+| Optuna             | `"optuna"`                  | Tree-Parzen Estimators | [[Optuna](https://optuna.readthedocs.io/en/stable/)]    | `optuna`                 |
 
 All algorithms other than RandomListSearcher accept parameter distributions in the form of dictionaries in the format `{ param_name: str : distribution: tuple or list }`.
 

@@ -14,6 +14,7 @@ import inspect
 
 from tune_sklearn.utils import (EarlyStopping, _aggregate_score_dicts)
 
+
 class _Trainable(Trainable):
     """Class to be passed in as the first argument of tune.run to train models.
 

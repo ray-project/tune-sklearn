@@ -6,11 +6,11 @@ matrix:
     - os: linux
       python: 3.6
       env: PYTHON=3.6 OS=LINUX SKLEARN_N_JOBS=1 RAY_MASTER=1
-      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp36-cp36m-manylinux1_x86_64.whl
+      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-1.1.0.dev0-cp36-cp36m-manylinux1_x86_64.whl
     - os: linux
       python: 3.7
       env: PYTHON=3.7 OS=LINUX SKLEARN_N_JOBS=1 RAY_MASTER=1
-      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.9.0.dev0-cp37-cp37m-manylinux1_x86_64.whl
+      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-1.1.0.dev0-cp37-cp37m-manylinux1_x86_64.whl
     - os: osx
       osx_image: xcode9.4
       language: generic
@@ -67,6 +67,8 @@ matrix:
     - os: linux
       env: DOC_BUILD=1 PYTHONWARNINGS=ignore
       install:
+        - if [ "$OS" == "MAC" ]; then brew install -q libomp > /dev/null ; fi
+        - pip3 install -e .
         - git clone https://github.com/ray-project/ray
         - pip install -U -r ray/doc/requirements-rtd.txt
         - pip install -r ray/doc/requirements-doc.txt
@@ -78,7 +80,7 @@ notifications:
 
 install:
   - pip3 install -U -q pip
-  - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace scipy dataclasses
+  - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace scipy dataclasses optuna
   - pip3 install -q -r requirements-test.txt
   - pip3 install --upgrade -q keras
   - pip3 install -U -q scikit-learn pytest
