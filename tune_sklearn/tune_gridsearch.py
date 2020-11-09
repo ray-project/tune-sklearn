@@ -240,7 +240,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             verbose=self.verbose,
             stop={"training_iteration": self.max_iters},
             config=config,
-            fail_fast=True,
+            fail_fast="raise",
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
             loggers=self.loggers,
