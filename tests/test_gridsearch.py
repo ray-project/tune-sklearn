@@ -565,7 +565,7 @@ class GridSearchTest(unittest.TestCase):
             parameter_grid,
             scoring=("accuracy", "f1_micro"),
             max_iters=20,
-            cv=5,
+            cv=2,
             refit=False)
         tune_search.fit(X, y)
         self.assertTrue(tune_search.multimetric_)
