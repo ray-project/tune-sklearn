@@ -1,6 +1,5 @@
 """ Helper class to train models using Ray backend
 """
-
 import ray
 from ray.tune import Trainable
 from sklearn.base import clone

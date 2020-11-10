@@ -26,7 +26,6 @@ from ray.tune.schedulers import (
     MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
 from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
                              Logger)
-from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
 import pandas as pd
@@ -663,11 +662,10 @@ class TuneBaseSearchCV(BaseEstimator):
 
             return result
 
-        except Exception as e:
+        except Exception:
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
-            if type(e) != TuneError:
-                raise
+            raise
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.

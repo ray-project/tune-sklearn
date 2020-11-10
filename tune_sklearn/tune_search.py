@@ -604,7 +604,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             stop=stop_condition,
             num_samples=self.num_samples,
             config=config,
-            fail_fast=True,
+            fail_fast="raise",
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
             loggers=self.loggers,
@@ -671,5 +671,9 @@ class TuneSearchCV(TuneBaseSearchCV):
                 search_algo, max_concurrent=self.n_jobs)
             run_args["search_alg"] = search_algo
 
-        analysis = tune.run(trainable, **run_args)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", message="fail_fast='raise' "
+                "detected.")
+            analysis = tune.run(trainable, **run_args)
         return analysis

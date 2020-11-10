@@ -1,6 +1,7 @@
 """Class for doing grid search over lists of hyperparameters
     -- Anthony Yu and Michael Chau
 """
+import warnings
 
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
@@ -239,7 +240,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             verbose=self.verbose,
             stop={"training_iteration": self.max_iters},
             config=config,
-            fail_fast=True,
+            fail_fast="raise",
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
             loggers=self.loggers,
@@ -251,5 +252,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                     search_alg=ListSearcher(self.param_grid),
                     num_samples=self._list_grid_num_samples()))
 
-        analysis = tune.run(trainable, **run_args)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", message="fail_fast='raise' "
+                "detected.")
+            analysis = tune.run(trainable, **run_args)
         return analysis
