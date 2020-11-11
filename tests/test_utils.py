@@ -41,8 +41,10 @@ class MockClassifier:
         return {"foo_param": self.foo_param, "bar_param": self.bar_param}
 
     def set_params(self, **params):
-        self.foo_param = params["foo_param"]
-        self.bar_param = params["bar_param"]
+        if "foo_param" in params:
+            self.foo_param = params["foo_param"]
+        if "bar_param" in params:
+            self.bar_param = params["bar_param"]
         return self
 
 
