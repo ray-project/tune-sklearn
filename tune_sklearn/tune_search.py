@@ -100,8 +100,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             For randomized search: dictionary with parameters names (string)
             as keys and distributions or lists of parameter settings to try
             for randomized search.
-            Distributions must provide a rvs  method for sampling (such as
-            those from scipy.stats.distributions).
+            Distributions must provide a rvs method for sampling (such as
+            those from scipy.stats.distributions). Ray Tune search spaces
+            are also supported.
             If a list is given, it is sampled uniformly. If a list of dicts is
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
@@ -111,6 +112,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             - a (lower_bound, upper_bound) tuple (for Real or Integer params)
             - a (lower_bound, upper_bound, "prior") tuple (for Real params)
             - as a list of categories (for Categorical dimensions)
+            - Ray Tune search space (eg. ``tune.uniform``)
 
             ``"bayesian"`` (scikit-optimize) also accepts
 

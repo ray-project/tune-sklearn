@@ -10,7 +10,8 @@ from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
-from tune_sklearn.utils import (check_is_pipeline, check_error_warm_start,
+from tune_sklearn.utils import (_check_param_grid_tune_grid_search,
+                                check_is_pipeline, check_error_warm_start,
                                 is_tune_grid_search)
 import os
 import numpy as np
@@ -178,36 +179,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         check_error_warm_start(self.early_stop_type, param_grid, estimator)
 
-        self._check_param_grid(param_grid)
+        _check_param_grid_tune_grid_search(param_grid)
         self.param_grid = param_grid
-
-    # adapted from sklearn.model_selection._search
-    def _check_param_grid(self, param_grid):
-        if hasattr(param_grid, "items"):
-            param_grid = [param_grid]
-
-        for p in param_grid:
-            for name, v in p.items():
-                if is_tune_grid_search(v):
-                    continue
-
-                if isinstance(v, np.ndarray) and v.ndim > 1:
-                    raise ValueError(
-                        "Parameter array should be one-dimensional.")
-
-                if (isinstance(v, str)
-                        or not isinstance(v, (np.ndarray, Sequence))):
-                    raise ValueError(
-                        "Parameter grid for parameter ({0}) needs to"
-                        " be a tune.grid_search, list or numpy array,"
-                        " but got ({1})."
-                        " Single values need to be wrapped in a list"
-                        " with one element.".format(name, type(v)))
-
-                if len(v) == 0:
-                    raise ValueError(
-                        "Parameter values for parameter ({0}) need "
-                        "to be a non-empty sequence.".format(name))
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.

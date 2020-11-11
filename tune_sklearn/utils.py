@@ -214,3 +214,29 @@ def is_tune_grid_search(obj):
     return isinstance(
         obj, dict) and len(obj) == 1 and "grid_search" in obj and isinstance(
             obj["grid_search"], list)
+
+
+# adapted from sklearn.model_selection._search
+def _check_param_grid_tune_grid_search(param_grid):
+    if hasattr(param_grid, "items"):
+        param_grid = [param_grid]
+
+    for p in param_grid:
+        for name, v in p.items():
+            if is_tune_grid_search(v):
+                continue
+
+            if isinstance(v, np.ndarray) and v.ndim > 1:
+                raise ValueError("Parameter array should be one-dimensional.")
+
+            if (isinstance(v, str) or not isinstance(v,
+                                                     (np.ndarray, Sequence))):
+                raise ValueError("Parameter grid for parameter ({0}) needs to"
+                                 " be a tune.grid_search, list or numpy array,"
+                                 " but got ({1})."
+                                 " Single values need to be wrapped in a list"
+                                 " with one element.".format(name, type(v)))
+
+            if len(v) == 0:
+                raise ValueError("Parameter values for parameter ({0}) need "
+                                 "to be a non-empty sequence.".format(name))
