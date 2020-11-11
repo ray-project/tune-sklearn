@@ -1,7 +1,7 @@
 import time
 
 import ray
-import ray.tune as tune
+from ray import tune
 from tune_sklearn import TuneGridSearchCV
 from tune_sklearn import TuneSearchCV
 import numpy as np
