@@ -5,13 +5,14 @@
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
-from sklearn.model_selection._search import _check_param_grid
 from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
 from tune_sklearn.utils import check_is_pipeline, check_error_warm_start
 import os
+import numpy as np
+from collections.abc import Sequence
 
 
 class TuneGridSearchCV(TuneBaseSearchCV):
@@ -31,7 +32,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             scikit-learn estimator interface. Either estimator needs to
             provide a ``score`` function, or ``scoring`` must be passed.
         param_grid (`dict` or `list` of `dict`): Dictionary with parameters
-            names (string) as keys and lists of
+            names (string) as keys and lists or tune.grid_search samplers of
             parameter settings to try as values, or a list of such
             dictionaries, in which case the grids spanned by each dictionary
             in the list are explored. This enables searching over any sequence
@@ -170,8 +171,36 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         check_error_warm_start(self.early_stop_type, param_grid, estimator)
 
-        _check_param_grid(param_grid)
+        self._check_param_grid(param_grid)
         self.param_grid = param_grid
+
+    # adapted from sklearn.model_selection._search
+    def _check_param_grid(self, param_grid):
+        if hasattr(param_grid, 'items'):
+            param_grid = [param_grid]
+
+        for p in param_grid:
+            for name, v in p.items():
+                if isinstance(v, tune.grid_search):
+                    continue
+
+                if isinstance(v, np.ndarray) and v.ndim > 1:
+                    raise ValueError(
+                        "Parameter array should be one-dimensional.")
+
+                if (isinstance(v, str)
+                        or not isinstance(v, (np.ndarray, Sequence))):
+                    raise ValueError(
+                        "Parameter grid for parameter ({0}) needs to"
+                        " be a tune.grid_search, list or numpy array,"
+                        " but got ({1})."
+                        " Single values need to be wrapped in a list"
+                        " with one element.".format(name, type(v)))
+
+                if len(v) == 0:
+                    raise ValueError(
+                        "Parameter values for parameter ({0}) need "
+                        "to be a non-empty sequence.".format(name))
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -189,7 +218,10 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             return
 
         for key, distribution in self.param_grid.items():
-            config[key] = tune.grid_search(list(distribution))
+            if isinstance(distribution, tune.grid_search):
+                config[key] = distribution
+            else:
+                config[key] = tune.grid_search(list(distribution))
 
     def _list_grid_num_samples(self):
         """Calculate the num_samples for `tune.run`.

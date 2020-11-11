@@ -6,8 +6,9 @@ from sklearn.utils.validation import _num_samples, check_array
 class MockClassifier:
     """Dummy classifier to test the parameter search algorithms"""
 
-    def __init__(self, foo_param=0):
+    def __init__(self, foo_param=0, bar_param=0):
         self.foo_param = foo_param
+        self.bar_param = bar_param
 
     def fit(self, X, Y):
         assert len(X) == len(Y)
@@ -33,10 +34,11 @@ class MockClassifier:
         return score
 
     def get_params(self, deep=False):
-        return {"foo_param": self.foo_param}
+        return {"foo_param": self.foo_param, "bar_param": self.bar_param}
 
     def set_params(self, **params):
         self.foo_param = params["foo_param"]
+        self.bar_param = params["bar_param"]
         return self
 
 

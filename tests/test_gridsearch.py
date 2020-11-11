@@ -1,4 +1,5 @@
 import ray
+import ray.tune as tune
 from tune_sklearn import TuneGridSearchCV
 from tune_sklearn import TuneSearchCV
 import numpy as np
@@ -696,6 +697,18 @@ class GridSearchTest(unittest.TestCase):
 
         self.assertTrue(hasattr(grid_search, "cv_results_"))
         self.assertTrue(wrapped_init.call_args[1]["local_mode"])
+
+    def test_tune_search_spaces(self):
+        # Test mixed search spaces
+        clf = MockClassifier()
+        grid_search = TuneGridSearchCV(
+            clf, {
+                "foo_param": tune.grid_search([1, 2, 3]),
+                "bar_param": [1, 2]
+            },
+            refit=False,
+            cv=3)
+        grid_search.fit(X, y)
 
 
 if __name__ == "__main__":
