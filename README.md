@@ -49,7 +49,7 @@ If the estimator does not support `partial_fit`, a warning will be shown saying 
 #### TuneGridSearchCV
 To start out, it’s as easy as changing our import statement to get Tune’s grid search cross validation interface, and the rest is almost identical!
 
-`TuneGridSearchCV` accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `GridSearchCV`.
+`TuneGridSearchCV` accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `GridSearchCV`. The distribution can also be the output of Ray Tune's [`tune.grid_search`](https://docs.ray.io/en/master/tune/api_docs/search_space.html#grid-search-api).
 
 ```python
 # from sklearn.model_selection import GridSearchCV
@@ -124,7 +124,7 @@ It also provides a wrapper for several search optimization algorithms from Ray T
 
 All algorithms other than RandomListSearcher accept parameter distributions in the form of dictionaries in the format `{ param_name: str : distribution: tuple or list }`.
 
-Tuples represent real distributions and should be two-element or three-element, in the format `(lower_bound: float, upper_bound: float, Optional: "uniform" (default) or "log-uniform")`. Lists represent categorical distributions. Furthermore, each algorithm also accepts parameters in their own specific format. More information in [Tune documentation](https://docs.ray.io/en/master/tune/api_docs/suggestion.html).
+Tuples represent real distributions and should be two-element or three-element, in the format `(lower_bound: float, upper_bound: float, Optional: "uniform" (default) or "log-uniform")`. Lists represent categorical distributions. [Ray Tune Search Spaces](https://docs.ray.io/en/master/tune/api_docs/search_space.html) are also supported. Furthermore, each algorithm also accepts parameters in their own specific format. More information in [Tune documentation](https://docs.ray.io/en/master/tune/api_docs/suggestion.html).
 
 Random Search (default) accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `RandomizedSearchCV`.
 
