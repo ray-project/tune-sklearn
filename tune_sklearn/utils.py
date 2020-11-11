@@ -205,3 +205,12 @@ def _check_multimetric_scoring(estimator, scoring=None):
         else:
             raise ValueError(err_msg_generic)
         return scorers, True
+
+
+def is_tune_grid_search(obj):
+    """Checks if obj is a dictionary returned by tune.grid_search.
+    Returns bool.
+    """
+    return isinstance(
+        obj, dict) and len(obj) == 1 and "grid_search" in obj and isinstance(
+            obj["grid_search"], list)

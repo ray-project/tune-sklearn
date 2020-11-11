@@ -10,7 +10,11 @@ from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
-from tune_sklearn.utils import check_is_pipeline, check_error_warm_start
+from tune_sklearn.utils import (
+    check_is_pipeline,
+    check_error_warm_start,
+    is_tune_grid_search
+)
 import os
 import numpy as np
 from collections.abc import Sequence
@@ -187,7 +191,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         for p in param_grid:
             for name, v in p.items():
-                if isinstance(v, tune.grid_search):
+                if is_tune_grid_search(v):
                     continue
 
                 if isinstance(v, np.ndarray) and v.ndim > 1:
@@ -224,7 +228,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             return
 
         for key, distribution in self.param_grid.items():
-            if isinstance(distribution, tune.grid_search):
+            if is_tune_grid_search(distribution):
                 config[key] = distribution
             else:
                 config[key] = tune.grid_search(list(distribution))
