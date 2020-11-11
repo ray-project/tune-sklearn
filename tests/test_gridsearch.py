@@ -715,7 +715,6 @@ class GridSearchTest(unittest.TestCase):
             cv=3)
         grid_search.fit(X, y)
 
-
     def test_timeout(self):
         clf = SleepClassifier()
         # SleepClassifier sleeps for `foo_param` seconds, `cv` times.

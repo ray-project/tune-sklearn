@@ -182,7 +182,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
     # adapted from sklearn.model_selection._search
     def _check_param_grid(self, param_grid):
-        if hasattr(param_grid, 'items'):
+        if hasattr(param_grid, "items"):
             param_grid = [param_grid]
 
         for p in param_grid:

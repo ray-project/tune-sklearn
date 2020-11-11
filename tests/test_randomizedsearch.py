@@ -509,7 +509,6 @@ class RandomizedSearchTest(unittest.TestCase):
             self.assertTrue(0.01 <= params["epsilon"] <= 0.05)
             self.assertTrue(params["penalty"] in ("elasticnet", "l1"))
 
-
     def test_timeout(self):
         X, y = make_classification(
             n_samples=50, n_features=50, n_informative=3, random_state=0)
