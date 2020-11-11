@@ -10,11 +10,8 @@ from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
-from tune_sklearn.utils import (
-    check_is_pipeline,
-    check_error_warm_start,
-    is_tune_grid_search
-)
+from tune_sklearn.utils import (check_is_pipeline, check_error_warm_start,
+                                is_tune_grid_search)
 import os
 import numpy as np
 from collections.abc import Sequence
@@ -37,7 +34,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             scikit-learn estimator interface. Either estimator needs to
             provide a ``score`` function, or ``scoring`` must be passed.
         param_grid (`dict` or `list` of `dict`): Dictionary with parameters
-            names (string) as keys and lists or tune.grid_search samplers of
+            names (string) as keys and lists or tune.grid_search outputs of
             parameter settings to try as values, or a list of such
             dictionaries, in which case the grids spanned by each dictionary
             in the list are explored. This enables searching over any sequence
