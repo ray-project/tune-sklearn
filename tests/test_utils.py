@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import _num_samples, check_array
@@ -7,10 +9,12 @@ class MockClassifier:
     """Dummy classifier to test the parameter search algorithms"""
 
     def __init__(self, foo_param=0, bar_param=0):
+        self.count = 0
         self.foo_param = foo_param
         self.bar_param = bar_param
 
     def fit(self, X, Y):
+        self.count += 1
         assert len(X) == len(Y)
         self.classes_ = np.unique(Y)
         return self
@@ -40,6 +44,18 @@ class MockClassifier:
         self.foo_param = params["foo_param"]
         self.bar_param = params["bar_param"]
         return self
+
+
+class SleepClassifier(MockClassifier):
+    def fit(self, X, Y):
+        time.sleep(self.foo_param)
+        return super().fit(X, Y)
+
+    def partial_fit(self, X, Y):
+        return self.fit(X, Y)
+
+    def score(self, X=None, Y=None):
+        return self.foo_param
 
 
 class CheckingClassifier(BaseEstimator, ClassifierMixin):

@@ -1,6 +1,7 @@
 """Class for doing grid search over lists of hyperparameters
     -- Anthony Yu and Michael Chau
 """
+import warnings
 
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
@@ -133,6 +134,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
             capabilities, which are by default not supported by standard
             SKlearn. Defaults to True.
+        time_budget_s (int|float|datetime.timedelta): Global time budget in
+            seconds after which all trials are stopped. Can also be a
+            ``datetime.timedelta`` object.
     """
 
     def __init__(self,
@@ -151,7 +155,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  max_iters=1,
                  use_gpu=False,
                  loggers=None,
-                 pipeline_auto_early_stop=True):
+                 pipeline_auto_early_stop=True,
+                 time_budget_s=None):
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
@@ -167,7 +172,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             verbose=verbose,
             use_gpu=use_gpu,
             loggers=loggers,
-            pipeline_auto_early_stop=pipeline_auto_early_stop)
+            pipeline_auto_early_stop=pipeline_auto_early_stop,
+            time_budget_s=time_budget_s)
 
         check_error_warm_start(self.early_stop_type, param_grid, estimator)
 
@@ -260,31 +266,27 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         else:
             config["estimator_list"] = [self.estimator]
 
-        if isinstance(self.param_grid, list):
-            analysis = tune.run(
-                trainable,
-                search_alg=ListSearcher(self.param_grid),
-                num_samples=self._list_grid_num_samples(),
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.max_iters},
-                config=config,
-                fail_fast=True,
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir),
-                loggers=self.loggers)
-        else:
-            analysis = tune.run(
-                trainable,
-                scheduler=self.early_stopping,
-                reuse_actors=True,
-                verbose=self.verbose,
-                stop={"training_iteration": self.max_iters},
-                config=config,
-                fail_fast=True,
-                resources_per_trial=resources_per_trial,
-                local_dir=os.path.expanduser(self.local_dir),
-                loggers=self.loggers)
+        run_args = dict(
+            scheduler=self.early_stopping,
+            reuse_actors=True,
+            verbose=self.verbose,
+            stop={"training_iteration": self.max_iters},
+            config=config,
+            fail_fast="raise",
+            resources_per_trial=resources_per_trial,
+            local_dir=os.path.expanduser(self.local_dir),
+            loggers=self.loggers,
+            time_budget_s=self.time_budget_s)
 
+        if isinstance(self.param_grid, list):
+            run_args.update(
+                dict(
+                    search_alg=ListSearcher(self.param_grid),
+                    num_samples=self._list_grid_num_samples()))
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", message="fail_fast='raise' "
+                "detected.")
+            analysis = tune.run(trainable, **run_args)
         return analysis

@@ -11,6 +11,8 @@ https://optuna.org
 """
 import logging
 from collections import defaultdict
+
+from ray.tune.trial import Trial
 from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
@@ -21,12 +23,12 @@ from sklearn.exceptions import NotFittedError
 import ray
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
-    MedianStoppingRule, TrialScheduler, ASHAScheduler)
+    MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
 from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
                              Logger)
-from ray.tune.error import TuneError
 import numpy as np
 from numpy.ma import MaskedArray
+import pandas as pd
 import warnings
 import multiprocessing
 import os
@@ -56,6 +58,9 @@ def resolve_early_stopping(early_stopping, max_iters, metric_name):
                 return MedianStoppingRule(metric=metric_name, mode="max")
             elif early_stopping == "ASHAScheduler":
                 return ASHAScheduler(
+                    metric=metric_name, mode="max", max_t=max_iters)
+            elif early_stopping == "HyperBandForBOHB":
+                return HyperBandForBOHB(
                     metric=metric_name, mode="max", max_t=max_iters)
         raise ValueError("{} is not a defined scheduler. "
                          "Check the list of available schedulers."
@@ -105,7 +110,8 @@ class TuneBaseSearchCV(BaseEstimator):
 
     defined_schedulers = [
         "PopulationBasedTraining", "AsyncHyperBandScheduler",
-        "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler"
+        "HyperBandScheduler", "MedianStoppingRule", "ASHAScheduler",
+        "HyperBandForBOHB"
     ]
     defined_loggers = ["tensorboard", "csv", "mlflow", "json"]
 
@@ -361,12 +367,14 @@ class TuneBaseSearchCV(BaseEstimator):
                  max_iters=1,
                  use_gpu=False,
                  loggers=None,
-                 pipeline_auto_early_stop=True):
+                 pipeline_auto_early_stop=True,
+                 time_budget_s=None):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
         self.base_estimator = estimator
         self.pipeline_auto_early_stop = pipeline_auto_early_stop
+        self.time_budget_s = time_budget_s
 
         if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
             _, self.base_estimator = self.base_estimator.steps[-1]
@@ -654,11 +662,10 @@ class TuneBaseSearchCV(BaseEstimator):
 
             return result
 
-        except Exception as e:
+        except Exception:
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
-            if type(e) != TuneError:
-                raise
+            raise
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.
@@ -762,7 +769,35 @@ class TuneBaseSearchCV(BaseEstimator):
                 interface's ``cv_results_``.
 
         """
-        dfs = list(out.fetch_trial_dataframes().values())
+        trials = [
+            trial for trial in out.trials if trial.status == Trial.TERMINATED
+        ]
+        trial_dirs = [trial.logdir for trial in trials]
+        # The result dtaframes are indexed by their trial logdir
+        trial_dfs = out.fetch_trial_dataframes()
+
+        # Try to find a template df to use for trials that did not return
+        # any results. These trials should copy the structure and fill it
+        # with NaNs so that the later reshape actions work.
+        template_df = None
+        fix_trial_dirs = []  # Holds trial dirs with no results
+        for trial_dir in trial_dirs:
+            if trial_dir in trial_dfs and template_df is None:
+                template_df = trial_dfs[trial_dir]
+            elif trial_dir not in trial_dfs:
+                fix_trial_dirs.append(trial_dir)
+
+        # Create NaN dataframes for trials without results
+        if fix_trial_dirs:
+            if template_df is None:
+                # No trial returned any results
+                return {}
+            for trial_dir in fix_trial_dirs:
+                trial_df = pd.DataFrame().reindex_like(template_df)
+                trial_dfs[trial_dir] = trial_df
+
+        # Keep right order
+        dfs = [trial_dfs[trial_dir] for trial_dir in trial_dirs]
         finished = [df.iloc[[-1]] for df in dfs]
         test_scores = {}
         train_scores = {}
@@ -783,10 +818,9 @@ class TuneBaseSearchCV(BaseEstimator):
             else:
                 train_scores = None
 
-        configs = out.get_all_configs()
+        configs = [trial.config for trial in trials]
         candidate_params = [
-            self._clean_config_dict(configs[config_key])
-            for config_key in configs
+            self._clean_config_dict(config) for config in configs
         ]
 
         results = {"params": candidate_params}

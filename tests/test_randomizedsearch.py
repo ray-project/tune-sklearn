@@ -1,3 +1,5 @@
+import time
+
 from tune_sklearn import TuneSearchCV
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -18,6 +20,7 @@ import os
 from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
                                           has_required_lightgbm_version)
 from tune_sklearn.utils import EarlyStopping
+from test_utils import SleepClassifier
 
 
 class RandomizedSearchTest(unittest.TestCase):
@@ -149,7 +152,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
         scoring = ("accuracy", "f1_micro")
-        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        search_methods = ["random", "bayesian", "hyperopt", "bohb", "optuna"]
         for search_method in search_methods:
 
             tune_search = TuneSearchCV(
@@ -181,7 +184,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
         scoring = {"acc": "accuracy", "f1": "f1_micro"}
-        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        search_methods = ["random", "bayesian", "hyperopt", "bohb", "optuna"]
         for search_method in search_methods:
 
             tune_search = TuneSearchCV(
@@ -212,7 +215,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         scoring = ("neg_mean_absolute_error", "neg_mean_squared_error")
 
-        search_methods = ["random", "bayesian", "hyperopt", "bohb"]
+        search_methods = ["random", "bayesian", "hyperopt", "bohb", "optuna"]
         for search_method in search_methods:
 
             tune_search = TuneSearchCV(
@@ -505,6 +508,31 @@ class RandomizedSearchTest(unittest.TestCase):
             self.assertTrue(1e-4 <= params["alpha"] <= 0.5)
             self.assertTrue(0.01 <= params["epsilon"] <= 0.05)
             self.assertTrue(params["penalty"] in ("elasticnet", "l1"))
+
+
+    def test_timeout(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+
+        clf = SleepClassifier()
+        # SleepClassifier sleeps for `foo_param` seconds, `cv` times.
+        # Thus, the time budget is exhausted after testing the first two
+        # `foo_param`s.
+        grid_search = TuneSearchCV(
+            clf, {"foo_param": [1.1, 1.2, 2.5]},
+            time_budget_s=5.0,
+            cv=2,
+            max_iters=5,
+            early_stopping=True)
+
+        start = time.time()
+        grid_search.fit(X, y)
+        taken = time.time() - start
+
+        print(grid_search)
+        # Without timeout we would need over 50 seconds for this to
+        # finish. Allow for some initialization overhead
+        self.assertLess(taken, 18.0)
 
 
 if __name__ == "__main__":
