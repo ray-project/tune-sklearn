@@ -14,8 +14,6 @@ from tune_sklearn.utils import (_check_param_grid_tune_grid_search,
                                 check_is_pipeline, check_error_warm_start,
                                 is_tune_grid_search)
 import os
-import numpy as np
-from collections.abc import Sequence
 
 
 class TuneGridSearchCV(TuneBaseSearchCV):

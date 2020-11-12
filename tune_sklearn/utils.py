@@ -4,6 +4,7 @@ from tune_sklearn._detect_booster import (
     is_xgboost_model, is_lightgbm_model_of_required_version, is_catboost_model)
 import numpy as np
 from enum import Enum, auto
+from collections.abc import Sequence
 
 
 class EarlyStopping(Enum):
