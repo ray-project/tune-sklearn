@@ -736,7 +736,7 @@ class GridSearchTest(unittest.TestCase):
         print(grid_search)
         # Without timeout we would need over 50 seconds for this to
         # finish. Allow for some initialization overhead
-        self.assertLess(taken, 18.0)
+        self.assertLess(taken, 25.0)
 
 
 if __name__ == "__main__":
