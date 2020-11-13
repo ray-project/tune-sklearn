@@ -708,14 +708,20 @@ class GridSearchTest(unittest.TestCase):
     def test_tune_search_spaces(self):
         # Test mixed search spaces
         clf = MockClassifier()
+        foo = [1, 2, 3]
+        bar = [1, 2]
         grid_search = TuneGridSearchCV(
             clf, {
-                "foo_param": tune.grid_search([1, 2, 3]),
-                "bar_param": [1, 2]
+                "foo_param": tune.grid_search(foo),
+                "bar_param": bar
             },
             refit=False,
             cv=3)
         grid_search.fit(X, y)
+        params = grid_search.cv_results_["params"]
+        results_grid = {k: {dic[k] for dic in params} for k in params[0]}
+        self.assertTrue(len(results_grid["foo_param"]) == len(foo))
+        self.assertTrue(len(results_grid["bar_param"]) == len(bar))
 
     def test_timeout(self):
         clf = SleepClassifier()
@@ -736,7 +742,7 @@ class GridSearchTest(unittest.TestCase):
         print(grid_search)
         # Without timeout we would need over 50 seconds for this to
         # finish. Allow for some initialization overhead
-        self.assertLess(taken, 25.0)
+        self.assertLess(taken, 18.0)
 
 
 if __name__ == "__main__":
