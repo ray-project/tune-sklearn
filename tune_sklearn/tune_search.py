@@ -2,6 +2,8 @@
     -- Anthony Yu and Michael Chau
 """
 import logging
+import random
+
 from tune_sklearn.utils import check_is_pipeline
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
@@ -262,6 +264,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object. The stopping condition is checked
             after receiving a result, i.e. after each training iteration.
+        seed (int): Seed used to initialize random number generators. Running
+            the same experiment with the same seed will generate the same
+            initial parameter configurations.
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
@@ -289,6 +294,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  loggers=None,
                  pipeline_auto_early_stop=True,
                  time_budget_s=None,
+                 seed=None,
                  **search_kwargs):
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -372,6 +378,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 raise ValueError("Random search does not support "
                                  f"extra args: {search_kwargs}")
         self.search_optimization = search_optimization
+        self.seed = seed
         self.search_kwargs = search_kwargs
 
     def _fill_config_hyperparam(self, config):
@@ -579,6 +586,10 @@ class TuneSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
+        if self.seed is not None:
+            random.seed(self.seed)
+            np.random.seed(self.seed)
+
         trainable = _Trainable
         if self.pipeline_auto_early_stop and check_is_pipeline(
                 self.estimator) and self.early_stopping:
@@ -632,6 +643,8 @@ class TuneSearchCV(TuneBaseSearchCV):
         elif self.search_optimization == "bohb":
             from ray.tune.suggest.bohb import TuneBOHB
             config_space = self._get_bohb_config_space()
+            if self.seed:
+                config_space.seed(self.seed)
             search_algo = TuneBOHB(
                 config_space,
                 metric=self._metric_name,
@@ -641,9 +654,13 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         elif self.search_optimization == "optuna":
             from ray.tune.suggest.optuna import OptunaSearch
+            from optuna.samplers import TPESampler
+            sampler = TPESampler(seed=self.seed)
+
             config_space = self._get_optuna_params()
             search_algo = OptunaSearch(
                 config_space,
+                sampler=sampler,
                 metric=self._metric_name,
                 mode="max",
                 **self.search_kwargs)
@@ -656,6 +673,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config_space,
                 metric=self._metric_name,
                 mode="max",
+                random_state_seed=self.seed,
                 **self.search_kwargs)
             run_args["search_alg"] = search_algo
 

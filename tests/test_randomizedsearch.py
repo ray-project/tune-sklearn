@@ -495,6 +495,55 @@ class RandomizedSearchTest(unittest.TestCase):
         # finish. Allow for some initialization overhead
         self.assertLess(taken, 18.0)
 
+    def _test_seed_run(self, search_optimization):
+        digits = datasets.load_digits()
+
+        x = digits.data
+        y = digits.target
+
+        parameters = {
+            "classify__alpha": [1e-4, 1e-1, 1],
+            "classify__epsilon": [0.01, 0.1]
+        }
+
+        pipe = Pipeline([("reduce_dim", PCA()), ("classify", SGDClassifier())])
+
+        tune_search_1 = TuneSearchCV(
+            pipe,
+            parameters,
+            early_stopping=True,
+            max_iters=1,
+            search_optimization=search_optimization,
+            seed=1234)
+        tune_search_1.fit(x, y)
+
+        tune_search_2 = TuneSearchCV(
+            pipe,
+            parameters,
+            early_stopping=True,
+            max_iters=1,
+            search_optimization=search_optimization,
+            seed=1234)
+        tune_search_2.fit(x, y)
+
+        self.assertSequenceEqual(tune_search_1.cv_results_["params"],
+                                 tune_search_2.cv_results_["params"])
+
+    def test_seed_random(self):
+        self._test_seed_run("random")
+
+    def test_seed_bayesian(self):
+        self._test_seed_run("bayesian")
+
+    def test_seed_bohb(self):
+        self._test_seed_run("bohb")
+
+    def test_seed_hyperopt(self):
+        self._test_seed_run("hyperopt")
+
+    def test_seed_optuna(self):
+        self._test_seed_run("optuna")
+
 
 if __name__ == "__main__":
     unittest.main()
