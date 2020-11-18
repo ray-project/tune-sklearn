@@ -199,10 +199,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             distributions.
             If int, random_state is the seed used by the random number
             generator;
-            If RandomState instance, random_state is the random number
-            generator;
+            If RandomState instance, a seed is sampled from random_state;
             If None, the random number generator is the RandomState instance
-            used by np.random. Defaults to None.
+            used by np.random and no seed is passed. Defaults to None.
             Ignored when doing Bayesian search.
         error_score ('raise' or int or float): Value to assign to the score if
             an error occurs in estimator
