@@ -26,6 +26,7 @@ jobs:
         python -m pip install -e .
     - name: Test with pytest
       run: |
+        export SKLEARN_N_JOBS=1
         cd tests
         python -m pytest -v --durations=0 -x test_randomizedsearch.py
         python -m pytest -v --durations=0 -x test_gridsearch.py
