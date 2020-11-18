@@ -495,54 +495,67 @@ class RandomizedSearchTest(unittest.TestCase):
         # finish. Allow for some initialization overhead
         self.assertLess(taken, 18.0)
 
-    def _test_seed_run(self, search_optimization):
+    def _test_seed_run(self, search_optimization, seed):
         digits = datasets.load_digits()
 
         x = digits.data
         y = digits.target
 
         parameters = {
-            "classify__alpha": [1e-4, 1e-1, 1],
-            "classify__epsilon": [0.01, 0.1]
+            "classify__alpha": [1e-4, 1e-3, 1e-2, 1e-1, 1],
+            "classify__epsilon": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06]
         }
 
         pipe = Pipeline([("reduce_dim", PCA()), ("classify", SGDClassifier())])
 
+        if isinstance(seed, str):
+            _seed = np.random.RandomState(seed=int(seed))
+        else:
+            _seed = seed
         tune_search_1 = TuneSearchCV(
             pipe,
             parameters,
             early_stopping=True,
             max_iters=1,
             search_optimization=search_optimization,
-            seed=1234)
+            random_state=_seed)
         tune_search_1.fit(x, y)
 
+        if isinstance(seed, str):
+            _seed = np.random.RandomState(seed=int(seed))
+        else:
+            _seed = seed
         tune_search_2 = TuneSearchCV(
             pipe,
             parameters,
             early_stopping=True,
             max_iters=1,
             search_optimization=search_optimization,
-            seed=1234)
+            random_state=_seed)
         tune_search_2.fit(x, y)
 
         self.assertSequenceEqual(tune_search_1.cv_results_["params"],
                                  tune_search_2.cv_results_["params"])
 
     def test_seed_random(self):
-        self._test_seed_run("random")
+        self._test_seed_run("random", seed=1234)
+        self._test_seed_run("random", seed="1234")
 
     def test_seed_bayesian(self):
-        self._test_seed_run("bayesian")
+        self._test_seed_run("bayesian", seed=1234)
+        self._test_seed_run("bayesian", seed="1234")
 
     def test_seed_bohb(self):
-        self._test_seed_run("bohb")
+        self._test_seed_run("bohb", seed=1234)
+        self._test_seed_run("bohb", seed="1234")
 
     def test_seed_hyperopt(self):
-        self._test_seed_run("hyperopt")
+        self._test_seed_run("hyperopt", seed=1234)
+        self._test_seed_run("hyperopt", seed="1234")
 
     def test_seed_optuna(self):
-        self._test_seed_run("optuna")
+        self._test_seed_run("optuna", seed=1234)
+        self._test_seed_run("optuna", seed="1234")
 
 
 if __name__ == "__main__":

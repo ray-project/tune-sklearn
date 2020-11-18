@@ -294,7 +294,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                  loggers=None,
                  pipeline_auto_early_stop=True,
                  time_budget_s=None,
-                 seed=None,
                  **search_kwargs):
         search_optimization = search_optimization.lower()
         available_optimizations = [
@@ -307,9 +306,6 @@ class TuneSearchCV(TuneBaseSearchCV):
         if (search_optimization not in available_optimizations):
             raise ValueError("Search optimization must be one of "
                              f"{', '.join(available_optimizations)}")
-        if (search_optimization != "random" and random_state is not None):
-            warnings.warn(
-                "random state is ignored when not using Random optimization")
 
         self._try_import_required_libraries(search_optimization)
 
@@ -372,13 +368,20 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials
+
+        self.random_state = random_state
+        if isinstance(random_state, np.random.RandomState):
+            # For compatibility with all search algorithms we just
+            # sample a seed from the random state
+            self.seed = random_state.randint(2**32 - 1)
+        else:
+            self.seed = random_state
+
         if search_optimization == "random":
-            self.random_state = random_state
             if search_kwargs:
                 raise ValueError("Random search does not support "
                                  f"extra args: {search_kwargs}")
         self.search_optimization = search_optimization
-        self.seed = seed
         self.search_kwargs = search_kwargs
 
     def _fill_config_hyperparam(self, config):
@@ -643,7 +646,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         elif self.search_optimization == "bohb":
             from ray.tune.suggest.bohb import TuneBOHB
             config_space = self._get_bohb_config_space()
-            if self.seed:
+            if self.seed is not None:
                 config_space.seed(self.seed)
             search_algo = TuneBOHB(
                 config_space,
