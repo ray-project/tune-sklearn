@@ -626,51 +626,50 @@ class TuneSearchCV(TuneBaseSearchCV):
             else:
                 search_algo = BasicVariantGenerator()
             run_args["search_alg"] = search_algo
-
-        elif self.search_optimization == "bayesian":
-            from ray.tune.suggest.skopt import SkOptSearch
-            search_algo = SkOptSearch(
-                space=self.param_distributions,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-            run_args["search_alg"] = search_algo
-
-        elif self.search_optimization == "bohb":
-            from ray.tune.suggest.bohb import TuneBOHB
-            config_space = self._get_bohb_config_space()
-            search_algo = TuneBOHB(
-                config_space,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-            run_args["search_alg"] = search_algo
-
-        elif self.search_optimization == "optuna":
-            from ray.tune.suggest.optuna import OptunaSearch
-            config_space = self._get_optuna_params()
-            search_algo = OptunaSearch(
-                config_space,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-            run_args["search_alg"] = search_algo
-
-        elif self.search_optimization == "hyperopt":
-            from ray.tune.suggest.hyperopt import HyperOptSearch
-            config_space = self._get_hyperopt_params()
-            search_algo = HyperOptSearch(
-                config_space,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-            run_args["search_alg"] = search_algo
-
         else:
-            # This should not happen as we validate the input before calling
-            # this method. Still, just to be sure, raise an error here.
-            raise ValueError(
-                f"Invalid search optimizer: {self.search_optimization}")
+            search_space = None
+            override_search_space = True
+            if self._is_param_distributions_all_tune_domains():
+                run_args["config"].update(self.param_distributions)
+                override_search_space = False
+
+            search_kwargs = self.search_kwargs.copy()
+            search_kwargs.update(metric=self._metric_name, mode="max")
+
+            if self.search_optimization == "bayesian":
+                from ray.tune.suggest.skopt import SkOptSearch
+                if override_search_space:
+                    search_space = self.param_distributions
+                search_algo = SkOptSearch(space=search_space, **search_kwargs)
+                run_args["search_alg"] = search_algo
+
+            elif self.search_optimization == "bohb":
+                from ray.tune.suggest.bohb import TuneBOHB
+                if override_search_space:
+                    search_space = self._get_bohb_config_space()
+                search_algo = TuneBOHB(space=search_space, **search_kwargs)
+                run_args["search_alg"] = search_algo
+
+            elif self.search_optimization == "optuna":
+                from ray.tune.suggest.optuna import OptunaSearch
+                if override_search_space:
+                    search_space = self._get_optuna_params()
+                search_algo = OptunaSearch(space=search_space, **search_kwargs)
+                run_args["search_alg"] = search_algo
+
+            elif self.search_optimization == "hyperopt":
+                from ray.tune.suggest.hyperopt import HyperOptSearch
+                if override_search_space:
+                    search_space = self._get_hyperopt_params()
+                search_algo = HyperOptSearch(
+                    space=search_space, **search_kwargs)
+                run_args["search_alg"] = search_algo
+
+            else:
+                # This should not happen as we validate the input before
+                # this method. Still, just to be sure, raise an error here.
+                raise ValueError(
+                    f"Invalid search optimizer: {self.search_optimization}")
 
         if isinstance(self.n_jobs, int) and self.n_jobs > 0 \
            and not self.search_optimization == "random":
