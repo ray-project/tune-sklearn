@@ -1,0 +1,35 @@
+﻿name: pytest on push
+
+on: [push, pull_request]
+
+jobs:
+  test_linux_ray_master:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -U pytest
+        python -m pip install codecov
+        python -m pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-1.1.0.dev0-cp38-cp38m-manylinux1_x86_64.whl
+        python -m install -U -q scikit-learn scikit-optimize hyperopt hpbandster ConfigSpace scipy dataclasses optuna keras
+        if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+    - name: Install package
+      run: |
+        python -m pip install -e .
+    - name: Test with pytest
+      run: |
+        cd tests
+        python -m pytest -v --durations=0 -x test_randomizedsearch.py
+        python -m pytest -v --durations=0 -x test_gridsearch.py
+        python -m pytest -v --durations=0 -x test_trainable.py
+        declare -a arr=("AsyncHyperBandScheduler" "HyperBandScheduler" "MedianStoppingRule" "ASHAScheduler"); for s in "${arr[@]}"; do python schedulers.py --scheduler "$s"; done
+        cd ../examples
+        for f in *.py; do echo "running $f" && python "$f" || exit 1 ; done
