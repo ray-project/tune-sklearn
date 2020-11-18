@@ -263,9 +263,6 @@ class TuneSearchCV(TuneBaseSearchCV):
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object. The stopping condition is checked
             after receiving a result, i.e. after each training iteration.
-        seed (int): Seed used to initialize random number generators. Running
-            the same experiment with the same seed will generate the same
-            initial parameter configurations.
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
