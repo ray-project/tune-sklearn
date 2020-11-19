@@ -657,8 +657,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.suggest.bohb import TuneBOHB
                 if override_search_space:
                     search_space = self._get_bohb_config_space()
-                if self.seed is not None:
-                    search_space.seed(self.seed)
+                    if self.seed is not None:
+                        search_space.seed(self.seed)
                 search_algo = TuneBOHB(space=search_space, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
@@ -668,7 +668,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 sampler = TPESampler(seed=self.seed)
                 if override_search_space:
                     search_space = self._get_optuna_params()
-                search_algo = OptunaSearch(space=search_space, sampler=sampler, **search_kwargs)
+                search_algo = OptunaSearch(
+                    space=search_space, sampler=sampler, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
             elif self.search_optimization == "hyperopt":
@@ -676,7 +677,9 @@ class TuneSearchCV(TuneBaseSearchCV):
                 if override_search_space:
                     search_space = self._get_hyperopt_params()
                 search_algo = HyperOptSearch(
-                    space=search_space, random_state_seed=self.seed, **search_kwargs)
+                    space=search_space,
+                    random_state_seed=self.seed,
+                    **search_kwargs)
                 run_args["search_alg"] = search_algo
 
             else:
