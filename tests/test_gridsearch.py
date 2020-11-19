@@ -1,6 +1,7 @@
 import time
 
 import ray
+from ray import tune
 from tune_sklearn import TuneGridSearchCV
 from tune_sklearn import TuneSearchCV
 import numpy as np
@@ -323,7 +324,8 @@ class GridSearchTest(unittest.TestCase):
         with self.assertRaises(ValueError) as exc:
             TuneGridSearchCV(clf, param_dict)
         self.assertTrue(("Parameter grid for parameter (C) needs to"
-                         " be a list or numpy array") in str(exc.exception))
+                         " be a tune.grid_search, list or numpy array"
+                         ) in str(exc.exception))
 
         param_dict = {"C": []}
         clf = SVC()
@@ -340,7 +342,8 @@ class GridSearchTest(unittest.TestCase):
         with self.assertRaises(ValueError) as exc:
             TuneGridSearchCV(clf, param_dict)
         self.assertTrue(("Parameter grid for parameter (C) needs to"
-                         " be a list or numpy array") in str(exc.exception))
+                         " be a tune.grid_search, list or numpy array"
+                         ) in str(exc.exception))
 
         param_dict = {"C": np.ones(6).reshape(3, 2)}
         clf = SVC()
@@ -701,6 +704,24 @@ class GridSearchTest(unittest.TestCase):
 
         self.assertTrue(hasattr(grid_search, "cv_results_"))
         self.assertTrue(wrapped_init.call_args[1]["local_mode"])
+
+    def test_tune_search_spaces(self):
+        # Test mixed search spaces
+        clf = MockClassifier()
+        foo = [1, 2, 3]
+        bar = [1, 2]
+        grid_search = TuneGridSearchCV(
+            clf, {
+                "foo_param": tune.grid_search(foo),
+                "bar_param": bar
+            },
+            refit=False,
+            cv=3)
+        grid_search.fit(X, y)
+        params = grid_search.cv_results_["params"]
+        results_grid = {k: {dic[k] for dic in params} for k in params[0]}
+        self.assertTrue(len(results_grid["foo_param"]) == len(foo))
+        self.assertTrue(len(results_grid["bar_param"]) == len(bar))
 
     def test_timeout(self):
         clf = SleepClassifier()

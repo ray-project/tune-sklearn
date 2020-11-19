@@ -6,12 +6,13 @@ import warnings
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
-from sklearn.model_selection._search import _check_param_grid
 from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
-from tune_sklearn.utils import check_is_pipeline, check_error_warm_start
+from tune_sklearn.utils import (_check_param_grid_tune_grid_search,
+                                check_is_pipeline, check_error_warm_start,
+                                is_tune_grid_search)
 import os
 
 
@@ -32,7 +33,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             scikit-learn estimator interface. Either estimator needs to
             provide a ``score`` function, or ``scoring`` must be passed.
         param_grid (`dict` or `list` of `dict`): Dictionary with parameters
-            names (string) as keys and lists of
+            names (string) as keys and lists or tune.grid_search outputs of
             parameter settings to try as values, or a list of such
             dictionaries, in which case the grids spanned by each dictionary
             in the list are explored. This enables searching over any sequence
@@ -176,7 +177,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         check_error_warm_start(self.early_stop_type, param_grid, estimator)
 
-        _check_param_grid(param_grid)
+        _check_param_grid_tune_grid_search(param_grid)
         self.param_grid = param_grid
 
     def _fill_config_hyperparam(self, config):
@@ -195,7 +196,10 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             return
 
         for key, distribution in self.param_grid.items():
-            config[key] = tune.grid_search(list(distribution))
+            if is_tune_grid_search(distribution):
+                config[key] = distribution
+            else:
+                config[key] = tune.grid_search(list(distribution))
 
     def _list_grid_num_samples(self):
         """Calculate the num_samples for `tune.run`.

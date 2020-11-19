@@ -1,6 +1,5 @@
 import time
 
-from tune_sklearn import TuneSearchCV
 import numpy as np
 from numpy.testing import assert_array_equal
 from sklearn.datasets import make_classification, make_regression
@@ -12,10 +11,14 @@ from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.pipeline import Pipeline
 from sklearn import datasets
 from skopt.space.space import Real
+from ray import tune
+
 from ray.tune.schedulers import MedianStoppingRule
 import unittest
 from unittest.mock import patch
 import os
+
+from tune_sklearn import TuneSearchCV
 from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
                                           has_required_lightgbm_version)
 from tune_sklearn.utils import EarlyStopping
@@ -493,7 +496,52 @@ class RandomizedSearchTest(unittest.TestCase):
         print(grid_search)
         # Without timeout we would need over 50 seconds for this to
         # finish. Allow for some initialization overhead
-        self.assertLess(taken, 18.0)
+        self.assertLess(taken, 25.0)
+
+
+class TestSearchSpace(unittest.TestCase):
+    def setUp(self):
+        self.clf = SGDClassifier(alpha=1, epsilon=0.1, penalty="l2")
+        self.parameter_grid = {
+            "alpha": tune.uniform(1e-4, 0.5),
+            "epsilon": tune.uniform(0.01, 0.05),
+            "penalty": tune.choice(["elasticnet", "l1"]),
+        }
+
+    def testRandom(self):
+        self._test_method("random")
+
+    def testBayesian(self):
+        self._test_method("bayesian")
+
+    def testHyperopt(self):
+        self._test_method("hyperopt")
+
+    def testBohb(self):
+        self._test_method("bohb")
+
+    def _test_method(self, search_method):
+        digits = datasets.load_digits()
+        x = digits.data
+        y = digits.target
+
+        tune_search = TuneSearchCV(
+            self.clf,
+            self.parameter_grid,
+            search_optimization=search_method,
+            cv=2,
+            n_trials=3,
+            n_jobs=1,
+            refit=True)
+        tune_search.fit(x, y)
+        params = tune_search.best_estimator_.get_params()
+        print({
+            k: v
+            for k, v in params.items() if k in ("alpha", "epsilon", "penalty")
+        })
+        self.assertTrue(1e-4 <= params["alpha"] <= 0.5)
+        self.assertTrue(0.01 <= params["epsilon"] <= 0.05)
+        self.assertTrue(params["penalty"] in ("elasticnet", "l1"))
 
     def _test_seed_run(self, search_optimization, seed):
         digits = datasets.load_digits()

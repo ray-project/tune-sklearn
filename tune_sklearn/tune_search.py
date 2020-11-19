@@ -10,6 +10,7 @@ from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.base import clone
 from ray import tune
+from ray.tune.sample import Domain
 from ray.tune.suggest import ConcurrencyLimiter, BasicVariantGenerator
 from tune_sklearn.list_searcher import RandomListSearcher
 from tune_sklearn.utils import check_error_warm_start
@@ -21,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 def _check_distribution(dist, search_optimization):
+    # Tune Domain is always good
+    if isinstance(dist, Domain):
+        return
+
     if search_optimization == "random":
         if not (isinstance(dist, list) or hasattr(dist, "rvs")):
             raise ValueError("distribution must be a list or scipy "
@@ -97,8 +102,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             For randomized search: dictionary with parameters names (string)
             as keys and distributions or lists of parameter settings to try
             for randomized search.
-            Distributions must provide a rvs  method for sampling (such as
-            those from scipy.stats.distributions).
+            Distributions must provide a rvs method for sampling (such as
+            those from scipy.stats.distributions). Ray Tune search spaces
+            are also supported.
             If a list is given, it is sampled uniformly. If a list of dicts is
             given, first a dict is sampled uniformly, and then a parameter is
             sampled using that dict as above.
@@ -108,6 +114,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             - a (lower_bound, upper_bound) tuple (for Real or Integer params)
             - a (lower_bound, upper_bound, "prior") tuple (for Real params)
             - as a list of categories (for Categorical dimensions)
+            - Ray Tune search space (eg. ``tune.uniform``)
 
             ``"bayesian"`` (scikit-optimize) also accepts
 
@@ -402,7 +409,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         samples = 1
         all_lists = True
         for key, distribution in self.param_distributions.items():
-            if isinstance(distribution, list):
+            if isinstance(distribution, Domain):
+                config[key] = distribution
+            elif isinstance(distribution, list):
                 import random
 
                 def get_sample(dist):
@@ -420,13 +429,14 @@ class TuneSearchCV(TuneBaseSearchCV):
         if all_lists:
             self.num_samples = min(self.num_samples, samples)
 
-    def _get_skopt_params(self):
-        hyperparameter_names = list(self.param_distributions.keys())
-        spaces = list(self.param_distributions.values())
-
-        return hyperparameter_names, spaces
+    def _is_param_distributions_all_tune_domains(self):
+        return all(
+            isinstance(v, Domain) for k, v in self.param_distributions.items())
 
     def _get_bohb_config_space(self):
+        if self._is_param_distributions_all_tune_domains():
+            return self.param_distributions
+
         import ConfigSpace as CS
         config_space = CS.ConfigurationSpace()
 
@@ -626,61 +636,54 @@ class TuneSearchCV(TuneBaseSearchCV):
             else:
                 search_algo = BasicVariantGenerator()
             run_args["search_alg"] = search_algo
-
-        elif self.search_optimization == "bayesian":
-            from skopt import Optimizer
-            from ray.tune.suggest.skopt import SkOptSearch
-            hyperparameter_names, spaces = self._get_skopt_params()
-            search_algo = SkOptSearch(
-                Optimizer(spaces),
-                hyperparameter_names,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-            run_args["search_alg"] = search_algo
-
-        elif self.search_optimization == "bohb":
-            from ray.tune.suggest.bohb import TuneBOHB
-            config_space = self._get_bohb_config_space()
-            if self.seed is not None:
-                config_space.seed(self.seed)
-            search_algo = TuneBOHB(
-                config_space,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-            run_args["search_alg"] = search_algo
-
-        elif self.search_optimization == "optuna":
-            from ray.tune.suggest.optuna import OptunaSearch
-            from optuna.samplers import TPESampler
-            sampler = TPESampler(seed=self.seed)
-
-            config_space = self._get_optuna_params()
-            search_algo = OptunaSearch(
-                config_space,
-                sampler=sampler,
-                metric=self._metric_name,
-                mode="max",
-                **self.search_kwargs)
-            run_args["search_alg"] = search_algo
-
-        elif self.search_optimization == "hyperopt":
-            from ray.tune.suggest.hyperopt import HyperOptSearch
-            config_space = self._get_hyperopt_params()
-            search_algo = HyperOptSearch(
-                config_space,
-                metric=self._metric_name,
-                mode="max",
-                random_state_seed=self.seed,
-                **self.search_kwargs)
-            run_args["search_alg"] = search_algo
-
         else:
-            # This should not happen as we validate the input before calling
-            # this method. Still, just to be sure, raise an error here.
-            raise ValueError(
-                f"Invalid search optimizer: {self.search_optimization}")
+            search_space = None
+            override_search_space = True
+            if self._is_param_distributions_all_tune_domains():
+                run_args["config"].update(self.param_distributions)
+                override_search_space = False
+
+            search_kwargs = self.search_kwargs.copy()
+            search_kwargs.update(metric=self._metric_name, mode="max")
+
+            if self.search_optimization == "bayesian":
+                from ray.tune.suggest.skopt import SkOptSearch
+                if override_search_space:
+                    search_space = self.param_distributions
+                search_algo = SkOptSearch(space=search_space, **search_kwargs)
+                run_args["search_alg"] = search_algo
+
+            elif self.search_optimization == "bohb":
+                from ray.tune.suggest.bohb import TuneBOHB
+                if override_search_space:
+                    search_space = self._get_bohb_config_space()
+                if self.seed is not None:
+                    search_space.seed(self.seed)
+                search_algo = TuneBOHB(space=search_space, **search_kwargs)
+                run_args["search_alg"] = search_algo
+
+            elif self.search_optimization == "optuna":
+                from ray.tune.suggest.optuna import OptunaSearch
+                from optuna.samplers import TPESampler
+                sampler = TPESampler(seed=self.seed)
+                if override_search_space:
+                    search_space = self._get_optuna_params()
+                search_algo = OptunaSearch(space=search_space, sampler=sampler, **search_kwargs)
+                run_args["search_alg"] = search_algo
+
+            elif self.search_optimization == "hyperopt":
+                from ray.tune.suggest.hyperopt import HyperOptSearch
+                if override_search_space:
+                    search_space = self._get_hyperopt_params()
+                search_algo = HyperOptSearch(
+                    space=search_space, random_state_seed=self.seed, **search_kwargs)
+                run_args["search_alg"] = search_algo
+
+            else:
+                # This should not happen as we validate the input before
+                # this method. Still, just to be sure, raise an error here.
+                raise ValueError(
+                    f"Invalid search optimizer: {self.search_optimization}")
 
         if isinstance(self.n_jobs, int) and self.n_jobs > 0 \
            and not self.search_optimization == "random":
