@@ -514,7 +514,7 @@ class RandomizedSearchTest(unittest.TestCase):
             _seed = seed
         tune_search_1 = TuneSearchCV(
             pipe,
-            parameters,
+            parameters.copy(),
             early_stopping=True,
             max_iters=1,
             search_optimization=search_optimization,
@@ -527,15 +527,19 @@ class RandomizedSearchTest(unittest.TestCase):
             _seed = seed
         tune_search_2 = TuneSearchCV(
             pipe,
-            parameters,
+            parameters.copy(),
             early_stopping=True,
             max_iters=1,
             search_optimization=search_optimization,
             random_state=_seed)
         tune_search_2.fit(x, y)
 
-        self.assertSequenceEqual(tune_search_1.cv_results_["params"],
-                                 tune_search_2.cv_results_["params"])
+        try:
+            self.assertSequenceEqual(tune_search_1.cv_results_["params"],
+                                     tune_search_2.cv_results_["params"])
+        except AssertionError:
+            print(f"Seeds: {tune_search_1.seed} vs. {tune_search_2.seed}")
+            raise
 
     def test_seed_random(self):
         self._test_seed_run("random", seed=1234)
