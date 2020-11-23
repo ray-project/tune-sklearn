@@ -586,7 +586,7 @@ class TestSearchSpace(unittest.TestCase):
             self.assertSequenceEqual(tune_search_1.cv_results_["params"],
                                      tune_search_2.cv_results_["params"])
         except AssertionError:
-            print(f"Seeds: {tune_search_1.seed} vs. {tune_search_2.seed}")
+            print(f"Seeds: {tune_search_1.seed} == {tune_search_2.seed}?")
             raise
 
     def test_seed_random(self):
