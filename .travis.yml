@@ -6,11 +6,11 @@ matrix:
     - os: linux
       python: 3.6
       env: PYTHON=3.6 OS=LINUX SKLEARN_N_JOBS=1 RAY_MASTER=1
-      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-1.1.0.dev0-cp36-cp36m-manylinux1_x86_64.whl
+      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-1.1.0.dev0-cp36-cp36m-manylinux2014_x86_64.whl
     - os: linux
       python: 3.7
       env: PYTHON=3.7 OS=LINUX SKLEARN_N_JOBS=1 RAY_MASTER=1
-      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-1.1.0.dev0-cp37-cp37m-manylinux1_x86_64.whl
+      before_script: pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-1.1.0.dev0-cp37-cp37m-manylinux2014_x86_64.whl
     - os: osx
       osx_image: xcode9.4
       language: generic
