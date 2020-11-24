@@ -659,6 +659,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.suggest.bohb import TuneBOHB
                 if override_search_space:
                     search_space = self._get_bohb_config_space()
+                if self.seed:
+                    warnings.warn("'seed' is not implemented for BOHB.")
                 search_algo = TuneBOHB(space=search_space, **search_kwargs)
                 # search_algo = TuneBOHB(
                 #     space=search_space, seed=self.seed, **search_kwargs)
