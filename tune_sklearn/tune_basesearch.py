@@ -12,7 +12,6 @@ https://optuna.org
 import logging
 from collections import defaultdict
 
-from ray.tune.trial import Trial
 from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
@@ -20,12 +19,7 @@ from sklearn.model_selection import check_cv
 from sklearn.base import is_classifier
 from sklearn.base import clone
 from sklearn.exceptions import NotFittedError
-import ray
-from ray.tune.schedulers import (
-    PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
-    MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
-from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
-                             Logger)
+
 import numpy as np
 from numpy.ma import MaskedArray
 import pandas as pd
@@ -36,6 +30,13 @@ import inspect
 import time
 import numbers
 
+import ray
+from ray.tune.trial import Trial
+from ray.tune.schedulers import (
+    PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
+    MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
+from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
+                             Logger)
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
                                 check_is_pipeline, _check_multimetric_scoring)
 from tune_sklearn._detect_booster import is_lightgbm_model

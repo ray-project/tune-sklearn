@@ -1,17 +1,17 @@
 """ Helper class to train models using Ray backend
 """
-import ray
-from ray.tune import Trainable
 from sklearn.base import clone
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
 import numpy as np
 import os
 from pickle import PicklingError
-import ray.cloudpickle as cpickle
 import warnings
 import inspect
 
+import ray
+from ray.tune import Trainable
+import ray.cloudpickle as cpickle
 from tune_sklearn.utils import (EarlyStopping, _aggregate_score_dicts)
 
 
@@ -244,7 +244,7 @@ class _Trainable(Trainable):
                     groups=self.groups,
                     scoring=self.scoring,
                     return_train_score=self.return_train_score,
-                )
+                    error_score="raise")
             except PicklingError:
                 warnings.warn("An error occurred in parallelizing the cross "
                               "validation. Proceeding to cross validate with "
@@ -258,7 +258,7 @@ class _Trainable(Trainable):
                     groups=self.groups,
                     scoring=self.scoring,
                     return_train_score=self.return_train_score,
-                )
+                    error_score="raise")
 
             ret = {}
             for name in self.scoring:

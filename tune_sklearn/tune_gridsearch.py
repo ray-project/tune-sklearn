@@ -2,10 +2,8 @@
     -- Anthony Yu and Michael Chau
 """
 import warnings
+import os
 
-from tune_sklearn.tune_basesearch import TuneBaseSearchCV
-from tune_sklearn._trainable import _Trainable
-from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
@@ -13,7 +11,9 @@ from tune_sklearn.list_searcher import ListSearcher
 from tune_sklearn.utils import (_check_param_grid_tune_grid_search,
                                 check_is_pipeline, check_error_warm_start,
                                 is_tune_grid_search)
-import os
+from tune_sklearn.tune_basesearch import TuneBaseSearchCV
+from tune_sklearn._trainable import _Trainable
+from tune_sklearn._trainable import _PipelineTrainable
 
 
 class TuneGridSearchCV(TuneBaseSearchCV):
