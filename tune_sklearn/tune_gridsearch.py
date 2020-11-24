@@ -122,8 +122,10 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             resource_param (max_iter or n_estimators) is
             incremented by `max resource value // max_iters`.
         use_gpu (bool): Indicates whether to use gpu for fitting.
-            Defaults to False. If True, training will use 1 gpu
-            for `resources_per_trial`.
+            Defaults to False. If True, training will start processes
+            with the proper CUDA VISIBLE DEVICE settings set. If a Ray
+            cluster has been initialized, all available GPUs will
+            be used.
         loggers (list): A list of the names of the Tune loggers as strings
             to be used to log results. Possible values are "tensorboard",
             "csv", "mlflow", and "json"
