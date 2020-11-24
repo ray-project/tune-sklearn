@@ -108,4 +108,5 @@ jobs:
         python -m pip install yapf==0.23.0 flake8==3.7.7 flake8-comprehensions flake8-quotes==2.0.0
     - name: Lint codebase
       run: |
+        chmod +x ./tests/format.sh
         bash ./tests/format.sh

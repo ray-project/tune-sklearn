@@ -4,6 +4,7 @@
 
 # Cause the script to exit if a single command fails
 set -eo pipefail
+set -x
 
 FLAKE8_VERSION_REQUIRED="3.7.7"
 YAPF_VERSION_REQUIRED="0.23.0"
