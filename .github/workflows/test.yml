@@ -103,9 +103,9 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
+        export LINT=1 PYTHONWARNINGS=ignore
         python -m pip install --upgrade pip
         python -m pip install yapf==0.23.0 flake8==3.7.7 flake8-comprehensions flake8-quotes==2.0.0
     - name: Lint codebase
       run: |
-        export LINT=1 PYTHONWARNINGS=ignore
         bash ./tests/format.sh

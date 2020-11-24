@@ -60,13 +60,6 @@ tool_version_check() {
 tool_version_check "flake8" $FLAKE8_VERSION $FLAKE8_VERSION_REQUIRED
 tool_version_check "yapf" $YAPF_VERSION $YAPF_VERSION_REQUIRED
 
-if which clang-format >/dev/null; then
-  CLANG_FORMAT_VERSION=$(clang-format --version | awk '{print $3}')
-  tool_version_check "clang-format" $CLANG_FORMAT_VERSION "7.0.0"
-else
-    echo "WARNING: clang-format is not installed!"
-fi
-
 # Only fetch master since that's the branch we're diffing against.
 git fetch upstream master || true
 
