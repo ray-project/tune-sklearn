@@ -597,6 +597,7 @@ class TestSearchSpace(unittest.TestCase):
         self._test_seed_run("bayesian", seed=1234)
         self._test_seed_run("bayesian", seed="1234")
 
+    @unittest.skip("Currently not on latest ray.")
     def test_seed_bohb(self):
         self._test_seed_run("bohb", seed=1234)
         self._test_seed_run("bohb", seed="1234")

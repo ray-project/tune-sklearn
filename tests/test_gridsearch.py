@@ -33,14 +33,12 @@ from sklearn.linear_model import Ridge, SGDClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KernelDensity
 
-
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
                         SleepClassifier, MockDataFrame)
 import ray
 from ray import tune
 from tune_sklearn import TuneGridSearchCV
 from tune_sklearn import TuneSearchCV
-
 
 # def test_check_cv_results_array_types(self, cv_results, param_keys,
 #                                       score_keys):

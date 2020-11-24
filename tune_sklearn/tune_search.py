@@ -657,8 +657,9 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.suggest.bohb import TuneBOHB
                 if override_search_space:
                     search_space = self._get_bohb_config_space()
-                search_algo = TuneBOHB(
-                    space=search_space, seed=self.seed, **search_kwargs)
+                search_algo = TuneBOHB(space=search_space, **search_kwargs)
+                # search_algo = TuneBOHB(
+                #     space=search_space, seed=self.seed, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
             elif self.search_optimization == "optuna":
