@@ -3,20 +3,20 @@
 """
 import logging
 import random
-
-from tune_sklearn.utils import check_is_pipeline
-from tune_sklearn.tune_basesearch import TuneBaseSearchCV
-from tune_sklearn._trainable import _Trainable
-from tune_sklearn._trainable import _PipelineTrainable
 from sklearn.base import clone
-from ray import tune
-from ray.tune.sample import Domain
-from ray.tune.suggest import ConcurrencyLimiter, BasicVariantGenerator
-from tune_sklearn.list_searcher import RandomListSearcher
-from tune_sklearn.utils import check_error_warm_start
 import numpy as np
 import warnings
 import os
+
+from ray import tune
+from ray.tune.sample import Domain
+from ray.tune.suggest import ConcurrencyLimiter, BasicVariantGenerator
+
+from tune_sklearn.utils import check_is_pipeline
+from tune_sklearn.tune_basesearch import TuneBaseSearchCV
+from tune_sklearn._trainable import _Trainable, _PipelineTrainable
+from tune_sklearn.list_searcher import RandomListSearcher
+from tune_sklearn.utils import check_error_warm_start
 
 logger = logging.getLogger(__name__)
 
