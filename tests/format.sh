@@ -91,6 +91,7 @@ format_changed() {
     # `diff-filter=ACRM` and $MERGEBASE is to ensure we only format files that
     # exist on both branches.
     git status
+    git merge-base upstream/master HEAD
     MERGEBASE="$(git merge-base upstream/master HEAD)"
 
     if ! git diff --diff-filter=ACRM --quiet --exit-code "$MERGEBASE" -- '*.py' &>/dev/null; then
