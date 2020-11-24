@@ -244,8 +244,7 @@ class _Trainable(Trainable):
                     groups=self.groups,
                     scoring=self.scoring,
                     return_train_score=self.return_train_score,
-                    error_score="raise"
-                )
+                    error_score="raise")
             except PicklingError:
                 warnings.warn("An error occurred in parallelizing the cross "
                               "validation. Proceeding to cross validate with "
@@ -259,8 +258,7 @@ class _Trainable(Trainable):
                     groups=self.groups,
                     scoring=self.scoring,
                     return_train_score=self.return_train_score,
-                    error_score="raise"
-                )
+                    error_score="raise")
 
             ret = {}
             for name in self.scoring:
