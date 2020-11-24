@@ -77,10 +77,14 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.7
+    - name: Check out Ray
+      uses: actions/checkout@v2
+      with:
+        repository: ray-project/ray
+      path: ray
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        git clone https://github.com/ray-project/ray
         python -m pip install -U -r ray/doc/requirements-rtd.txt
         python -m pip install -r ray/doc/requirements-doc.txt
     - name: Install package
