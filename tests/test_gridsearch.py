@@ -1,9 +1,4 @@
 import time
-
-import ray
-from ray import tune
-from tune_sklearn import TuneGridSearchCV
-from tune_sklearn import TuneSearchCV
 import numpy as np
 from numpy.testing import (
     assert_almost_equal,
@@ -25,6 +20,8 @@ from sklearn.datasets import (
 )
 from sklearn.metrics import f1_score, make_scorer
 import pytest
+import unittest
+from unittest.mock import patch
 from parameterized import parameterized
 from sklearn.cluster import KMeans
 from sklearn.svm import SVC, LinearSVC
@@ -35,10 +32,15 @@ from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import Ridge, SGDClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KernelDensity
-import unittest
-from unittest.mock import patch
+
+
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
                         SleepClassifier, MockDataFrame)
+import ray
+from ray import tune
+from tune_sklearn import TuneGridSearchCV
+from tune_sklearn import TuneSearchCV
+
 
 # def test_check_cv_results_array_types(self, cv_results, param_keys,
 #                                       score_keys):
