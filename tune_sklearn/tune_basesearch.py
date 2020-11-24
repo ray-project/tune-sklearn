@@ -529,15 +529,18 @@ class TuneBaseSearchCV(BaseEstimator):
                     category=UserWarning)
         else:
             available_cpus = multiprocessing.cpu_count()
+            gpu_fraction = 1 if self.use_gpu else 0
             if ray.is_initialized():
                 available_cpus = ray.cluster_resources()["CPU"]
+                if self.use_gpu:
+                    available_gpus = ray.cluster_resources()["GPU"]
+                    gpu_fraction = available_gpus / self.n_jobs
             cpu_fraction = available_cpus / self.n_jobs
             if cpu_fraction > 1:
                 cpu_fraction = int(np.ceil(cpu_fraction))
-            resources_per_trial = {
-                "cpu": cpu_fraction,
-                "gpu": 1 if self.use_gpu else 0
-            }
+            if gpu_fraction > 1:
+                gpu_fraction = int(np.ceil(gpu_fraction))
+            resources_per_trial = {"cpu": cpu_fraction, "gpu": gpu_fraction}
 
         X_id = ray.put(X)
         y_id = ray.put(y)
