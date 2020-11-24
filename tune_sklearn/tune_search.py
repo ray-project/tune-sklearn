@@ -209,7 +209,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             If RandomState instance, a seed is sampled from random_state;
             If None, the random number generator is the RandomState instance
             used by np.random and no seed is provided. Defaults to None.
-            Ignored when doing Bayesian search.
+            Ignored when using BOHB.
         error_score ('raise' or int or float): Value to assign to the score if
             an error occurs in estimator
             fitting. If set to 'raise', the error is raised. If a numeric value
