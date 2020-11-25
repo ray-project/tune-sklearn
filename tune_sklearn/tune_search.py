@@ -295,7 +295,12 @@ class TuneSearchCV(TuneBaseSearchCV):
                  loggers=None,
                  pipeline_auto_early_stop=True,
                  time_budget_s=None,
+                 sk_n_jobs=None,
                  **search_kwargs):
+        if sk_n_jobs is not None:
+            raise ValueError(
+                "Tune-sklearn no longer supports nested parallelism "
+                "with new versions of joblib/sklearn. Don't set 'sk_n_jobs'.")
         search_optimization = search_optimization.lower()
         available_optimizations = [
             "random",

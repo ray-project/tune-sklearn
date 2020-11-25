@@ -154,7 +154,12 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
-                 time_budget_s=None):
+                 time_budget_s=None,
+                 sk_n_jobs=None):
+        if sk_n_jobs is not None:
+            raise ValueError(
+                "Tune-sklearn no longer supports nested parallelism "
+                "with new versions of joblib/sklearn. Don't set 'sk_n_jobs'.")
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
