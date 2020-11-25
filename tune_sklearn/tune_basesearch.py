@@ -358,7 +358,6 @@ class TuneBaseSearchCV(BaseEstimator):
                  early_stopping=None,
                  scoring=None,
                  n_jobs=None,
-                 sk_n_jobs=-1,
                  cv=5,
                  refit=True,
                  verbose=0,
@@ -465,10 +464,9 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.cv = cv
         self.n_jobs = int(n_jobs or -1)
+        self.sk_n_jobs = 1
         if os.environ.get("SKLEARN_N_JOBS") is not None:
             self.sk_n_jobs = int(os.environ.get("SKLEARN_N_JOBS"))
-        else:
-            self.sk_n_jobs = sk_n_jobs
 
         self.verbose = verbose
         self.error_score = error_score
