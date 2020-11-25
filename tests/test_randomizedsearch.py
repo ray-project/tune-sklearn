@@ -543,6 +543,73 @@ class TestSearchSpace(unittest.TestCase):
         self.assertTrue(0.01 <= params["epsilon"] <= 0.05)
         self.assertTrue(params["penalty"] in ("elasticnet", "l1"))
 
+    def _test_seed_run(self, search_optimization, seed):
+        digits = datasets.load_digits()
+
+        x = digits.data
+        y = digits.target
+
+        parameters = {
+            "classify__alpha": [1e-4, 1e-3, 1e-2, 1e-1, 1],
+            "classify__epsilon": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06]
+        }
+
+        pipe = Pipeline([("reduce_dim", PCA()), ("classify", SGDClassifier())])
+
+        if isinstance(seed, str):
+            _seed = np.random.RandomState(seed=int(seed))
+        else:
+            _seed = seed
+        tune_search_1 = TuneSearchCV(
+            pipe,
+            parameters.copy(),
+            early_stopping=True,
+            max_iters=1,
+            search_optimization=search_optimization,
+            random_state=_seed)
+        tune_search_1.fit(x, y)
+
+        if isinstance(seed, str):
+            _seed = np.random.RandomState(seed=int(seed))
+        else:
+            _seed = seed
+        tune_search_2 = TuneSearchCV(
+            pipe,
+            parameters.copy(),
+            early_stopping=True,
+            max_iters=1,
+            search_optimization=search_optimization,
+            random_state=_seed)
+        tune_search_2.fit(x, y)
+
+        try:
+            self.assertSequenceEqual(tune_search_1.cv_results_["params"],
+                                     tune_search_2.cv_results_["params"])
+        except AssertionError:
+            print(f"Seeds: {tune_search_1.seed} == {tune_search_2.seed}?")
+            raise
+
+    def test_seed_random(self):
+        self._test_seed_run("random", seed=1234)
+        self._test_seed_run("random", seed="1234")
+
+    def test_seed_bayesian(self):
+        self._test_seed_run("bayesian", seed=1234)
+        self._test_seed_run("bayesian", seed="1234")
+
+    @unittest.skip("Currently not on latest ray.")
+    def test_seed_bohb(self):
+        self._test_seed_run("bohb", seed=1234)
+        self._test_seed_run("bohb", seed="1234")
+
+    def test_seed_hyperopt(self):
+        self._test_seed_run("hyperopt", seed=1234)
+        self._test_seed_run("hyperopt", seed="1234")
+
+    def test_seed_optuna(self):
+        self._test_seed_run("optuna", seed=1234)
+        self._test_seed_run("optuna", seed="1234")
+
 
 if __name__ == "__main__":
     unittest.main()

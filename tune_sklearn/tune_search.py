@@ -2,6 +2,7 @@
     -- Anthony Yu and Michael Chau
 """
 import logging
+import random
 from sklearn.base import clone
 import numpy as np
 import warnings
@@ -205,11 +206,10 @@ class TuneSearchCV(TuneBaseSearchCV):
             distributions.
             If int, random_state is the seed used by the random number
             generator;
-            If RandomState instance, random_state is the random number
-            generator;
+            If RandomState instance, a seed is sampled from random_state;
             If None, the random number generator is the RandomState instance
-            used by np.random. Defaults to None.
-            Ignored when doing Bayesian search.
+            used by np.random and no seed is provided. Defaults to None.
+            Ignored when using BOHB.
         error_score ('raise' or int or float): Value to assign to the score if
             an error occurs in estimator
             fitting. If set to 'raise', the error is raised. If a numeric value
@@ -311,9 +311,6 @@ class TuneSearchCV(TuneBaseSearchCV):
         if (search_optimization not in available_optimizations):
             raise ValueError("Search optimization must be one of "
                              f"{', '.join(available_optimizations)}")
-        if (search_optimization != "random" and random_state is not None):
-            warnings.warn(
-                "random state is ignored when not using Random optimization")
 
         self._try_import_required_libraries(search_optimization)
 
@@ -376,8 +373,16 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         self.param_distributions = param_distributions
         self.num_samples = n_trials
+
+        self.random_state = random_state
+        if isinstance(random_state, np.random.RandomState):
+            # For compatibility with all search algorithms we just
+            # sample a seed from the random state
+            self.seed = random_state.randint(2**32 - 1)
+        else:
+            self.seed = random_state
+
         if search_optimization == "random":
-            self.random_state = random_state
             if search_kwargs:
                 raise ValueError("Random search does not support "
                                  f"extra args: {search_kwargs}")
@@ -592,6 +597,10 @@ class TuneSearchCV(TuneBaseSearchCV):
                 `tune.run`.
 
         """
+        if self.seed is not None:
+            random.seed(self.seed)
+            np.random.seed(self.seed)
+
         trainable = _Trainable
         if self.pipeline_auto_early_stop and check_is_pipeline(
                 self.estimator) and self.early_stopping:
@@ -650,14 +659,21 @@ class TuneSearchCV(TuneBaseSearchCV):
                 from ray.tune.suggest.bohb import TuneBOHB
                 if override_search_space:
                     search_space = self._get_bohb_config_space()
+                if self.seed:
+                    warnings.warn("'seed' is not implemented for BOHB.")
                 search_algo = TuneBOHB(space=search_space, **search_kwargs)
+                # search_algo = TuneBOHB(
+                #     space=search_space, seed=self.seed, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
             elif self.search_optimization == "optuna":
                 from ray.tune.suggest.optuna import OptunaSearch
+                from optuna.samplers import TPESampler
+                sampler = TPESampler(seed=self.seed)
                 if override_search_space:
                     search_space = self._get_optuna_params()
-                search_algo = OptunaSearch(space=search_space, **search_kwargs)
+                search_algo = OptunaSearch(
+                    space=search_space, sampler=sampler, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
             elif self.search_optimization == "hyperopt":
@@ -665,7 +681,9 @@ class TuneSearchCV(TuneBaseSearchCV):
                 if override_search_space:
                     search_space = self._get_hyperopt_params()
                 search_algo = HyperOptSearch(
-                    space=search_space, **search_kwargs)
+                    space=search_space,
+                    random_state_seed=self.seed,
+                    **search_kwargs)
                 run_args["search_alg"] = search_algo
 
             else:
