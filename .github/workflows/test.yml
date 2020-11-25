@@ -81,7 +81,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: ray-project/ray
-      path: ray
+        path: ray
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
