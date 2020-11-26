@@ -170,9 +170,6 @@ class TuneSearchCV(TuneBaseSearchCV):
             will be run using Ray's 'local mode'. This can
             lead to significant speedups if the model takes < 10 seconds
             to fit due to removing inter-process communication overheads.
-        sk_n_jobs (int): Number of jobs to run in parallel for cross validating
-            each hyperparameter set; the ``n_jobs`` parameter for
-            ``cross_validate`` call to sklearn when early stopping isn't used.
         refit (bool, str, or `callable`): Refit an estimator using the
             best found parameters on the whole dataset.
             For multiple metric evaluation, this needs to be a string denoting
@@ -285,7 +282,6 @@ class TuneSearchCV(TuneBaseSearchCV):
                  n_trials=10,
                  scoring=None,
                  n_jobs=None,
-                 sk_n_jobs=-1,
                  refit=True,
                  cv=None,
                  verbose=0,
@@ -299,7 +295,12 @@ class TuneSearchCV(TuneBaseSearchCV):
                  loggers=None,
                  pipeline_auto_early_stop=True,
                  time_budget_s=None,
+                 sk_n_jobs=None,
                  **search_kwargs):
+        if sk_n_jobs is not None:
+            raise ValueError(
+                "Tune-sklearn no longer supports nested parallelism "
+                "with new versions of joblib/sklearn. Don't set 'sk_n_jobs'.")
         search_optimization = search_optimization.lower()
         available_optimizations = [
             "random",
@@ -355,7 +356,6 @@ class TuneSearchCV(TuneBaseSearchCV):
             early_stopping=early_stopping,
             scoring=scoring,
             n_jobs=n_jobs or -1,
-            sk_n_jobs=sk_n_jobs,
             cv=cv,
             verbose=verbose,
             refit=refit,

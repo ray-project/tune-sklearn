@@ -64,9 +64,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             will be run using Ray's 'local mode'. This can
             lead to significant speedups if the model takes < 10 seconds
             to fit due to removing inter-process communication overheads.
-        sk_n_jobs (int): Number of jobs to run in parallel for cross validating
-            each hyperparameter set; the ``n_jobs`` parameter for
-            ``cross_validate`` call to sklearn when early stopping isn't used.
         cv (int, `cross-validation generator` or `iterable`): Determines the
             cross-validation splitting strategy. Possible inputs for cv are:
 
@@ -147,7 +144,6 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  early_stopping=None,
                  scoring=None,
                  n_jobs=None,
-                 sk_n_jobs=-1,
                  cv=5,
                  refit=True,
                  verbose=0,
@@ -158,13 +154,17 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
-                 time_budget_s=None):
+                 time_budget_s=None,
+                 sk_n_jobs=None):
+        if sk_n_jobs is not None:
+            raise ValueError(
+                "Tune-sklearn no longer supports nested parallelism "
+                "with new versions of joblib/sklearn. Don't set 'sk_n_jobs'.")
         super(TuneGridSearchCV, self).__init__(
             estimator=estimator,
             early_stopping=early_stopping,
             scoring=scoring,
             n_jobs=n_jobs or -1,
-            sk_n_jobs=sk_n_jobs,
             cv=cv,
             refit=refit,
             error_score=error_score,
