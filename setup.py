@@ -9,7 +9,4 @@ setup(
     long_description="An API enabling faster scikit-learn training using Tune "
     "parallelization and early stopping algorithms",
     url="https://github.com/ray-project/tune-sklearn",
-    install_requires=[
-        "scikit-learn", "scipy", "ray", "numpy>=1.16", "pandas", "tabulate",
-        "parameterized"
-    ])
+    install_requires=["scikit-learn", "scipy", "ray[tune]", "numpy>=1.16"])
