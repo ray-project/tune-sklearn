@@ -175,6 +175,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop,
+            stop_on_plateau=False,
             time_budget_s=time_budget_s)
 
         check_error_warm_start(self.early_stop_type, param_grid, estimator)

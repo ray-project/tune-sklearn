@@ -37,6 +37,8 @@ from ray.tune.schedulers import (
     MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
 from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
                              Logger)
+
+from tune_sklearn._tune_utils import TrialPlateauStopper
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
                                 check_is_pipeline, _check_multimetric_scoring)
 from tune_sklearn._detect_booster import is_lightgbm_model
@@ -368,6 +370,7 @@ class TuneBaseSearchCV(BaseEstimator):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
+                 stop_on_plateau=False,
                  time_budget_s=None):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
@@ -375,6 +378,22 @@ class TuneBaseSearchCV(BaseEstimator):
         self.base_estimator = estimator
         self.pipeline_auto_early_stop = pipeline_auto_early_stop
         self.time_budget_s = time_budget_s
+
+        if stop_on_plateau:
+            if isinstance(stop_on_plateau, TrialPlateauStopper):
+                self.stop_on_plateau = stop_on_plateau
+            else:
+                stopper_config = {
+                    "metric": "_objective",
+                    "std": 0.01,
+                    "mode": "min",
+                    "num_results": 4
+                }
+                if isinstance(stop_on_plateau, dict):
+                    stopper_config.update(stop_on_plateau)
+                self.stop_on_plateau = TrialPlateauStopper(**stopper_config)
+        else:
+            self.stop_on_plateau = None
 
         if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
             _, self.base_estimator = self.base_estimator.steps[-1]
