@@ -133,6 +133,11 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
             capabilities, which are by default not supported by standard
             SKlearn. Defaults to True.
+        stop_on_plateau (bool|dict|TrialPlateauStopper): Stop trials early if
+            a plateau is reached. If False, disable. If True, enable with
+            default settings. If dict, overwrite default options of
+            `TrialPlateauStopper`. If `TrialPlateauStopper`, use the
+            passed object directly.
         time_budget_s (int|float|datetime.timedelta): Global time budget in
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object.
@@ -154,6 +159,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
+                 stop_on_plateau=False,
                  time_budget_s=None,
                  sk_n_jobs=None):
         if sk_n_jobs is not None:
@@ -175,7 +181,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop,
-            stop_on_plateau=False,
+            stop_on_plateau=stop_on_plateau,
             time_budget_s=time_budget_s)
 
         check_error_warm_start(self.early_stop_type, param_grid, estimator)

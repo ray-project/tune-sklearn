@@ -22,7 +22,7 @@ from tune_sklearn import TuneSearchCV
 from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
                                           has_required_lightgbm_version)
 from tune_sklearn.utils import EarlyStopping
-from test_utils import SleepClassifier
+from test_utils import SleepClassifier, PlateauClassifier
 
 
 class RandomizedSearchTest(unittest.TestCase):
@@ -473,6 +473,48 @@ class RandomizedSearchTest(unittest.TestCase):
         tune_search = TuneSearchCV(
             pipe, parameter_grid, early_stopping=True, max_iters=10)
         tune_search.fit(x, y)
+
+    def test_max_iters(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+
+        clf = PlateauClassifier(converge_after=20)
+
+        search = TuneSearchCV(
+            clf, {"foo_param": [2.0, 3.0, 4.0]},
+            cv=2,
+            max_iters=6,
+            early_stopping=True)
+
+        search.fit(X, y)
+
+        print(search.cv_results_)
+
+        for iters in search.cv_results_["training_iteration"]:
+            # Stop after 6 iterations.
+            self.assertLessEqual(iters, 6)
+
+    def test_plateau(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+
+        clf = PlateauClassifier(converge_after=4)
+
+        search = TuneSearchCV(
+            clf, {"foo_param": [2.0, 3.0, 4.0]},
+            cv=2,
+            max_iters=20,
+            stop_on_plateau=True,
+            early_stopping=True)
+
+        search.fit(X, y)
+
+        print(search.cv_results_)
+
+        for iters in search.cv_results_["training_iteration"]:
+            # Converges after 4 iterations, but the stopper needs another
+            # 4 to detect it converged.
+            self.assertLessEqual(iters, 8)
 
     def test_timeout(self):
         X, y = make_classification(

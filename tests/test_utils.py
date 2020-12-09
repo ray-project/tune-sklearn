@@ -60,6 +60,25 @@ class SleepClassifier(MockClassifier):
         return self.foo_param
 
 
+class PlateauClassifier(MockClassifier):
+    def __init__(self, foo_param=0, bar_param=0, converge_after=4):
+        super(PlateauClassifier, self).__init__(foo_param, bar_param)
+        self.converge_after = converge_after
+
+    def fit(self, X, Y):
+        return super().fit(X, Y)
+
+    def partial_fit(self, X, Y):
+        return self.fit(X, Y)
+
+    def score(self, X=None, Y=None):
+        if self.count >= self.converge_after:
+            noise = 0.0
+        else:
+            noise = np.random.uniform(-0.5, 0.5)
+        return self.foo_param + noise
+
+
 class CheckingClassifier(BaseEstimator, ClassifierMixin):
     """Dummy classifier to test pipelining and meta-estimators.
     Checks some property of X and y in fit / predict.

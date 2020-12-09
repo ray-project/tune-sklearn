@@ -34,7 +34,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KernelDensity
 
 from test_utils import (MockClassifier, CheckingClassifier, BrokenClassifier,
-                        SleepClassifier, MockDataFrame)
+                        SleepClassifier, MockDataFrame, PlateauClassifier)
 import ray
 from ray import tune
 from tune_sklearn import TuneGridSearchCV
@@ -722,6 +722,48 @@ class GridSearchTest(unittest.TestCase):
         results_grid = {k: {dic[k] for dic in params} for k in params[0]}
         self.assertTrue(len(results_grid["foo_param"]) == len(foo))
         self.assertTrue(len(results_grid["bar_param"]) == len(bar))
+
+    def test_max_iters(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+
+        clf = PlateauClassifier(converge_after=20)
+
+        search = TuneGridSearchCV(
+            clf, {"foo_param": [2.0, 3.0, 4.0]},
+            cv=2,
+            max_iters=6,
+            early_stopping=True)
+
+        search.fit(X, y)
+
+        print(search.cv_results_)
+
+        for iters in search.cv_results_["training_iteration"]:
+            # Stop after 6 iterations.
+            self.assertLessEqual(iters, 6)
+
+    def test_plateau(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+
+        clf = PlateauClassifier(converge_after=4)
+
+        search = TuneGridSearchCV(
+            clf, {"foo_param": [2.0, 3.0, 4.0]},
+            cv=2,
+            max_iters=20,
+            stop_on_plateau=True,
+            early_stopping=True)
+
+        search.fit(X, y)
+
+        print(search.cv_results_)
+
+        for iters in search.cv_results_["training_iteration"]:
+            # Converges after 4 iterations, but the stopper needs another
+            # 4 to detect it converged.
+            self.assertLessEqual(iters, 8)
 
     def test_timeout(self):
         clf = SleepClassifier()

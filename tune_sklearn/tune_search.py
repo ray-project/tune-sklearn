@@ -14,7 +14,7 @@ from ray import tune
 from ray.tune.sample import Domain
 from ray.tune.suggest import ConcurrencyLimiter, BasicVariantGenerator
 
-from tune_sklearn._tune_utils import _IterTrialStopped
+from tune_sklearn.tune_utils import _IterTrialStopped
 from tune_sklearn.utils import check_is_pipeline
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable, _PipelineTrainable
@@ -268,7 +268,11 @@ class TuneSearchCV(TuneBaseSearchCV):
             determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
             capabilities, which are by default not supported by standard
             SKlearn. Defaults to True.
-        stop_on_plateau (bool): Stop trials early if a plateau is reached.
+        stop_on_plateau (bool|dict|TrialPlateauStopper): Stop trials early if
+            a plateau is reached. If False, disable. If True, enable with
+            default settings. If dict, overwrite default options of
+            `TrialPlateauStopper`. If `TrialPlateauStopper`, use the
+            passed object directly.
         time_budget_s (int|float|datetime.timedelta): Global time budget in
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object. The stopping condition is checked
