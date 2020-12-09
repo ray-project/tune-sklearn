@@ -4,10 +4,12 @@
 import warnings
 import os
 
+from ray.tune.stopper import CombinedStopper
 from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
+from tune_sklearn.tune_utils import _IterTrialStopped
 from tune_sklearn.utils import (_check_param_grid_tune_grid_search,
                                 check_is_pipeline, check_error_warm_start,
                                 is_tune_grid_search)
@@ -247,11 +249,15 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         else:
             config["estimator_list"] = [self.estimator]
 
+        stopper = _IterTrialStopped(max_iter=self.max_iters)
+        if self.stop_on_plateau:
+            stopper = CombinedStopper(stopper, self.stop_on_plateau)
+
         run_args = dict(
             scheduler=self.early_stopping,
             reuse_actors=True,
             verbose=self.verbose,
-            stop={"training_iteration": self.max_iters},
+            stop=stopper,
             config=config,
             fail_fast="raise",
             resources_per_trial=resources_per_trial,
