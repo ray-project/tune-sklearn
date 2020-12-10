@@ -62,6 +62,7 @@ class RandomizedSearchTest(unittest.TestCase):
             "std_test_score",
             "std_train_score",
             "time_total_s",
+            "training_iteration",
         )
         n_cand = n_search_iter
 
@@ -80,7 +81,8 @@ class RandomizedSearchTest(unittest.TestCase):
                     for key in score_keys))
             self.assertTrue(
                 all(cv_results[key].dtype == np.float64 for key in score_keys
-                    if not key.startswith("rank")))
+                    if not key.startswith("rank")
+                    and key != "training_iteration"))
             self.assertEquals(cv_results["rank_test_score"].dtype, np.int32)
 
         def test_check_cv_results_keys(cv_results, param_keys, score_keys,
