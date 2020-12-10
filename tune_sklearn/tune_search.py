@@ -14,8 +14,7 @@ from ray import tune
 from ray.tune.sample import Domain
 from ray.tune.suggest import ConcurrencyLimiter, BasicVariantGenerator
 
-from tune_sklearn.tune_utils import _IterTrialStopped
-from tune_sklearn.utils import check_is_pipeline
+from tune_sklearn.utils import check_is_pipeline, MaximumIterationStopper
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable, _PipelineTrainable
 from tune_sklearn.list_searcher import RandomListSearcher
@@ -268,11 +267,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
             capabilities, which are by default not supported by standard
             SKlearn. Defaults to True.
-        stop_on_plateau (bool|dict|TrialPlateauStopper): Stop trials early if
-            a plateau is reached. If False, disable. If True, enable with
-            default settings. If dict, overwrite default options of
-            `TrialPlateauStopper`. If `TrialPlateauStopper`, use the
-            passed object directly.
+        stopper (ray.tune.stopper.Stopper): Stopper objects passed to
+            ``tune.run()``.
         time_budget_s (int|float|datetime.timedelta): Global time budget in
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object. The stopping condition is checked
@@ -302,7 +298,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
-                 stop_on_plateau=False,
+                 stopper=None,
                  time_budget_s=None,
                  sk_n_jobs=None,
                  **search_kwargs):
@@ -375,7 +371,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop,
-            stop_on_plateau=stop_on_plateau,
+            stopper=stopper,
             time_budget_s=time_budget_s)
 
         check_error_warm_start(self.early_stop_type, param_distributions,
@@ -629,9 +625,9 @@ class TuneSearchCV(TuneBaseSearchCV):
         else:
             config["estimator_list"] = [self.estimator]
 
-        stopper = _IterTrialStopped(max_iter=max_iter)
-        if self.stop_on_plateau:
-            stopper = CombinedStopper(stopper, self.stop_on_plateau)
+        stopper = MaximumIterationStopper(max_iter=max_iter)
+        if self.stopper:
+            stopper = CombinedStopper(stopper, self.stopper)
 
         run_args = dict(
             scheduler=self.early_stopping,

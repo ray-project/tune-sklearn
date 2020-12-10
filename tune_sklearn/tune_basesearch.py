@@ -38,7 +38,6 @@ from ray.tune.schedulers import (
 from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
                              Logger)
 
-from tune_sklearn.tune_utils import TrialPlateauStopper
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
                                 check_is_pipeline, _check_multimetric_scoring)
 from tune_sklearn._detect_booster import is_lightgbm_model
@@ -370,13 +369,14 @@ class TuneBaseSearchCV(BaseEstimator):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
-                 stop_on_plateau=False,
+                 stopper=None,
                  time_budget_s=None):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
         self.base_estimator = estimator
         self.pipeline_auto_early_stop = pipeline_auto_early_stop
+        self.stopper = stopper
         self.time_budget_s = time_budget_s
 
         if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
@@ -464,22 +464,6 @@ class TuneBaseSearchCV(BaseEstimator):
 
         self.early_stopping = early_stopping
         self.max_iters = max_iters
-
-        if stop_on_plateau:
-            if isinstance(stop_on_plateau, TrialPlateauStopper):
-                self.stop_on_plateau = stop_on_plateau
-            else:
-                stopper_config = {
-                    "metric": self._metric_name,
-                    "std": 0.01,
-                    "mode": "min",
-                    "num_results": 4
-                }
-                if isinstance(stop_on_plateau, dict):
-                    stopper_config.update(stop_on_plateau)
-                self.stop_on_plateau = TrialPlateauStopper(**stopper_config)
-        else:
-            self.stop_on_plateau = None
 
         self.cv = cv
         self.n_jobs = int(n_jobs or -1)
@@ -575,6 +559,7 @@ class TuneBaseSearchCV(BaseEstimator):
         config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
         config["n_jobs"] = self.sk_n_jobs
+        config["metric_name"] = self._metric_name
 
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)

@@ -744,16 +744,25 @@ class GridSearchTest(unittest.TestCase):
             self.assertLessEqual(iters, 6)
 
     def test_plateau(self):
+        try:
+            from ray.tune.stopper import TrialPlateauStopper
+        except ImportError:
+            self.skipTest("`TrialPlateauStopper` not available in "
+                          "current Ray version.")
+            return
+
         X, y = make_classification(
             n_samples=50, n_features=50, n_informative=3, random_state=0)
 
         clf = PlateauClassifier(converge_after=4)
 
+        stopper = TrialPlateauStopper(metric="objective")
+
         search = TuneGridSearchCV(
             clf, {"foo_param": [2.0, 3.0, 4.0]},
             cv=2,
             max_iters=20,
-            stop_on_plateau=True,
+            stopper=stopper,
             early_stopping=True)
 
         search.fit(X, y)

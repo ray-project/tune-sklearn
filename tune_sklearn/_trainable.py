@@ -58,6 +58,7 @@ class _Trainable(Trainable):
         self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
         self.n_jobs = config.pop("n_jobs")
+        self.metric_name = config.pop("metric_name", "average_test_score")
         self.estimator_config = config
         self.train_accuracy = None
         self.test_accuracy = None
@@ -230,8 +231,6 @@ class _Trainable(Trainable):
                         ret[key_str] = score
                     self.mean_train_score = total / len(scores)
                     ret["average_train_%s" % name] = self.mean_train_score
-
-            return ret
         else:
             try:
                 scores = cross_validate(
@@ -278,7 +277,9 @@ class _Trainable(Trainable):
                         scores["train_%s" % name])
                     ret["average_train_%s" % name] = self.train_accuracy
 
-            return ret
+        ret["objective"] = ret.get(self.metric_name)
+
+        return ret
 
     def save_checkpoint(self, checkpoint_dir):
         # forward-compatbility
