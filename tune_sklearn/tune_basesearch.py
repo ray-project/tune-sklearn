@@ -757,7 +757,8 @@ class TuneBaseSearchCV(BaseEstimator):
         for key in [
                 "estimator_list", "early_stopping", "X_id", "y_id", "groups",
                 "cv", "fit_params", "scoring", "max_iters",
-                "return_train_score", "n_jobs", "early_stop_type"
+                "return_train_score", "n_jobs", "metric_name",
+                "early_stop_type"
         ]:
             config.pop(key, None)
         return config
