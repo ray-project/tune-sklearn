@@ -36,7 +36,7 @@ Tip: If you get an error mentioning `skopt` not found, you can fix that by runni
 For certain estimators, tune-sklearn can also immediately enable **incremental training and early stopping**. Such estimators include:
  * Estimators that implement 'warm_start' (except for ensemble classifiers and decision trees)
  * Estimators that implement partial fit
- * XGBoost models (via [incremental learning](https://github.com/dmlc/xgboost/issues/1686))
+ * [XGBoost](https://github.com/dmlc/xgboost/issues/1686), LightGBM and [CatBoost](https://catboost.ai/docs/concepts/python-reference_train.html?lang=en) models (via incremental learning)
 
 To read more about compatible scikit-learn models, see [scikit-learn's documentation at section 8.1.1.3](https://scikit-learn.org/stable/modules/computing.html#strategies-to-scale-computationally-bigger-data).
 
