@@ -482,7 +482,7 @@ class RandomizedSearchTest(unittest.TestCase):
         # SleepClassifier sleeps for `foo_param` seconds, `cv` times.
         # Thus, the time budget is exhausted after testing the first two
         # `foo_param`s.
-        grid_search = TuneSearchCV(
+        search = TuneSearchCV(
             clf, {"foo_param": [1.1, 1.2, 2.5]},
             time_budget_s=5.0,
             cv=2,
@@ -490,10 +490,10 @@ class RandomizedSearchTest(unittest.TestCase):
             early_stopping=True)
 
         start = time.time()
-        grid_search.fit(X, y)
+        search.fit(X, y)
         taken = time.time() - start
 
-        print(grid_search)
+        print(search)
         # Without timeout we would need over 50 seconds for this to
         # finish. Allow for some initialization overhead
         self.assertLess(taken, 25.0)
@@ -520,7 +520,10 @@ class TestSearchSpace(unittest.TestCase):
     def testBohb(self):
         self._test_method("bohb")
 
-    def _test_method(self, search_method):
+    def testOptuna(self):
+        self._test_method("optuna")
+
+    def _test_method(self, search_method, **kwargs):
         digits = datasets.load_digits()
         x = digits.data
         y = digits.target
@@ -532,7 +535,8 @@ class TestSearchSpace(unittest.TestCase):
             cv=2,
             n_trials=3,
             n_jobs=1,
-            refit=True)
+            refit=True,
+            **kwargs)
         tune_search.fit(x, y)
         params = tune_search.best_estimator_.get_params()
         print({
@@ -542,6 +546,65 @@ class TestSearchSpace(unittest.TestCase):
         self.assertTrue(1e-4 <= params["alpha"] <= 0.5)
         self.assertTrue(0.01 <= params["epsilon"] <= 0.05)
         self.assertTrue(params["penalty"] in ("elasticnet", "l1"))
+        return tune_search
+
+    def _test_points_to_evaluate(self, search_method):
+        points = [{
+            "alpha": 0.4,
+            "epsilon": 0.01,
+            "penalty": "elasticnet"
+        }, {
+            "alpha": 0.3,
+            "epsilon": 0.02,
+            "penalty": "l1"
+        }]
+        try:
+            results = self._test_method(
+                search_method, points_to_evaluate=points)
+        except TypeError:
+            self.skipTest(f"The current version of Ray does not support the "
+                          f"`points_to_evaluate` argument for search method "
+                          f"`{search_method}`. Skipping test.")
+            return
+
+        for i in range(len(points)):
+            trial_config = results.cv_results_["params"][i]
+            trial_config_dict = {
+                k: trial_config[k]
+                for k in self.parameter_grid
+            }
+            try:
+                self.assertDictEqual(trial_config_dict, points[i])
+            except AssertionError:
+                # The latest master does not LIFO to FIFO conversion.
+                # Todo(krfricke): Remove when merged:
+                # https://github.com/ray-project/ray/pull/12790
+                if search_method == "hyperopt":
+                    self.assertDictEqual(
+                        trial_config_dict,
+                        points[0 if i == 1 else 1  # Reverse order
+                               ])
+                else:
+                    raise
+
+    def testBayesianPointsToEvaluate(self):
+        self._test_points_to_evaluate("bayesian")
+
+    def testHyperoptPointsToEvaluate(self):
+        from ray.tune.suggest.hyperopt import HyperOptSearch
+        # Skip test if category conversion is not available
+        if not hasattr(HyperOptSearch, "_convert_categories_to_indices"):
+            self.skipTest(f"The current version of Ray does not support the "
+                          f"`points_to_evaluate` argument for search method "
+                          f"`hyperopt`. Skipping test.")
+            return
+        self._test_points_to_evaluate("hyperopt")
+
+    def testBOHBPointsToEvaluate(self):
+        self._test_points_to_evaluate("bohb")
+
+    def testOptunaPointsToEvaluate(self):
+        self._test_points_to_evaluate("optuna")
 
     def _test_seed_run(self, search_optimization, seed):
         digits = datasets.load_digits()
