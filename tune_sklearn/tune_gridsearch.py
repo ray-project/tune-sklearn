@@ -4,13 +4,14 @@
 import warnings
 import os
 
+from ray.tune.stopper import CombinedStopper
 from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
 from tune_sklearn.utils import (_check_param_grid_tune_grid_search,
                                 check_is_pipeline, check_error_warm_start,
-                                is_tune_grid_search)
+                                is_tune_grid_search, MaximumIterationStopper)
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
@@ -133,6 +134,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
             capabilities, which are by default not supported by standard
             SKlearn. Defaults to True.
+        stopper (ray.tune.stopper.Stopper): Stopper objects passed to
+            ``tune.run()``.
         time_budget_s (int|float|datetime.timedelta): Global time budget in
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object.
@@ -154,6 +157,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
+                 stopper=None,
                  time_budget_s=None,
                  sk_n_jobs=None):
         if sk_n_jobs is not None:
@@ -175,6 +179,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop,
+            stopper=stopper,
             time_budget_s=time_budget_s)
 
         check_error_warm_start(self.early_stop_type, param_grid, estimator)
@@ -240,11 +245,15 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         else:
             config["estimator_list"] = [self.estimator]
 
+        stopper = MaximumIterationStopper(max_iter=self.max_iters)
+        if self.stopper:
+            stopper = CombinedStopper(stopper, self.stopper)
+
         run_args = dict(
             scheduler=self.early_stopping,
             reuse_actors=True,
             verbose=self.verbose,
-            stop={"training_iteration": self.max_iters},
+            stop=stopper,
             config=config,
             fail_fast="raise",
             resources_per_trial=resources_per_trial,

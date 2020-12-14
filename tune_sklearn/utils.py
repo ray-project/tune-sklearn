@@ -1,3 +1,6 @@
+from collections import defaultdict
+from typing import Dict
+
 from sklearn.metrics import check_scoring
 from sklearn.pipeline import Pipeline
 from tune_sklearn._detect_booster import (
@@ -5,6 +8,23 @@ from tune_sklearn._detect_booster import (
 import numpy as np
 from enum import Enum, auto
 from collections.abc import Sequence
+
+try:
+    from ray.tune.stopper import MaximumIterationStopper
+except ImportError:
+    from ray.tune.stopper import Stopper
+
+    class MaximumIterationStopper(Stopper):
+        def __init__(self, max_iter: int):
+            self._max_iter = max_iter
+            self._iter = defaultdict(lambda: 0)
+
+        def __call__(self, trial_id: str, result: Dict):
+            self._iter[trial_id] += 1
+            return self._iter[trial_id] >= self._max_iter
+
+        def stop_all(self):
+            return False
 
 
 class EarlyStopping(Enum):

@@ -44,6 +44,10 @@ Early stopping algorithms that can be enabled include HyperBand and Median Stopp
 
 If the estimator does not support `partial_fit`, a warning will be shown saying early stopping cannot be done and it will simply run the cross-validation on Ray's parallel back-end.
 
+Apart from early stopping scheduling algorithms, tune-sklearn also supports passing custom stoppers to Ray Tune. These
+can be passed via the `stopper` argument when instantiating `TuneSearchCV` or `TuneGridSearchCV`.
+See [the Ray documentation for an overview of available stoppers](https://docs.ray.io/en/master/tune/api_docs/stoppers.html).
+
 ## Examples
 
 #### TuneGridSearchCV

@@ -37,6 +37,7 @@ from ray.tune.schedulers import (
     MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
 from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
                              Logger)
+
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
                                 check_is_pipeline, _check_multimetric_scoring)
 from tune_sklearn._detect_booster import is_lightgbm_model
@@ -368,12 +369,14 @@ class TuneBaseSearchCV(BaseEstimator):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
+                 stopper=None,
                  time_budget_s=None):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
         self.base_estimator = estimator
         self.pipeline_auto_early_stop = pipeline_auto_early_stop
+        self.stopper = stopper
         self.time_budget_s = time_budget_s
 
         if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
@@ -556,6 +559,7 @@ class TuneBaseSearchCV(BaseEstimator):
         config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
         config["n_jobs"] = self.sk_n_jobs
+        config["metric_name"] = self._metric_name
 
         self._fill_config_hyperparam(config)
         analysis = self._tune_run(config, resources_per_trial)
@@ -753,7 +757,8 @@ class TuneBaseSearchCV(BaseEstimator):
         for key in [
                 "estimator_list", "early_stopping", "X_id", "y_id", "groups",
                 "cv", "fit_params", "scoring", "max_iters",
-                "return_train_score", "n_jobs", "early_stop_type"
+                "return_train_score", "n_jobs", "metric_name",
+                "early_stop_type"
         ]:
             config.pop(key, None)
         return config
@@ -885,6 +890,10 @@ class TuneBaseSearchCV(BaseEstimator):
 
         results["time_total_s"] = np.array(
             [df["time_total_s"].to_numpy() for df in finished]).flatten()
+
+        results["training_iteration"] = np.array([
+            df["training_iteration"].to_numpy() for df in finished
+        ]).flatten()
 
         # Use one MaskedArray and mask all the places where the param is not
         # applicable for that candidate. Use defaultdict as each candidate may
