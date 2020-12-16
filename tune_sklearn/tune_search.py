@@ -3,6 +3,8 @@
 """
 import logging
 import random
+
+from ray.tune.stopper import CombinedStopper
 from sklearn.base import clone
 import numpy as np
 import warnings
@@ -12,7 +14,7 @@ from ray import tune
 from ray.tune.sample import Domain
 from ray.tune.suggest import ConcurrencyLimiter, BasicVariantGenerator
 
-from tune_sklearn.utils import check_is_pipeline
+from tune_sklearn.utils import check_is_pipeline, MaximumIterationStopper
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable, _PipelineTrainable
 from tune_sklearn.list_searcher import RandomListSearcher
@@ -265,6 +267,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             determined by 'Pipeline.warm_start' or 'Pipeline.partial_fit'
             capabilities, which are by default not supported by standard
             SKlearn. Defaults to True.
+        stopper (ray.tune.stopper.Stopper): Stopper objects passed to
+            ``tune.run()``.
         time_budget_s (int|float|datetime.timedelta): Global time budget in
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object. The stopping condition is checked
@@ -294,6 +298,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  use_gpu=False,
                  loggers=None,
                  pipeline_auto_early_stop=True,
+                 stopper=None,
                  time_budget_s=None,
                  sk_n_jobs=None,
                  **search_kwargs):
@@ -366,6 +371,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             use_gpu=use_gpu,
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop,
+            stopper=stopper,
             time_budget_s=time_budget_s)
 
         check_error_warm_start(self.early_stop_type, param_distributions,
@@ -606,7 +612,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 self.estimator) and self.early_stopping:
             trainable = _PipelineTrainable
 
-        stop_condition = {"training_iteration": self.max_iters}
+        max_iter = self.max_iters
         if self.early_stopping is not None:
             config["estimator_list"] = [
                 clone(self.estimator) for _ in range(self.n_splits)
@@ -615,15 +621,19 @@ class TuneSearchCV(TuneBaseSearchCV):
                 # we want to delegate stopping to schedulers which
                 # support it, but we want it to stop eventually, just in case
                 # the solution is to make the stop condition very big
-                stop_condition = {"training_iteration": self.max_iters * 10}
+                max_iter = self.max_iters * 10
         else:
             config["estimator_list"] = [self.estimator]
+
+        stopper = MaximumIterationStopper(max_iter=max_iter)
+        if self.stopper:
+            stopper = CombinedStopper(stopper, self.stopper)
 
         run_args = dict(
             scheduler=self.early_stopping,
             reuse_actors=True,
             verbose=self.verbose,
-            stop=stop_condition,
+            stop=stopper,
             num_samples=self.num_samples,
             config=config,
             fail_fast="raise",
