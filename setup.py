@@ -5,10 +5,12 @@ from tune_sklearn import __version__
 
 ROOT_DIR = os.path.dirname(__file__)
 
+VERSION = os.environ.get("TSK_RELEASE_VERSION", __version__)
+
 setup(
     name="tune_sklearn",
     packages=find_packages(),
-    version=__version__,
+    version=VERSION,
     author="Michael Chau, Anthony Yu, and Ray Team",
     author_email="ray-dev@googlegroups.com",
     description=(
