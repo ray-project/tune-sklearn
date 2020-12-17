@@ -10,6 +10,7 @@ setup(
     packages=find_packages(),
     version=__version__,
     author="Michael Chau, Anthony Yu, and Ray Team",
+    author_email="ray-dev@googlegroups.com",
     description=(
         "A drop-in replacement for Scikit-Learn’s "
         "GridSearchCV / RandomizedSearchCV with cutting edge "
