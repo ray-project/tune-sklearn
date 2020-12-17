@@ -13,14 +13,11 @@ setup(
     version=VERSION,
     author="Michael Chau, Anthony Yu, and Ray Team",
     author_email="ray-dev@googlegroups.com",
-    description=(
-        "A drop-in replacement for Scikit-Learn’s "
-        "GridSearchCV / RandomizedSearchCV with cutting edge "
-        "hyperparameter tuning techniques."),
+    description=("A drop-in replacement for Scikit-Learn’s "
+                 "GridSearchCV / RandomizedSearchCV with cutting edge "
+                 "hyperparameter tuning techniques."),
     long_description=io.open(
-        os.path.join(ROOT_DIR, "README.md"),
-        "r",
-        encoding="utf-8").read(),
+        os.path.join(ROOT_DIR, "README.md"), "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/ray-project/tune-sklearn",
     install_requires=["scikit-learn", "scipy", "ray[tune]", "numpy>=1.16"])
