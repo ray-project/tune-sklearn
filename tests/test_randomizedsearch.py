@@ -481,7 +481,7 @@ class RandomizedSearchTest(unittest.TestCase):
         from xgboost.sklearn import XGBClassifier
         from sklearn.pipeline import Pipeline
         TuneSearchCV(
-            Pipeline([('model', XGBClassifier())]), {"model__C": [1, 2]},
+            Pipeline([("model", XGBClassifier())]), {"model__C": [1, 2]},
             early_stopping=True,
             pipeline_auto_early_stop=True,
             cv=2,
@@ -494,7 +494,7 @@ class RandomizedSearchTest(unittest.TestCase):
         from lightgbm import LGBMClassifier
         from sklearn.pipeline import Pipeline
         TuneSearchCV(
-            Pipeline([('model', LGBMClassifier())]),
+            Pipeline([("model", LGBMClassifier())]),
             {"model__learning_rate": [0.1, 0.5]},
             early_stopping=True,
             pipeline_auto_early_stop=True,
@@ -507,7 +507,7 @@ class RandomizedSearchTest(unittest.TestCase):
         from catboost import CatBoostClassifier
         from sklearn.pipeline import Pipeline
         TuneSearchCV(
-            Pipeline([('model', CatBoostClassifier())]),
+            Pipeline([("model", CatBoostClassifier())]),
             {"model__learning_rate": [0.1, 0.5]},
             early_stopping=True,
             pipeline_auto_early_stop=True,
