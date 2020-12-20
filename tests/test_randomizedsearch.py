@@ -476,6 +476,45 @@ class RandomizedSearchTest(unittest.TestCase):
             pipe, parameter_grid, early_stopping=True, max_iters=10)
         tune_search.fit(x, y)
 
+    @unittest.skipIf(not has_xgboost(), "xgboost not installed")
+    def test_early_stop_xgboost_pipeline(self):
+        from xgboost.sklearn import XGBClassifier
+        from sklearn.pipeline import Pipeline
+        TuneSearchCV(
+            Pipeline([("model", XGBClassifier())]), {"model__C": [1, 2]},
+            early_stopping=True,
+            pipeline_auto_early_stop=True,
+            cv=2,
+            n_trials=2,
+            max_iters=10)
+
+    @unittest.skipIf(not has_required_lightgbm_version(),
+                     "lightgbm not installed")
+    def test_early_stop_lightgbm_pipeline(self):
+        from lightgbm import LGBMClassifier
+        from sklearn.pipeline import Pipeline
+        TuneSearchCV(
+            Pipeline([("model", LGBMClassifier())]),
+            {"model__learning_rate": [0.1, 0.5]},
+            early_stopping=True,
+            pipeline_auto_early_stop=True,
+            cv=2,
+            n_trials=2,
+            max_iters=10)
+
+    @unittest.skipIf(not has_catboost(), "catboost not installed")
+    def test_early_stop_catboost_pipeline(self):
+        from catboost import CatBoostClassifier
+        from sklearn.pipeline import Pipeline
+        TuneSearchCV(
+            Pipeline([("model", CatBoostClassifier())]),
+            {"model__learning_rate": [0.1, 0.5]},
+            early_stopping=True,
+            pipeline_auto_early_stop=True,
+            cv=2,
+            n_trials=2,
+            max_iters=10)
+
     def test_max_iters(self):
         X, y = make_classification(
             n_samples=50, n_features=50, n_informative=3, random_state=0)

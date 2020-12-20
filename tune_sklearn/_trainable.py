@@ -404,7 +404,7 @@ class _PipelineTrainable(_Trainable):
         estimator.fit(
             X_train, y_train,
             **{f"{self.base_estimator_name}__xgb_model": self.saved_models[i]})
-        self.saved_models[i] = estimator.get_booster()
+        self.saved_models[i] = estimator.steps[-1][1].get_booster()
 
     def _early_stopping_lgbm(self, i, estimator, X_train, y_train):
         """Handles early stopping on LightGBM estimators.
@@ -414,7 +414,7 @@ class _PipelineTrainable(_Trainable):
             X_train, y_train, **{
                 f"{self.base_estimator_name}__init_model": self.saved_models[i]
             })
-        self.saved_models[i] = estimator.booster_
+        self.saved_models[i] = estimator.steps[-1][1].booster_
 
     def _early_stopping_catboost(self, i, estimator, X_train, y_train):
         """Handles early stopping on CatBoost estimators.
@@ -424,7 +424,7 @@ class _PipelineTrainable(_Trainable):
             X_train, y_train, **{
                 f"{self.base_estimator_name}__init_model": self.saved_models[i]
             })
-        self.saved_models[i] = estimator
+        self.saved_models[i] = estimator.steps[-1][1]
 
     def _early_stopping_ensemble(self, i, estimator, X_train, y_train):
         """Handles early stopping on ensemble estimators.
