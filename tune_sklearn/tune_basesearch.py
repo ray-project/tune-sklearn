@@ -39,7 +39,7 @@ from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
                              Logger)
 
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
-                                check_is_pipeline, _check_multimetric_scoring)
+                                check_is_pipeline, _check_multimetric_scoring, check_scoring)
 from tune_sklearn._detect_booster import is_lightgbm_model
 
 logger = logging.getLogger(__name__)
@@ -405,9 +405,18 @@ class TuneBaseSearchCV(BaseEstimator):
         # Get metric scoring name
         self.scoring = scoring
         self.refit = refit
+        
         if not hasattr(self, "is_multi"):
-            self.scoring, self.is_multi = _check_multimetric_scoring(
-                self.estimator, self.scoring)
+            self.is_multi = not (callable(self.scoring) or self.scoring is None or isinstance(self.scoring, str))
+            if self.is_multi:
+                self.scoring = _check_multimetric_scoring(
+                    self.estimator, self.scoring)
+                # sklearn < 0.24.0 compatibility
+                if isinstance(self.scoring, tuple):
+                    self.scoring = self.scoring[0]
+
+        if self.scoring is None or isinstance(self.scoring, str):
+            self.scoring = check_scoring(self.estimator, self.scoring)
 
         if self.is_multi:
             self._base_metric_name = self.refit
