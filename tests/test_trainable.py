@@ -1,7 +1,7 @@
 import unittest
 import ray
 from tune_sklearn._trainable import _Trainable
-from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
+from tune_sklearn._detect_booster import (has_xgboost,
                                           has_required_lightgbm_version)
 
 from sklearn.datasets import make_classification
