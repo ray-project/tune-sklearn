@@ -130,7 +130,8 @@ class TrainableTest(unittest.TestCase):
         assert not any(trainable.saved_models)
         trainable.stop()
 
-    @unittest.skipIf(not has_catboost(), "catboost not installed")
+    # @unittest.skipIf(not has_catboost(), "catboost not installed")
+    @unittest.skip("Catboost needs to be updated.")
     def testCatboostEarlyStop(self):
         config = self.base_params(
             estimator_list=[create_catboost(),
@@ -145,7 +146,8 @@ class TrainableTest(unittest.TestCase):
         assert all(trainable.saved_models)
         trainable.stop()
 
-    @unittest.skipIf(not has_catboost(), "catboost not installed")
+    # @unittest.skipIf(not has_catboost(), "catboost not installed")
+    @unittest.skip("Catboost needs to be updated.")
     def testCatboostNoEarlyStop(self):
         config = self.base_params(
             estimator_list=[create_catboost(),
