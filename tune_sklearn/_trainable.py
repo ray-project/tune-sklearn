@@ -2,7 +2,7 @@
 """
 from sklearn.base import clone
 from sklearn.model_selection import cross_validate
-from sklearn.utils import _safe_indexing
+from sklearn.utils.metaestimators import _safe_split
 import numpy as np
 import os
 from pickle import PicklingError
@@ -175,10 +175,10 @@ class _Trainable(Trainable):
         if self.early_stopping:
             for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
                 estimator = self.estimator_list[i]
-                X_train = _safe_indexing(self.X, train)
-                y_train = _safe_indexing(self.y, train)
-                X_test = _safe_indexing(self.X, test)
-                y_test = _safe_indexing(self.y, test)
+                X_train, y_train = _safe_split(estimator, self.X, self.y,
+                                               train)
+                X_test, y_test = _safe_split(
+                    estimator, self.X, self.y, test, train_indices=train)
                 if self.early_stop_type == EarlyStopping.PARTIAL_FIT:
                     self._early_stopping_partial_fit(i, estimator, X_train,
                                                      y_train)
