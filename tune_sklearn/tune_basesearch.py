@@ -417,8 +417,12 @@ class TuneBaseSearchCV(BaseEstimator):
                 if isinstance(self.scoring, tuple):
                     self.scoring = self.scoring[0]
 
-        if self.scoring is None or isinstance(self.scoring, str):
-            self.scoring = check_scoring(self.estimator, self.scoring)
+        if callable(self.scoring):
+            self.scoring = {"score": scoring}
+        elif self.scoring is None or isinstance(self.scoring, str):
+            self.scoring = {
+                "score": check_scoring(self.estimator, self.scoring)
+            }
 
         if self.is_multi:
             self._base_metric_name = self.refit
