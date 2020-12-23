@@ -378,7 +378,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                                estimator)
 
         self.param_distributions = param_distributions
-        self.num_samples = n_trials
+        self.n_trials = n_trials
 
         self.random_state = random_state
         if isinstance(random_state, np.random.RandomState):
@@ -435,7 +435,7 @@ class TuneSearchCV(TuneBaseSearchCV):
 
                 config[key] = tune.sample_from(get_sample(distribution))
         if all_lists:
-            self.num_samples = min(self.num_samples, samples)
+            self.n_trials = min(self.n_trials, samples)
 
     def _is_param_distributions_all_tune_domains(self):
         return all(
@@ -634,7 +634,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             reuse_actors=True,
             verbose=self.verbose,
             stop=stopper,
-            num_samples=self.num_samples,
+            num_samples=self.n_trials,
             config=config,
             fail_fast="raise",
             resources_per_trial=resources_per_trial,
