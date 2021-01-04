@@ -378,7 +378,7 @@ class _PipelineTrainable(_Trainable):
 
         """
         if hasattr(estimator, "partial_fit"):
-            estimator.partial_fit(X_train, y_train, np.unique(self.y))
+            estimator.partial_fit(X_train, y_train, classes=np.unique(self.y))
         else:
             # Workaround if the pipeline itself doesn't support partial_fit
             # (default sklearn doesn't). We set the final step to
