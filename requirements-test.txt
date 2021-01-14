@@ -5,7 +5,7 @@ tabulate
 ray[tune]
 scikit-optimize>=0.8.1
 parameterized
-pytest
+pytest>=6.1.2
 xgboost
 torch
 torchvision
