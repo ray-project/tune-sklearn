@@ -168,7 +168,6 @@ param_dists = {
     'loss': tune.choice(['squared_hinge', 'hinge']),
     'alpha': tune.loguniform(1e-4, 1e-1),
     'epsilon': tune.uniform(1e-2, 1e-1),
-    'learning_rate': tune.sample_from(lambda _: np.random.choice(['constant', 'optimal'], p=[0.2, 0.8])),
 }
 
 
