@@ -52,7 +52,7 @@ jobs:
         python -m pip install -U pytest
         python -m pip install codecov
         python -m pip install -U ray
-        python -m pip install -U -q scikit-learn scikit-optimize hyperopt hpbandster ConfigSpace scipy dataclasses optuna keras
+        python -m pip install -U -q scikit-learn scikit-optimize hyperopt hpbandster ConfigSpace scipy dataclasses optuna==2.3.0 keras
         if [ -f requirements-test.txt ]; then python -m pip install -r requirements-test.txt; fi
     - name: Install package
       run: |
