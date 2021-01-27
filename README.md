@@ -126,7 +126,7 @@ It also provides a wrapper for several search optimization algorithms from Ray T
 
 All algorithms other than RandomListSearcher accept parameter distributions in the form of dictionaries in the format `{ param_name: str : distribution: tuple or list }`.
 
-Tuples represent real distributions and should be two-element or three-element, in the format `(lower_bound: float, upper_bound: float, Optional: "uniform" (default) or "log-uniform")`. Lists represent categorical distributions. [Ray Tune Search Spaces](https://docs.ray.io/en/master/tune/api_docs/search_space.html) are also supported. Furthermore, each algorithm also accepts parameters in their own specific format. More information in [Tune documentation](https://docs.ray.io/en/master/tune/api_docs/suggestion.html).
+Tuples represent real distributions and should be two-element or three-element, in the format `(lower_bound: float, upper_bound: float, Optional: "uniform" (default) or "log-uniform")`. Lists represent categorical distributions. [Ray Tune Search Spaces](https://docs.ray.io/en/master/tune/api_docs/search_space.html) are also supported and provide a rich set of potential distributions. Search spaces allow for users to specify complex, potentially nested search spaces and parameter distributions. Furthermore, each algorithm also accepts parameters in their own specific format. More information in [Tune documentation](https://docs.ray.io/en/master/tune/api_docs/suggestion.html).
 
 Random Search (default) accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `RandomizedSearchCV`.
 
@@ -135,6 +135,7 @@ from tune_sklearn import TuneSearchCV
 
 # Other imports
 import scipy
+from ray import tune
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import SGDClassifier
@@ -146,7 +147,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1000)
 # Example parameter distributions to tune from SGDClassifier
 # Note the use of tuples instead if non-random optimization is desired
 param_dists = {
-    'alpha': (1e-4, 1e-1),
+    'loss': ['squared_hinge', 'hinge'], 
+    'alpha': (1e-4, 1e-1, 'log-uniform'),
     'epsilon': (1e-2, 1e-1)
 }
 
@@ -158,6 +160,16 @@ bohb_tune_search = TuneSearchCV(SGDClassifier(),
 )
 
 bohb_tune_search.fit(X_train, y_train)
+
+# Define the `param_dists using the SearchSpace API
+# This allows the specification of sampling from discrete and 
+# categorical distributions (below for the `learning_rate` scheduler parameter)
+param_dists = {
+    'loss': tune.choice(['squared_hinge', 'hinge']),
+    'alpha': tune.loguniform(1e-4, 1e-1),
+    'epsilon': tune.uniform(1e-2, 1e-1),
+}
+
 
 hyperopt_tune_search = TuneSearchCV(SGDClassifier(),
     param_distributions=param_dists,
