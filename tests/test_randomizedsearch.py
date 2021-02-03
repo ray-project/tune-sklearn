@@ -630,6 +630,7 @@ class TestSearchSpace(unittest.TestCase):
             refit=True,
             **kwargs)
         tune_search.fit(x, y)
+        self.assertEquals(len(tune_search.cv_results_["params"]), 3)
         params = tune_search.best_estimator_.get_params()
         print({
             k: v
