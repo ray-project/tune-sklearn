@@ -50,7 +50,8 @@ notifications:
 
 install:
   - pip3 install -U -q pip
-  - pip3 install -U -q scikit-optimize hyperopt hpbandster ConfigSpace==0.4.16 scipy dataclasses optuna==2.3.0
+  - pip3 install -q --no-build-isolation ConfigSpace==0.4.16  # https://github.com/automl/ConfigSpace/issues/173
+  - pip3 install -U -q scikit-optimize hyperopt hpbandster scipy dataclasses optuna==2.3.0
   - pip3 install -q -r requirements-test.txt
   - pip3 install --upgrade -q keras
   - pip3 install -U -q scikit-learn pytest
