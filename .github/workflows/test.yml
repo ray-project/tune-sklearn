@@ -32,9 +32,8 @@ jobs:
         python -m pytest -v --durations=0 -x test_gridsearch.py
         python -m pytest -v --durations=0 -x test_trainable.py
         declare -a arr=("AsyncHyperBandScheduler" "HyperBandScheduler" "MedianStoppingRule" "ASHAScheduler"); for s in "${arr[@]}"; do python schedulers.py --scheduler "$s"; done
-        cd ../examples
-        rm catboostclassifier.py  # Temporary hack to avoid breaking CI
-        for f in *.py; do echo "running $f" && python "$f" || exit 1 ; done
+        chmod +x ./run_examples.sh
+        bash ./run_examples.sh
 
   test_linux_ray_release:
 
