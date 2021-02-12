@@ -41,9 +41,9 @@ matrix:
       script:
         - if [ "$OS" == "MAC" ]; then brew install -q libomp > /dev/null ; fi
         - pip3 install -e .
-        - cd examples
-        - rm catboostclassifier.py  # Temporary hack to avoid breaking CI
-        - for f in *.py; do echo "running $f" && python3 "$f" || exit 1 ; done
+        - cd tests
+        - chmod +x ./run_examples.sh
+        - bash ./run_examples.sh
 
 notifications:
   email: false
@@ -65,9 +65,8 @@ script:
   - pytest -v --durations=0 -x test_gridsearch.py
   - pytest -v --durations=0 -x test_trainable.py
   - declare -a arr=("AsyncHyperBandScheduler" "HyperBandScheduler" "MedianStoppingRule" "ASHAScheduler"); for s in "${arr[@]}"; do python3 schedulers.py --scheduler "$s"; done
-  - cd ../examples
-  - rm catboostclassifier.py  # Temporary hack to avoid breaking CI
-  - for f in *.py; do echo "running $f" && python3 "$f" || exit 1 ; done
+  - chmod +x ./run_examples.sh
+  - bash ./run_examples.sh
   # temporarily disable as scikit-optimize is broken
   #- if [ "$OS" == "LINUX" ]; then cd ~/ && git clone https://github.com/ray-project/ray && python ray/python/ray/setup-dev.py --yes && python3 ray/doc/#source/tune/_tutorials/tune-sklearn.py; fi
 
