@@ -43,7 +43,7 @@ matrix:
         - pip3 install -e .
         - cd tests
         - chmod +x ./run_examples.sh
-        - bash ./run_examples.sh
+        - PYTHON=python3 bash ./run_examples.sh
 
 notifications:
   email: false
@@ -66,7 +66,7 @@ script:
   - pytest -v --durations=0 -x test_trainable.py
   - declare -a arr=("AsyncHyperBandScheduler" "HyperBandScheduler" "MedianStoppingRule" "ASHAScheduler"); for s in "${arr[@]}"; do python3 schedulers.py --scheduler "$s"; done
   - chmod +x ./run_examples.sh
-  - bash ./run_examples.sh
+  - PYTHON=python3 bash ./run_examples.sh
   # temporarily disable as scikit-optimize is broken
   #- if [ "$OS" == "LINUX" ]; then cd ~/ && git clone https://github.com/ray-project/ray && python ray/python/ray/setup-dev.py --yes && python3 ray/doc/#source/tune/_tutorials/tune-sklearn.py; fi
 
