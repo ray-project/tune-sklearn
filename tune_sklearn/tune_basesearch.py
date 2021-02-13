@@ -499,7 +499,6 @@ class TuneBaseSearchCV(BaseEstimator):
         Returns:
             :obj:`TuneBaseSearchCV` child instance, after fitting.
         """
-
         self._check_params()
         classifier = is_classifier(self.estimator)
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)

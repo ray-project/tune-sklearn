@@ -1,3 +1,4 @@
+import os
 import time
 import numpy as np
 from numpy.testing import (
@@ -82,6 +83,10 @@ y = np.array([1, 1, 2, 2])
 
 
 class GridSearchTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
+
     def tearDown(self):
         ray.shutdown()
 

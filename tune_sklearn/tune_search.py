@@ -419,6 +419,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         for key, distribution in self.param_distributions.items():
             if isinstance(distribution, Domain):
                 config[key] = distribution
+                all_lists = False
             elif isinstance(distribution, list):
                 import random
 
@@ -628,7 +629,6 @@ class TuneSearchCV(TuneBaseSearchCV):
         stopper = MaximumIterationStopper(max_iter=max_iter)
         if self.stopper:
             stopper = CombinedStopper(stopper, self.stopper)
-
         run_args = dict(
             scheduler=self.early_stopping,
             reuse_actors=True,
