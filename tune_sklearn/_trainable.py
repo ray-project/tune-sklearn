@@ -77,7 +77,7 @@ class _Trainable(Trainable):
             self.main_estimator.set_params(**self.estimator_config)
 
     def _setup_early_stopping(self):
-        n_splits = self.cv.get_n_splits(self.X, self.y)
+        n_splits = self.cv.get_n_splits(self.X, self.y, groups=self.groups)
         self.fold_scores = np.empty(n_splits, dtype=dict)
         self.fold_train_scores = np.empty(n_splits, dtype=dict)
         if self.early_stop_type == EarlyStopping.WARM_START_ITER:
@@ -173,7 +173,8 @@ class _Trainable(Trainable):
 
         """
         if self.early_stopping:
-            for i, (train, test) in enumerate(self.cv.split(self.X, self.y)):
+            for i, (train, test) in enumerate(
+                    self.cv.split(self.X, self.y, groups=self.groups)):
                 estimator = self.estimator_list[i]
                 X_train, y_train = _safe_split(estimator, self.X, self.y,
                                                train)
@@ -346,7 +347,7 @@ class _PipelineTrainable(_Trainable):
         return self.main_estimator.steps[-1][1]
 
     def _setup_early_stopping(self):
-        n_splits = self.cv.get_n_splits(self.X, self.y)
+        n_splits = self.cv.get_n_splits(self.X, self.y, groups=self.groups)
         self.fold_scores = np.empty(n_splits, dtype=dict)
         self.fold_train_scores = np.empty(n_splits, dtype=dict)
         if self.early_stop_type == EarlyStopping.WARM_START_ITER:
