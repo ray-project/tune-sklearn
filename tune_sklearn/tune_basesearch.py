@@ -13,7 +13,7 @@ import logging
 from collections import defaultdict
 
 from scipy.stats import rankdata
-from sklearn.base import BaseEstimator
+from sklearn.model_selection._search import BaseSearchCV
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import check_cv
 from sklearn.base import is_classifier
@@ -107,7 +107,7 @@ def resolve_loggers(loggers):
     return list(init_loggers)
 
 
-class TuneBaseSearchCV(BaseEstimator):
+class TuneBaseSearchCV(BaseSearchCV):
     """Abstract base class for TuneGridSearchCV and TuneSearchCV"""
 
     defined_schedulers = [
