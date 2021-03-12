@@ -109,7 +109,7 @@ format_changed() {
     fi
 }
 
-# Format all files, and print the diff to stdout for travis.
+# Format all files, and print the diff to stdout for github actions.
 format_all() {
     yapf --diff "${YAPF_FLAGS[@]}" "${YAPF_EXCLUDES[@]}" tune_sklearn
 }
