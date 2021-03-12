@@ -1,4 +1,4 @@
-﻿name: pytest on push
+﻿name: Development
 
 on: [push, pull_request]
 
