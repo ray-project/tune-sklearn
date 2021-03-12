@@ -4,8 +4,8 @@
 import logging
 import random
 
+import ray
 from ray.tune.stopper import CombinedStopper
-from sklearn.base import clone
 import numpy as np
 import warnings
 import os
@@ -615,8 +615,8 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         max_iter = self.max_iters
         if self.early_stopping is not None:
-            config["estimator_list"] = [
-                clone(self.estimator) for _ in range(self.n_splits)
+            config["estimator_ids"] = [
+                ray.put(self.estimator) for _ in range(self.n_splits)
             ]
             if hasattr(self.early_stopping, "_max_t_attr"):
                 # we want to delegate stopping to schedulers which
@@ -624,7 +624,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 # the solution is to make the stop condition very big
                 max_iter = self.max_iters * 10
         else:
-            config["estimator_list"] = [self.estimator]
+            config["estimator_ids"] = [ray.put(self.estimator)]
 
         stopper = MaximumIterationStopper(max_iter=max_iter)
         if self.stopper:
