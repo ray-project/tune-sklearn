@@ -754,7 +754,7 @@ class TuneBaseSearchCV(BaseSearchCV):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "estimator_list", "early_stopping", "X_id", "y_id", "groups",
+                "estimator_ids", "early_stopping", "X_id", "y_id", "groups",
                 "cv", "fit_params", "scoring", "max_iters",
                 "return_train_score", "n_jobs", "metric_name",
                 "early_stop_type"

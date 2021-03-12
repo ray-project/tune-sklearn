@@ -52,7 +52,11 @@ class TrainableTest(unittest.TestCase):
         ray.shutdown()
 
     def base_params(self, estimator_list):
-        config = {"estimator_list": estimator_list}
+        config = {
+            "estimator_ids": [
+                ray.put(estimator) for estimator in estimator_list
+            ]
+        }
         cv = check_cv(
             cv=len(estimator_list), y=self.y, classifier=estimator_list[0])
         config["X_id"] = self.X_id
@@ -78,12 +82,11 @@ class TrainableTest(unittest.TestCase):
 
     @unittest.skipIf(not has_xgboost(), "xgboost not installed")
     def testXGBoostEarlyStop(self):
-        config = self.base_params(
-            estimator_list=[create_xgboost(),
-                            create_xgboost()])
+        estimator_list = [create_xgboost(), create_xgboost()]
+        config = self.base_params(estimator_list=estimator_list)
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
-            config["estimator_list"][0], True)
+            estimator_list[0], True)
         trainable = _Trainable(config)
         trainable.train()
         assert all(trainable.saved_models)
@@ -105,12 +108,11 @@ class TrainableTest(unittest.TestCase):
     @unittest.skipIf(not has_required_lightgbm_version(),
                      "lightgbm>=3.0.0 not installed")
     def testLGBMEarlyStop(self):
-        config = self.base_params(
-            estimator_list=[create_lightgbm(),
-                            create_lightgbm()])
+        estimator_list = [create_lightgbm(), create_lightgbm()]
+        config = self.base_params(estimator_list=estimator_list)
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
-            config["estimator_list"][0], True)
+            estimator_list[0], True)
         trainable = _Trainable(config)
         trainable.train()
         assert all(trainable.saved_models)
@@ -121,9 +123,8 @@ class TrainableTest(unittest.TestCase):
     @unittest.skipIf(not has_required_lightgbm_version(),
                      "lightgbm>=3.0.0 not installed")
     def testLGBMNoEarlyStop(self):
-        config = self.base_params(
-            estimator_list=[create_lightgbm(),
-                            create_lightgbm()])
+        estimator_list = [create_lightgbm(), create_lightgbm()]
+        config = self.base_params(estimator_list=estimator_list)
         config["early_stopping"] = False
         trainable = _Trainable(config)
         trainable.train()
@@ -133,12 +134,11 @@ class TrainableTest(unittest.TestCase):
     # @unittest.skipIf(not has_catboost(), "catboost not installed")
     @unittest.skip("Catboost needs to be updated.")
     def testCatboostEarlyStop(self):
-        config = self.base_params(
-            estimator_list=[create_catboost(),
-                            create_catboost()])
+        estimator_list = [create_catboost(), create_catboost()]
+        config = self.base_params(estimator_list=estimator_list)
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
-            config["estimator_list"][0], True)
+            estimator_list[0], True)
         trainable = _Trainable(config)
         trainable.train()
         assert all(trainable.saved_models)
@@ -149,9 +149,8 @@ class TrainableTest(unittest.TestCase):
     # @unittest.skipIf(not has_catboost(), "catboost not installed")
     @unittest.skip("Catboost needs to be updated.")
     def testCatboostNoEarlyStop(self):
-        config = self.base_params(
-            estimator_list=[create_catboost(),
-                            create_catboost()])
+        estimator_list = [create_catboost(), create_catboost()]
+        config = self.base_params(estimator_list=estimator_list)
         config["early_stopping"] = False
         trainable = _Trainable(config)
         trainable.train()
@@ -159,10 +158,11 @@ class TrainableTest(unittest.TestCase):
         trainable.stop()
 
     def testPartialFit(self):
-        config = self.base_params([SGDClassifier(), SGDClassifier()])
+        estimator_list = [SGDClassifier(), SGDClassifier()]
+        config = self.base_params(estimator_list)
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
-            config["estimator_list"][0], True)
+            estimator_list[0], True)
         trainable = _Trainable(config)
         trainable.train()
         assert trainable.estimator_list[0].t_ > 0
@@ -172,7 +172,8 @@ class TrainableTest(unittest.TestCase):
         trainable.stop()
 
     def testNoPartialFit(self):
-        config = self.base_params([SGDClassifier(), SGDClassifier()])
+        estimator_list = [SGDClassifier(), SGDClassifier()]
+        config = self.base_params(estimator_list)
         config["early_stopping"] = False
         trainable = _Trainable(config)
         trainable.train()
@@ -183,10 +184,11 @@ class TrainableTest(unittest.TestCase):
 
     def testWarmStart(self):
         # Hard to get introspection so we just test that it runs.
-        config = self.base_params([LogisticRegression(), LogisticRegression()])
+        estimator_list = [LogisticRegression(), LogisticRegression()]
+        config = self.base_params(estimator_list)
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
-            config["estimator_list"][0], True)
+            estimator_list[0], True)
         trainable = _Trainable(config)
         trainable.train()
         trainable.train()

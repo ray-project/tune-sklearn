@@ -1,6 +1,5 @@
 """ Helper class to train models using Ray backend
 """
-from sklearn.base import clone
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
 import numpy as np
@@ -43,7 +42,8 @@ class _Trainable(Trainable):
                 stopping if it is set to true.
 
         """
-        self.estimator_list = clone(config.pop("estimator_list"))
+        estimator_ids = list(config.pop("estimator_ids"))
+        self.estimator_list = ray.get(estimator_ids)
         self.early_stopping = config.pop("early_stopping")
         self.early_stop_type = config.pop("early_stop_type")
         X_id = config.pop("X_id")

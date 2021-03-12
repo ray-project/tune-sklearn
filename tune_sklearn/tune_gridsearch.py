@@ -4,8 +4,8 @@
 import warnings
 import os
 
+import ray
 from ray.tune.stopper import CombinedStopper
-from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from ray import tune
 from tune_sklearn.list_searcher import ListSearcher
@@ -239,11 +239,11 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             trainable = _PipelineTrainable
 
         if self.early_stopping is not None:
-            config["estimator_list"] = [
-                clone(self.estimator) for _ in range(self.n_splits)
+            config["estimator_ids"] = [
+                ray.put(self.estimator) for _ in range(self.n_splits)
             ]
         else:
-            config["estimator_list"] = [self.estimator]
+            config["estimator_ids"] = [ray.put(self.estimator)]
 
         stopper = MaximumIterationStopper(max_iter=self.max_iters)
         if self.stopper:
