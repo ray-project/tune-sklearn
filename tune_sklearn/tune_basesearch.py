@@ -561,6 +561,13 @@ class TuneBaseSearchCV(BaseSearchCV):
         metric = self._metric_name
         base_metric = self._base_metric_name
 
+        if f"rank_test_{base_metric}" not in self.cv_results_ and self.refit:
+            warnings.warn(
+                "Cannot refit estimator due to required data being missing "
+                "(probably due to trials not completing). `best_estimator` "
+                "will not be set.", UserWarning)
+            return self
+
         # For multi-metric evaluation, store the best_index, best_params and
         # best_score iff refit is one of the scorer names
         # In single metric evaluation, refit_metric is "score"
@@ -575,10 +582,10 @@ class TuneBaseSearchCV(BaseSearchCV):
                         or self.best_index >= len(self.cv_results_["params"])):
                     raise IndexError("best_index index out of range")
             else:
-                self.best_index = self.cv_results_["rank_test_%s" %
-                                                   base_metric].argmin()
-                self.best_score = self.cv_results_[
-                    "mean_test_%s" % base_metric][self.best_index]
+                self.best_index = self.cv_results_[
+                    f"rank_test_{base_metric}"].argmin()
+                self.best_score = self.cv_results_[f"mean_test_{base_metric}"][
+                    self.best_index]
             best_config = analysis.get_best_config(
                 metric=metric, mode="max", scope="last")
             self.best_params = self._clean_config_dict(best_config)
