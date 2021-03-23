@@ -49,27 +49,21 @@ def resolve_early_stopping(early_stopping, max_iters, metric_name):
     if isinstance(early_stopping, str):
         if early_stopping in TuneBaseSearchCV.defined_schedulers:
             if early_stopping == "PopulationBasedTraining":
-                return PopulationBasedTraining(metric=metric_name, mode="max")
+                return PopulationBasedTraining()
             elif early_stopping == "AsyncHyperBandScheduler":
-                return AsyncHyperBandScheduler(
-                    metric=metric_name, mode="max", max_t=max_iters)
+                return AsyncHyperBandScheduler(max_t=max_iters)
             elif early_stopping == "HyperBandScheduler":
-                return HyperBandScheduler(
-                    metric=metric_name, mode="max", max_t=max_iters)
+                return HyperBandScheduler(max_t=max_iters)
             elif early_stopping == "MedianStoppingRule":
-                return MedianStoppingRule(metric=metric_name, mode="max")
+                return MedianStoppingRule()
             elif early_stopping == "ASHAScheduler":
-                return ASHAScheduler(
-                    metric=metric_name, mode="max", max_t=max_iters)
+                return ASHAScheduler(max_t=max_iters)
             elif early_stopping == "HyperBandForBOHB":
-                return HyperBandForBOHB(
-                    metric=metric_name, mode="max", max_t=max_iters)
+                return HyperBandForBOHB(max_t=max_iters)
         raise ValueError("{} is not a defined scheduler. "
                          "Check the list of available schedulers."
                          .format(early_stopping))
     elif isinstance(early_stopping, TrialScheduler):
-        early_stopping._metric = metric_name
-        early_stopping._mode = "max"
         return early_stopping
     else:
         raise TypeError("`early_stopping` must be a str, boolean, "
@@ -511,12 +505,11 @@ class TuneBaseSearchCV(BaseSearchCV):
                 self.estimator, self.scoring)
 
         if self.is_multi:
-            if self.refit and (not isinstance(self.refit, str)
-                               or self.refit not in self.scoring):
+            if not isinstance(self.refit,
+                              str) or self.refit not in self.scoring:
                 raise ValueError("When using multimetric scoring, refit "
                                  "must be the name of the scorer used to "
-                                 "pick the best parameters. If not needed, "
-                                 "set refit to False")
+                                 "pick the best parameters.")
 
         assert isinstance(
             self.n_jobs,

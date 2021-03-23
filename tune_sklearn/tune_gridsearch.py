@@ -259,7 +259,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
             loggers=self.loggers,
-            time_budget_s=self.time_budget_s)
+            time_budget_s=self.time_budget_s,
+            metric=self._metric_name,
+            mode="max")
 
         if isinstance(self.param_grid, list):
             run_args.update(

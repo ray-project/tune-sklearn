@@ -270,19 +270,12 @@ class RandomizedSearchTest(unittest.TestCase):
             n_trials=3,
             n_jobs=1,
             refit=False)
-        tune_search.fit(x, y)
+
         with self.assertRaises(ValueError) as exc:
-            tune_search.best_score_
-        self.assertTrue(("instance was initialized with refit=False. "
-                         "For multi-metric evaluation,") in str(exc.exception))
-        with self.assertRaises(ValueError) as exc:
-            tune_search.best_index_
-        self.assertTrue(("instance was initialized with refit=False. "
-                         "For multi-metric evaluation,") in str(exc.exception))
-        with self.assertRaises(ValueError) as exc:
-            tune_search.best_params_
-        self.assertTrue(("instance was initialized with refit=False. "
-                         "For multi-metric evaluation,") in str(exc.exception))
+            tune_search.fit(x, y)
+        self.assertTrue((
+            "When using multimetric scoring, refit "
+            "must be the name of the scorer used to ") in str(exc.exception))
 
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
@@ -623,14 +616,46 @@ class TestSearchSpace(unittest.TestCase):
     def testOptuna(self):
         self._test_method("optuna")
 
+    def testCustomSearcher(self):
+        from ray.tune.suggest.hyperopt import HyperOptSearch
+
+        class CustomSearcher(HyperOptSearch):
+            pass
+
+        with self.assertRaises(ValueError) as exc:
+            self._test_method(CustomSearcher())
+        self.assertTrue((
+            "Search optimization must be one of") in str(exc.exception))
+
+        self._test_method(CustomSearcher)
+
+    def testCustomSearcherWithSearchSpace(self):
+        from ray.tune.suggest.hyperopt import HyperOptSearch
+        from hyperopt import hp
+
+        class CustomSearcher(HyperOptSearch):
+            pass
+
+        hp_parameter_grid = {
+            "alpha": hp.uniform("alpha", 1e-4, 0.5),
+            "epsilon": hp.uniform("epsilon", 0.01, 0.05),
+            "penalty": hp.choice("penalty", ["elasticnet", "l1"]),
+        }
+
+        self._test_method(
+            CustomSearcher, param_distributions=hp_parameter_grid)
+
     def _test_method(self, search_method, **kwargs):
         digits = datasets.load_digits()
         x = digits.data
         y = digits.target
 
+        param_distributions = kwargs.pop("param_distributions",
+                                         self.parameter_grid)
+
         tune_search = TuneSearchCV(
             self.clf,
-            self.parameter_grid,
+            param_distributions,
             search_optimization=search_method,
             cv=2,
             n_trials=3,
