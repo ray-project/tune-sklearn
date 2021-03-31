@@ -418,7 +418,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         self.search_kwargs = search_kwargs
 
     @property
-    def _str_search_optimization(self):
+    def _searcher_name(self):
         return available_optimizations.get(
             type(self.search_optimization), self.search_optimization)
 
@@ -435,7 +435,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
-        if self._str_search_optimization != "random":
+        if self._searcher_name != "random":
             return
 
         if isinstance(self.param_distributions, list):
@@ -733,7 +733,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 run_args["search_alg"] = search_algo
 
         if isinstance(self.n_jobs, int) and self.n_jobs > 0 \
-           and not self._str_search_optimization == "random":
+           and not self._searcher_name == "random":
             search_algo = ConcurrencyLimiter(
                 search_algo, max_concurrent=self.n_jobs)
             run_args["search_alg"] = search_algo
