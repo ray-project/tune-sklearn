@@ -366,6 +366,7 @@ class TuneBaseSearchCV(BaseSearchCV):
                  return_train_score=False,
                  local_dir="~/ray_results",
                  name=None,
+                 sync_config=None,
                  max_iters=1,
                  use_gpu=False,
                  loggers=None,
@@ -477,6 +478,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         self.return_train_score = return_train_score
         self.local_dir = local_dir
         self.name = name
+        self.sync_config = sync_config
         self.use_gpu = use_gpu
         self.loggers = resolve_loggers(loggers)
         assert isinstance(self.n_jobs, int)

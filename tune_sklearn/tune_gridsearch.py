@@ -155,6 +155,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  return_train_score=False,
                  local_dir="~/ray_results",
                  name=None,
+                 sync_config=None,
                  max_iters=1,
                  use_gpu=False,
                  loggers=None,
@@ -177,6 +178,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             return_train_score=return_train_score,
             local_dir=local_dir,
             name=name,
+            sync_config=sync_config,
             max_iters=max_iters,
             verbose=verbose,
             use_gpu=use_gpu,
@@ -262,6 +264,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
             name=self.name,
+            sync_config=self.sync_config,
             loggers=self.loggers,
             time_budget_s=self.time_budget_s)
 
