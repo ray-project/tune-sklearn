@@ -108,6 +108,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             the parameters that yield the best generalization performance.
         local_dir (str): A string that defines where checkpoints will
             be stored. Defaults to "~/ray_results".
+        name (str) – Name of experiment (for Ray Tune).
         max_iters (int): Indicates the maximum number of epochs to run for each
             hyperparameter configuration sampled.
             This parameter is used for early stopping. Defaults to 1.
@@ -153,6 +154,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  error_score="raise",
                  return_train_score=False,
                  local_dir="~/ray_results",
+                 name=None,
                  max_iters=1,
                  use_gpu=False,
                  loggers=None,
@@ -174,6 +176,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             error_score=error_score,
             return_train_score=return_train_score,
             local_dir=local_dir,
+            name=name,
             max_iters=max_iters,
             verbose=verbose,
             use_gpu=use_gpu,
@@ -258,6 +261,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             fail_fast="raise",
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
+            name=self.name,
             loggers=self.loggers,
             time_budget_s=self.time_budget_s)
 
