@@ -622,12 +622,44 @@ class TestSearchSpace(unittest.TestCase):
         class CustomSearcher(HyperOptSearch):
             pass
 
+        class ThisShouldRaiseAnExc:
+            pass
+
         with self.assertRaises(ValueError) as exc:
-            self._test_method(CustomSearcher())
+            self._test_method(ThisShouldRaiseAnExc())
         self.assertTrue((
             "Search optimization must be one of") in str(exc.exception))
 
-        self._test_method(CustomSearcher)
+        self._test_method(CustomSearcher())
+
+    def testCustomSearcherWithSearchSpaceException(self):
+        from ray.tune.suggest.hyperopt import HyperOptSearch
+        from hyperopt import hp
+
+        class CustomSearcher(HyperOptSearch):
+            pass
+
+        hp_parameter_grid = {
+            "alpha": hp.uniform("alpha", 1e-4, 0.5),
+            "epsilon": hp.uniform("epsilon", 0.01, 0.05),
+            "penalty": hp.choice("penalty", ["elasticnet", "l1"]),
+        }
+
+        with self.assertRaises(ValueError) as exc:
+            self._test_method(CustomSearcher(space=hp_parameter_grid))
+        self.assertTrue((
+            "If a Searcher instance has been initialized with a space,"
+            " its metric") in str(exc.exception))
+
+        with self.assertRaises(ValueError) as exc:
+            self._test_method(
+                CustomSearcher(
+                    space=hp_parameter_grid,
+                    metric="average_test_score",
+                    mode="min"))
+        self.assertTrue((
+            "If a Searcher instance has been initialized with a space,"
+            " its mode") in str(exc.exception))
 
     def testCustomSearcherWithSearchSpace(self):
         from ray.tune.suggest.hyperopt import HyperOptSearch
@@ -643,7 +675,10 @@ class TestSearchSpace(unittest.TestCase):
         }
 
         self._test_method(
-            CustomSearcher, param_distributions=hp_parameter_grid)
+            CustomSearcher(
+                space=hp_parameter_grid,
+                metric="average_test_score",
+                mode="max"))
 
     def _test_method(self, search_method, **kwargs):
         digits = datasets.load_digits()

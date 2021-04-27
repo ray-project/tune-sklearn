@@ -37,6 +37,9 @@ available_optimizations = {
     OptunaSearch: "optuna",
 }
 
+# sklearn always maximizes
+DEFAULT_MODE = "max"
+
 
 def _check_distribution(dist, search_optimization):
     # Tune Domain is always good
@@ -254,7 +257,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             resource_param (max_iter or n_estimators) is
             incremented by `max resource value // max_iters`.
         search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"
-            or "optuna" or `ray.tune.suggest.Searcher` class):
+            or "optuna" or `ray.tune.suggest.Searcher` instance):
             Randomized search is invoked with ``search_optimization`` set to
             ``"random"`` and behaves like scikit-learn's
             ``RandomizedSearchCV``.
@@ -272,9 +275,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             All types of search aside from Randomized search require parent
             libraries to be installed.
 
-            Alternatively, instead of a string, a Ray Tune Searcher class
-            (not object!) can be used, which will be initialized
-            and passed to ``tune.run()``.
+            Alternatively, instead of a string, a Ray Tune Searcher instance
+            can be used, which will be passed to ``tune.run()``.
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will start processes
             with the proper CUDA VISIBLE DEVICE settings set. If a Ray
@@ -332,13 +334,20 @@ class TuneSearchCV(TuneBaseSearchCV):
         if isinstance(search_optimization, str):
             search_optimization = search_optimization.lower()
 
-        if (search_optimization not in set(available_optimizations.values())
-            ) and (not isinstance(search_optimization, type)
-                   or not issubclass(search_optimization, Searcher)):
+        if (search_optimization not in set(
+                available_optimizations.values())) and not isinstance(
+                    search_optimization, Searcher):
             raise ValueError(
                 "Search optimization must be one of "
                 f"{', '.join(list(available_optimizations.values()))} "
-                "or a ray.tune.suggest.Searcher class.")
+                "or a ray.tune.suggest.Searcher instance.")
+
+        if isinstance(search_optimization, Searcher):
+            if not hasattr(search_optimization, "_mode") or not hasattr(
+                    search_optimization, "_metric"):
+                raise ValueError(
+                    "Searcher instance used as search optimization must have"
+                    " '_mode' and '_metric' attributes.")
 
         self._try_import_required_libraries(search_optimization)
 
@@ -657,7 +666,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             loggers=self.loggers,
             time_budget_s=self.time_budget_s,
             metric=self._metric_name,
-            mode="max")
+            mode=DEFAULT_MODE)
 
         if self.search_optimization == "random":
             if isinstance(self.param_distributions, list):
@@ -668,7 +677,24 @@ class TuneSearchCV(TuneBaseSearchCV):
         else:
             search_space = None
             override_search_space = True
-            if self._is_param_distributions_all_tune_domains():
+            if isinstance(self.search_optimization, Searcher) and hasattr(
+                    self.search_optimization,
+                    "_space") and self.search_optimization._space is not None:
+                if self.search_optimization._metric != self._metric_name:
+                    raise ValueError(
+                        "If a Searcher instance has been initialized with a "
+                        "space, its metric "
+                        f"('{self.search_optimization._metric}') "
+                        "must match the metric set in TuneSearchCV"
+                        f" ('{self._metric_name}')")
+                if self.search_optimization._mode != DEFAULT_MODE:
+                    raise ValueError(
+                        "If a Searcher instance has been initialized with a "
+                        "space, its mode "
+                        f"('{self.search_optimization._mode}') "
+                        "must match the mode set in TuneSearchCV"
+                        f" ('{DEFAULT_MODE}')")
+            elif self._is_param_distributions_all_tune_domains():
                 run_args["config"].update(self.param_distributions)
                 override_search_space = False
 
@@ -725,12 +751,15 @@ class TuneSearchCV(TuneBaseSearchCV):
                     **search_kwargs)
                 run_args["search_alg"] = search_algo
 
-            else:
-                if override_search_space:
-                    search_space = self.param_distributions
-                search_algo = self.search_optimization(
-                    space=search_space, **search_kwargs)
+            elif isinstance(self.search_optimization, Searcher):
+                search_algo = self.search_optimization
                 run_args["search_alg"] = search_algo
+
+            else:
+                raise ValueError(
+                    "Search optimization must be one of "
+                    f"{', '.join(list(available_optimizations.values()))} "
+                    "or a ray.tune.suggest.Searcher instance.")
 
         if isinstance(self.n_jobs, int) and self.n_jobs > 0 \
            and not self._searcher_name == "random":
