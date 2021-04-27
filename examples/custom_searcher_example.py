@@ -32,8 +32,7 @@ searcher = HEBOSearch()
 # attributes: _space, _metric, _mode
 
 tune_search = TuneSearchCV(
-    clf, param_distributions, n_trials=3, search_optimization=searcher
-)
+    clf, param_distributions, n_trials=3, search_optimization=searcher)
 
 tune_search.fit(x_train, y_train)
 

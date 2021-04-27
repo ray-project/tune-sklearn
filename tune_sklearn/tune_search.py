@@ -756,10 +756,10 @@ class TuneSearchCV(TuneBaseSearchCV):
                 run_args["search_alg"] = search_algo
 
             else:
+                # This should not happen as we validate the input before
+                # this method. Still, just to be sure, raise an error here.
                 raise ValueError(
-                    "Search optimization must be one of "
-                    f"{', '.join(list(available_optimizations.values()))} "
-                    "or a ray.tune.suggest.Searcher instance.")
+                    f"Invalid search optimizer: {self.search_optimization}")
 
         if isinstance(self.n_jobs, int) and self.n_jobs > 0 \
            and not self._searcher_name == "random":
