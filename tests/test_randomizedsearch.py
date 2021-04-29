@@ -270,19 +270,12 @@ class RandomizedSearchTest(unittest.TestCase):
             n_trials=3,
             n_jobs=1,
             refit=False)
-        tune_search.fit(x, y)
+
         with self.assertRaises(ValueError) as exc:
-            tune_search.best_score_
-        self.assertTrue(("instance was initialized with refit=False. "
-                         "For multi-metric evaluation,") in str(exc.exception))
-        with self.assertRaises(ValueError) as exc:
-            tune_search.best_index_
-        self.assertTrue(("instance was initialized with refit=False. "
-                         "For multi-metric evaluation,") in str(exc.exception))
-        with self.assertRaises(ValueError) as exc:
-            tune_search.best_params_
-        self.assertTrue(("instance was initialized with refit=False. "
-                         "For multi-metric evaluation,") in str(exc.exception))
+            tune_search.fit(x, y)
+        self.assertTrue((
+            "When using multimetric scoring, refit "
+            "must be the name of the scorer used to ") in str(exc.exception))
 
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
@@ -597,6 +590,26 @@ class RandomizedSearchTest(unittest.TestCase):
         # finish. Allow for some initialization overhead
         self.assertLess(taken, 25.0)
 
+    def test_wrong_mode(self):
+        model = SGDClassifier()
+
+        parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
+
+        TuneSearchCV(
+            model, parameter_grid, search_optimization="random", mode="min")
+
+        TuneSearchCV(
+            model, parameter_grid, search_optimization="random", mode="max")
+
+        with self.assertRaises(AssertionError) as exc:
+            TuneSearchCV(
+                model,
+                parameter_grid,
+                search_optimization="random",
+                mode="this_is_an_invalid_mode")
+        self.assertTrue((
+            "`mode` must be 'min' or 'max'") in str(exc.exception))
+
 
 class TestSearchSpace(unittest.TestCase):
     def setUp(self):
@@ -623,14 +636,81 @@ class TestSearchSpace(unittest.TestCase):
     def testOptuna(self):
         self._test_method("optuna")
 
+    def testCustomSearcher(self):
+        from ray.tune.suggest.hyperopt import HyperOptSearch
+
+        class CustomSearcher(HyperOptSearch):
+            pass
+
+        class ThisShouldRaiseAnExc:
+            pass
+
+        with self.assertRaises(ValueError) as exc:
+            self._test_method(ThisShouldRaiseAnExc())
+        self.assertTrue((
+            "Search optimization must be one of") in str(exc.exception))
+
+        self._test_method(CustomSearcher())
+
+    def testCustomSearcherWithSearchSpaceException(self):
+        from ray.tune.suggest.hyperopt import HyperOptSearch
+        from hyperopt import hp
+
+        class CustomSearcher(HyperOptSearch):
+            pass
+
+        hp_parameter_grid = {
+            "alpha": hp.uniform("alpha", 1e-4, 0.5),
+            "epsilon": hp.uniform("epsilon", 0.01, 0.05),
+            "penalty": hp.choice("penalty", ["elasticnet", "l1"]),
+        }
+
+        with self.assertRaises(ValueError) as exc:
+            self._test_method(CustomSearcher(space=hp_parameter_grid))
+        self.assertTrue((
+            "If a Searcher instance has been initialized with a space,"
+            " its metric") in str(exc.exception))
+
+        with self.assertRaises(ValueError) as exc:
+            self._test_method(
+                CustomSearcher(
+                    space=hp_parameter_grid,
+                    metric="average_test_score",
+                    mode="min"))
+        self.assertTrue((
+            "If a Searcher instance has been initialized with a space,"
+            " its mode") in str(exc.exception))
+
+    def testCustomSearcherWithSearchSpace(self):
+        from ray.tune.suggest.hyperopt import HyperOptSearch
+        from hyperopt import hp
+
+        class CustomSearcher(HyperOptSearch):
+            pass
+
+        hp_parameter_grid = {
+            "alpha": hp.uniform("alpha", 1e-4, 0.5),
+            "epsilon": hp.uniform("epsilon", 0.01, 0.05),
+            "penalty": hp.choice("penalty", ["elasticnet", "l1"]),
+        }
+
+        self._test_method(
+            CustomSearcher(
+                space=hp_parameter_grid,
+                metric="average_test_score",
+                mode="max"))
+
     def _test_method(self, search_method, **kwargs):
         digits = datasets.load_digits()
         x = digits.data
         y = digits.target
 
+        param_distributions = kwargs.pop("param_distributions",
+                                         self.parameter_grid)
+
         tune_search = TuneSearchCV(
             self.clf,
-            self.parameter_grid,
+            param_distributions,
             search_optimization=search_method,
             cv=2,
             n_trials=3,

@@ -12,7 +12,13 @@ import os
 
 from ray import tune
 from ray.tune.sample import Domain
-from ray.tune.suggest import ConcurrencyLimiter, BasicVariantGenerator
+from ray.tune.suggest import (ConcurrencyLimiter, BasicVariantGenerator,
+                              Searcher)
+from ray.tune.suggest.bohb import TuneBOHB
+from ray.tune.schedulers import HyperBandForBOHB
+from ray.tune.suggest.skopt import SkOptSearch
+from ray.tune.suggest.hyperopt import HyperOptSearch
+from ray.tune.suggest.optuna import OptunaSearch, param
 
 from tune_sklearn.utils import check_is_pipeline, MaximumIterationStopper
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
@@ -22,11 +28,23 @@ from tune_sklearn.utils import check_error_warm_start
 
 logger = logging.getLogger(__name__)
 
+available_optimizations = {
+    BasicVariantGenerator: "random",
+    RandomListSearcher: "random",
+    SkOptSearch: "bayesian",  # scikit-optimize/SkOpt
+    TuneBOHB: "bohb",
+    HyperOptSearch: "hyperopt",
+    OptunaSearch: "optuna",
+}
+
 
 def _check_distribution(dist, search_optimization):
     # Tune Domain is always good
     if isinstance(dist, Domain):
         return
+
+    search_optimization = available_optimizations.get(
+        type(search_optimization), search_optimization)
 
     if search_optimization == "random":
         if not (isinstance(dist, list) or hasattr(dist, "rvs")):
@@ -237,9 +255,10 @@ class TuneSearchCV(TuneBaseSearchCV):
             resource_param (max_iter or n_estimators) is
             incremented by `max resource value // max_iters`.
         search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"
-            or "optuna"): Randomized search is invoked with
-            ``search_optimization`` set to ``"random"`` and behaves like
-            scikit-learn's ``RandomizedSearchCV``.
+            or "optuna" or `ray.tune.suggest.Searcher` instance):
+            Randomized search is invoked with ``search_optimization`` set to
+            ``"random"`` and behaves like scikit-learn's
+            ``RandomizedSearchCV``.
 
             Bayesian search can be invoked with several values of
             ``search_optimization``.
@@ -253,6 +272,9 @@ class TuneSearchCV(TuneBaseSearchCV):
 
             All types of search aside from Randomized search require parent
             libraries to be installed.
+
+            Alternatively, instead of a string, a Ray Tune Searcher instance
+            can be used, which will be passed to ``tune.run()``.
         use_gpu (bool): Indicates whether to use gpu for fitting.
             Defaults to False. If True, training will start processes
             with the proper CUDA VISIBLE DEVICE settings set. If a Ray
@@ -274,6 +296,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object. The stopping condition is checked
             after receiving a result, i.e. after each training iteration.
+        mode (str): One of {min, max}. Determines whether objective is
+            minimizing or maximizing the metric attribute. Defaults to "max".
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
@@ -303,22 +327,29 @@ class TuneSearchCV(TuneBaseSearchCV):
                  stopper=None,
                  time_budget_s=None,
                  sk_n_jobs=None,
+                 mode=None,
                  **search_kwargs):
         if sk_n_jobs is not None:
             raise ValueError(
                 "Tune-sklearn no longer supports nested parallelism "
                 "with new versions of joblib/sklearn. Don't set 'sk_n_jobs'.")
-        search_optimization = search_optimization.lower()
-        available_optimizations = [
-            "random",
-            "bayesian",  # scikit-optimize/SkOpt
-            "bohb",
-            "hyperopt",
-            "optuna",
-        ]
-        if (search_optimization not in available_optimizations):
-            raise ValueError("Search optimization must be one of "
-                             f"{', '.join(available_optimizations)}")
+        if isinstance(search_optimization, str):
+            search_optimization = search_optimization.lower()
+
+        if (search_optimization not in set(
+                available_optimizations.values())) and not isinstance(
+                    search_optimization, Searcher):
+            raise ValueError(
+                "Search optimization must be one of "
+                f"{', '.join(list(available_optimizations.values()))} "
+                "or a ray.tune.suggest.Searcher instance.")
+
+        if isinstance(search_optimization, Searcher):
+            if not hasattr(search_optimization, "_mode") or not hasattr(
+                    search_optimization, "_metric"):
+                raise ValueError(
+                    "Searcher instance used as search optimization must have"
+                    " '_mode' and '_metric' attributes.")
 
         self._try_import_required_libraries(search_optimization)
 
@@ -334,7 +365,6 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         can_use_param_distributions = False
 
-        from ray.tune.schedulers import HyperBandForBOHB
         if search_optimization == "bohb":
             import ConfigSpace as CS
             can_use_param_distributions = isinstance(check_param_distributions,
@@ -375,7 +405,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop,
             stopper=stopper,
-            time_budget_s=time_budget_s)
+            time_budget_s=time_budget_s,
+            mode=mode)
 
         check_error_warm_start(self.early_stop_type, param_distributions,
                                estimator)
@@ -391,12 +422,18 @@ class TuneSearchCV(TuneBaseSearchCV):
         else:
             self.seed = random_state
 
-        if search_optimization == "random":
+        if search_optimization == "random" or isinstance(
+                search_optimization, type):
             if search_kwargs:
-                raise ValueError("Random search does not support "
+                raise ValueError(f"{search_optimization} does not support "
                                  f"extra args: {search_kwargs}")
         self.search_optimization = search_optimization
         self.search_kwargs = search_kwargs
+
+    @property
+    def _searcher_name(self):
+        return available_optimizations.get(
+            type(self.search_optimization), self.search_optimization)
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -411,7 +448,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 configuration for `tune.run`.
 
         """
-        if self.search_optimization != "random":
+        if self._searcher_name != "random":
             return
 
         if isinstance(self.param_distributions, list):
@@ -424,12 +461,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 config[key] = distribution
                 all_lists = False
             elif isinstance(distribution, list):
-                import random
-
-                def get_sample(dist):
-                    return lambda spec: dist[random.randint(0, len(dist) - 1)]
-
-                config[key] = tune.sample_from(get_sample(distribution))
+                config[key] = tune.choice(distribution)
                 samples *= len(distribution)
             else:
                 all_lists = False
@@ -488,7 +520,6 @@ class TuneSearchCV(TuneBaseSearchCV):
         return config_space
 
     def _get_optuna_params(self):
-        from ray.tune.suggest.optuna import param
         config_space = []
 
         for param_name, space in self.param_distributions.items():
@@ -559,16 +590,12 @@ class TuneSearchCV(TuneBaseSearchCV):
         if search_optimization == "bayesian":
             try:
                 import skopt  # noqa: F401
-                from skopt import Optimizer  # noqa: F401
-                from ray.tune.suggest.skopt import SkOptSearch  # noqa: F401
             except ImportError:
                 raise ImportError(
                     "It appears that scikit-optimize is not installed. "
                     "Do: pip install scikit-optimize") from None
         elif search_optimization == "bohb":
             try:
-                from ray.tune.suggest.bohb import TuneBOHB  # noqa: F401
-                from ray.tune.schedulers import HyperBandForBOHB  # noqa: F401
                 import ConfigSpace as CS  # noqa: F401
             except ImportError:
                 raise ImportError(
@@ -577,14 +604,12 @@ class TuneSearchCV(TuneBaseSearchCV):
                     "Do: pip install hpbandster ConfigSpace") from None
         elif search_optimization == "hyperopt":
             try:
-                from ray.tune.suggest.hyperopt import HyperOptSearch  # noqa: F401,E501
                 from hyperopt import hp  # noqa: F401
             except ImportError:
                 raise ImportError("It appears that hyperopt is not installed. "
                                   "Do: pip install hyperopt") from None
         elif search_optimization == "optuna":
             try:
-                from ray.tune.suggest.optuna import OptunaSearch, param  # noqa: F401,E501
                 import optuna  # noqa: F401
             except ImportError:
                 raise ImportError("It appears that optuna is not installed. "
@@ -644,7 +669,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             local_dir=os.path.expanduser(self.local_dir),
             name=self.name,
             loggers=self.loggers,
-            time_budget_s=self.time_budget_s)
+            time_budget_s=self.time_budget_s,
+            metric=self._metric_name,
+            mode=self.mode)
 
         if self.search_optimization == "random":
             if isinstance(self.param_distributions, list):
@@ -655,22 +682,51 @@ class TuneSearchCV(TuneBaseSearchCV):
         else:
             search_space = None
             override_search_space = True
-            if self._is_param_distributions_all_tune_domains():
+            if isinstance(self.search_optimization, Searcher) and hasattr(
+                    self.search_optimization,
+                    "_space") and self.search_optimization._space is not None:
+                if self.search_optimization._metric != self._metric_name:
+                    raise ValueError(
+                        "If a Searcher instance has been initialized with a "
+                        "space, its metric "
+                        f"('{self.search_optimization._metric}') "
+                        "must match the metric set in TuneSearchCV"
+                        f" ('{self._metric_name}')")
+                if self.search_optimization._mode != self.mode:
+                    raise ValueError(
+                        "If a Searcher instance has been initialized with a "
+                        "space, its mode "
+                        f"('{self.search_optimization._mode}') "
+                        "must match the mode set in TuneSearchCV"
+                        f" ('{self.mode}')")
+            elif self._is_param_distributions_all_tune_domains():
                 run_args["config"].update(self.param_distributions)
                 override_search_space = False
 
             search_kwargs = self.search_kwargs.copy()
-            search_kwargs.update(metric=self._metric_name, mode="max")
+            if override_search_space:
+                search_kwargs["metric"] = run_args.pop("metric")
+                search_kwargs["mode"] = run_args.pop("mode")
+                if run_args["scheduler"]:
+                    if hasattr(run_args["scheduler"], "_metric") and hasattr(
+                            run_args["scheduler"], "_mode"):
+                        run_args["scheduler"]._metric = search_kwargs["metric"]
+                        run_args["scheduler"]._mode = search_kwargs["mode"]
+                    else:
+                        warnings.warn(
+                            "Could not set `_metric` and `_mode` attributes "
+                            f"on Scheduler {run_args['scheduler']}. "
+                            "This may cause an exception later! "
+                            "Ensure your Scheduler initializes with those "
+                            "attributes.", UserWarning)
 
             if self.search_optimization == "bayesian":
-                from ray.tune.suggest.skopt import SkOptSearch
                 if override_search_space:
                     search_space = self.param_distributions
                 search_algo = SkOptSearch(space=search_space, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
             elif self.search_optimization == "bohb":
-                from ray.tune.suggest.bohb import TuneBOHB
                 if override_search_space:
                     search_space = self._get_bohb_config_space()
                 if self.seed:
@@ -681,23 +737,27 @@ class TuneSearchCV(TuneBaseSearchCV):
                 run_args["search_alg"] = search_algo
 
             elif self.search_optimization == "optuna":
-                from ray.tune.suggest.optuna import OptunaSearch
                 from optuna.samplers import TPESampler
-                sampler = TPESampler(seed=self.seed)
+                if "sampler" not in search_kwargs:
+                    search_kwargs["sampler"] = TPESampler(seed=self.seed)
+                elif self.seed:
+                    warnings.warn("'seed' is not implemented for Optuna.")
                 if override_search_space:
                     search_space = self._get_optuna_params()
-                search_algo = OptunaSearch(
-                    space=search_space, sampler=sampler, **search_kwargs)
+                search_algo = OptunaSearch(space=search_space, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
             elif self.search_optimization == "hyperopt":
-                from ray.tune.suggest.hyperopt import HyperOptSearch
                 if override_search_space:
                     search_space = self._get_hyperopt_params()
                 search_algo = HyperOptSearch(
                     space=search_space,
                     random_state_seed=self.seed,
                     **search_kwargs)
+                run_args["search_alg"] = search_algo
+
+            elif isinstance(self.search_optimization, Searcher):
+                search_algo = self.search_optimization
                 run_args["search_alg"] = search_algo
 
             else:
@@ -707,7 +767,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                     f"Invalid search optimizer: {self.search_optimization}")
 
         if isinstance(self.n_jobs, int) and self.n_jobs > 0 \
-           and not self.search_optimization == "random":
+           and not self._searcher_name == "random":
             search_algo = ConcurrencyLimiter(
                 search_algo, max_concurrent=self.n_jobs)
             run_args["search_alg"] = search_algo

@@ -44,32 +44,29 @@ from tune_sklearn._detect_booster import is_lightgbm_model
 
 logger = logging.getLogger(__name__)
 
+# sklearn always maximizes
+DEFAULT_MODE = "max"
+
 
 def resolve_early_stopping(early_stopping, max_iters, metric_name):
     if isinstance(early_stopping, str):
         if early_stopping in TuneBaseSearchCV.defined_schedulers:
             if early_stopping == "PopulationBasedTraining":
-                return PopulationBasedTraining(metric=metric_name, mode="max")
+                return PopulationBasedTraining()
             elif early_stopping == "AsyncHyperBandScheduler":
-                return AsyncHyperBandScheduler(
-                    metric=metric_name, mode="max", max_t=max_iters)
+                return AsyncHyperBandScheduler(max_t=max_iters)
             elif early_stopping == "HyperBandScheduler":
-                return HyperBandScheduler(
-                    metric=metric_name, mode="max", max_t=max_iters)
+                return HyperBandScheduler(max_t=max_iters)
             elif early_stopping == "MedianStoppingRule":
-                return MedianStoppingRule(metric=metric_name, mode="max")
+                return MedianStoppingRule()
             elif early_stopping == "ASHAScheduler":
-                return ASHAScheduler(
-                    metric=metric_name, mode="max", max_t=max_iters)
+                return ASHAScheduler(max_t=max_iters)
             elif early_stopping == "HyperBandForBOHB":
-                return HyperBandForBOHB(
-                    metric=metric_name, mode="max", max_t=max_iters)
+                return HyperBandForBOHB(max_t=max_iters)
         raise ValueError("{} is not a defined scheduler. "
                          "Check the list of available schedulers."
                          .format(early_stopping))
     elif isinstance(early_stopping, TrialScheduler):
-        early_stopping._metric = metric_name
-        early_stopping._mode = "max"
         return early_stopping
     else:
         raise TypeError("`early_stopping` must be a str, boolean, "
@@ -371,7 +368,8 @@ class TuneBaseSearchCV(BaseSearchCV):
                  loggers=None,
                  pipeline_auto_early_stop=True,
                  stopper=None,
-                 time_budget_s=None):
+                 time_budget_s=None,
+                 mode=None):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
@@ -379,6 +377,10 @@ class TuneBaseSearchCV(BaseSearchCV):
         self.pipeline_auto_early_stop = pipeline_auto_early_stop
         self.stopper = stopper
         self.time_budget_s = time_budget_s
+
+        if mode:
+            assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
+        self.mode = mode or DEFAULT_MODE
 
         if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
             _, self.base_estimator = self.base_estimator.steps[-1]
@@ -513,12 +515,11 @@ class TuneBaseSearchCV(BaseSearchCV):
                 self.estimator, self.scoring)
 
         if self.is_multi:
-            if self.refit and (not isinstance(self.refit, str)
-                               or self.refit not in self.scoring):
+            if not isinstance(self.refit,
+                              str) or self.refit not in self.scoring:
                 raise ValueError("When using multimetric scoring, refit "
                                  "must be the name of the scorer used to "
-                                 "pick the best parameters. If not needed, "
-                                 "set refit to False")
+                                 "pick the best parameters.")
 
         assert isinstance(
             self.n_jobs,
@@ -570,6 +571,13 @@ class TuneBaseSearchCV(BaseSearchCV):
         metric = self._metric_name
         base_metric = self._base_metric_name
 
+        if f"rank_test_{base_metric}" not in self.cv_results_ and self.refit:
+            warnings.warn(
+                "Cannot refit estimator due to required data being missing "
+                "(probably due to trials not completing). `best_estimator` "
+                "will not be set.", UserWarning)
+            return self
+
         # For multi-metric evaluation, store the best_index, best_params and
         # best_score iff refit is one of the scorer names
         # In single metric evaluation, refit_metric is "score"
@@ -584,10 +592,10 @@ class TuneBaseSearchCV(BaseSearchCV):
                         or self.best_index >= len(self.cv_results_["params"])):
                     raise IndexError("best_index index out of range")
             else:
-                self.best_index = self.cv_results_["rank_test_%s" %
-                                                   base_metric].argmin()
-                self.best_score = self.cv_results_[
-                    "mean_test_%s" % base_metric][self.best_index]
+                self.best_index = self.cv_results_[
+                    f"rank_test_{base_metric}"].argmin()
+                self.best_score = self.cv_results_[f"mean_test_{base_metric}"][
+                    self.best_index]
             best_config = analysis.get_best_config(
                 metric=metric, mode="max", scope="last")
             self.best_params = self._clean_config_dict(best_config)
