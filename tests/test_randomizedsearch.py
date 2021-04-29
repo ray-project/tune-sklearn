@@ -590,6 +590,26 @@ class RandomizedSearchTest(unittest.TestCase):
         # finish. Allow for some initialization overhead
         self.assertLess(taken, 25.0)
 
+    def test_wrong_mode(self):
+        model = SGDClassifier()
+
+        parameter_grid = {"alpha": [1e-4, 1e-1, 1], "epsilon": [0.01, 0.1]}
+
+        TuneSearchCV(
+            model, parameter_grid, search_optimization="random", mode="min")
+
+        TuneSearchCV(
+            model, parameter_grid, search_optimization="random", mode="max")
+
+        with self.assertRaises(AssertionError) as exc:
+            TuneSearchCV(
+                model,
+                parameter_grid,
+                search_optimization="random",
+                mode="this_is_an_invalid_mode")
+        self.assertTrue((
+            "`mode` must be 'min' or 'max'") in str(exc.exception))
+
 
 class TestSearchSpace(unittest.TestCase):
     def setUp(self):

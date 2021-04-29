@@ -44,6 +44,9 @@ from tune_sklearn._detect_booster import is_lightgbm_model
 
 logger = logging.getLogger(__name__)
 
+# sklearn always maximizes
+DEFAULT_MODE = "max"
+
 
 def resolve_early_stopping(early_stopping, max_iters, metric_name):
     if isinstance(early_stopping, str):
@@ -364,7 +367,8 @@ class TuneBaseSearchCV(BaseSearchCV):
                  loggers=None,
                  pipeline_auto_early_stop=True,
                  stopper=None,
-                 time_budget_s=None):
+                 time_budget_s=None,
+                 mode=None):
         if max_iters < 1:
             raise ValueError("max_iters must be greater than or equal to 1.")
         self.estimator = estimator
@@ -372,6 +376,10 @@ class TuneBaseSearchCV(BaseSearchCV):
         self.pipeline_auto_early_stop = pipeline_auto_early_stop
         self.stopper = stopper
         self.time_budget_s = time_budget_s
+
+        if mode:
+            assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
+        self.mode = mode or DEFAULT_MODE
 
         if self.pipeline_auto_early_stop and check_is_pipeline(estimator):
             _, self.base_estimator = self.base_estimator.steps[-1]

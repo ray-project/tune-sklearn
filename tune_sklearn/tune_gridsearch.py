@@ -139,6 +139,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         time_budget_s (int|float|datetime.timedelta): Global time budget in
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object.
+        mode (str): One of {min, max}. Determines whether objective is
+            minimizing or maximizing the metric attribute. Defaults to "max".
     """
 
     def __init__(self,
@@ -159,7 +161,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  pipeline_auto_early_stop=True,
                  stopper=None,
                  time_budget_s=None,
-                 sk_n_jobs=None):
+                 sk_n_jobs=None,
+                 mode=None):
         if sk_n_jobs is not None:
             raise ValueError(
                 "Tune-sklearn no longer supports nested parallelism "
@@ -180,7 +183,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop,
             stopper=stopper,
-            time_budget_s=time_budget_s)
+            time_budget_s=time_budget_s,
+            mode=mode)
 
         check_error_warm_start(self.early_stop_type, param_grid, estimator)
 
@@ -261,7 +265,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             loggers=self.loggers,
             time_budget_s=self.time_budget_s,
             metric=self._metric_name,
-            mode="max")
+            mode=self.mode)
 
         if isinstance(self.param_grid, list):
             run_args.update(

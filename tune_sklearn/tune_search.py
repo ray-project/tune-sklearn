@@ -37,9 +37,6 @@ available_optimizations = {
     OptunaSearch: "optuna",
 }
 
-# sklearn always maximizes
-DEFAULT_MODE = "max"
-
 
 def _check_distribution(dist, search_optimization):
     # Tune Domain is always good
@@ -298,6 +295,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             seconds after which all trials are stopped. Can also be a
             ``datetime.timedelta`` object. The stopping condition is checked
             after receiving a result, i.e. after each training iteration.
+        mode (str): One of {min, max}. Determines whether objective is
+            minimizing or maximizing the metric attribute. Defaults to "max".
         **search_kwargs (Any):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
@@ -326,6 +325,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  stopper=None,
                  time_budget_s=None,
                  sk_n_jobs=None,
+                 mode=None,
                  **search_kwargs):
         if sk_n_jobs is not None:
             raise ValueError(
@@ -402,7 +402,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             loggers=loggers,
             pipeline_auto_early_stop=pipeline_auto_early_stop,
             stopper=stopper,
-            time_budget_s=time_budget_s)
+            time_budget_s=time_budget_s,
+            mode=mode)
 
         check_error_warm_start(self.early_stop_type, param_distributions,
                                estimator)
@@ -666,7 +667,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             loggers=self.loggers,
             time_budget_s=self.time_budget_s,
             metric=self._metric_name,
-            mode=DEFAULT_MODE)
+            mode=self.mode)
 
         if self.search_optimization == "random":
             if isinstance(self.param_distributions, list):
@@ -687,13 +688,13 @@ class TuneSearchCV(TuneBaseSearchCV):
                         f"('{self.search_optimization._metric}') "
                         "must match the metric set in TuneSearchCV"
                         f" ('{self._metric_name}')")
-                if self.search_optimization._mode != DEFAULT_MODE:
+                if self.search_optimization._mode != self.mode:
                     raise ValueError(
                         "If a Searcher instance has been initialized with a "
                         "space, its mode "
                         f"('{self.search_optimization._mode}') "
                         "must match the mode set in TuneSearchCV"
-                        f" ('{DEFAULT_MODE}')")
+                        f" ('{self.mode}')")
             elif self._is_param_distributions_all_tune_domains():
                 run_args["config"].update(self.param_distributions)
                 override_search_space = False
