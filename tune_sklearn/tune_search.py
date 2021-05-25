@@ -474,7 +474,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             self.n_trials = min(self.n_trials, samples)
 
     def _is_param_distributions_all_tune_domains(self):
-        return all(
+        return isinstance(self.param_distributions, dict) and all(
             isinstance(v, Domain) for k, v in self.param_distributions.items())
 
     def _get_bohb_config_space(self):
