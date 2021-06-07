@@ -758,7 +758,6 @@ class TuneBaseSearchCV(BaseSearchCV):
         supplied dict"""
 
         if tune_params:
-            warnings.warn("Using user supplied tune_params.")
             user_overrides = {k for k in tune_params if k in run_args}
             if user_overrides:
                 warnings.warn(
@@ -767,6 +766,7 @@ class TuneBaseSearchCV(BaseSearchCV):
                     ". This may cause unexpected issues! If you experience "
                     "issues, please try removing those parameters from "
                     "tune_params.")
+            warnings.warn("Using user supplied tune_params.")
             run_args = {**run_args, **tune_params}
         return run_args
 
