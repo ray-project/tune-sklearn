@@ -403,6 +403,23 @@ class RandomizedSearchTest(unittest.TestCase):
             TuneSearchCV(
                 SGDClassifier(), {"epsilon": [0.1, 0.2]}, early_stopping=True)
 
+    def test_warn_user_params(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+
+        clf = PlateauClassifier(converge_after=20)
+
+        search = TuneSearchCV(
+            clf, {"foo_param": [2.0, 3.0, 4.0]}, cv=2, max_iters=2)
+
+        with self.assertWarnsRegex(UserWarning,
+                                   "Using user supplied tune_params."):
+            search.fit(X, y, tune_params={"fail_fast": "raise"})
+
+        with self.assertWarnsRegex(
+                UserWarning, "The following preset tune.run paramters will"):
+            search.fit(X, y, tune_params={"fail_fast": "raise"})
+
     @unittest.skipIf(not has_xgboost(), "xgboost not installed")
     def test_early_stop_xgboost_warn(self):
         from xgboost.sklearn import XGBClassifier

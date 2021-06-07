@@ -615,7 +615,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 raise ImportError("It appears that optuna is not installed. "
                                   "Do: pip install optuna") from None
 
-    def _tune_run(self, config, resources_per_trial):
+    def _tune_run(self, config, resources_per_trial, tune_params=None):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
         generated when early stopping is not possible.
@@ -626,6 +626,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             resources_per_trial (dict): Resources to use per trial within Ray.
                 Accepted keys are `cpu`, `gpu` and custom resources, and values
                 are integers specifying the number of each resource to use.
+            tune_params (dict, optional): User defined parameters passed to
+                ``tune.run``.
 
         Returns:
             analysis (`ExperimentAnalysis`): Object returned by
@@ -771,6 +773,9 @@ class TuneSearchCV(TuneBaseSearchCV):
             search_algo = ConcurrencyLimiter(
                 search_algo, max_concurrent=self.n_jobs)
             run_args["search_alg"] = search_algo
+
+        run_args = self._override_run_args_with_tune_params(
+            run_args, tune_params)
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
