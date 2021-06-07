@@ -413,7 +413,9 @@ class RandomizedSearchTest(unittest.TestCase):
             clf, {"foo_param": [2.0, 3.0, 4.0]}, cv=2, max_iters=2)
 
         with self.assertWarnsRegex(
-                UserWarning, "The following preset tune.run paramters will"):
+                UserWarning,
+                "The following preset tune.run parameters will be overriden "
+                "by tune_params: fail_fast."):
             search.fit(X, y, tune_params={"fail_fast": "raise"})
 
     @unittest.skipIf(not has_xgboost(), "xgboost not installed")
