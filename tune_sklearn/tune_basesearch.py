@@ -762,10 +762,10 @@ class TuneBaseSearchCV(BaseSearchCV):
             user_overrides = {k for k in tune_params if k in run_args}
             if user_overrides:
                 warnings.warn(
-                    "The following preset tune.run paramters will "
+                    "The following preset tune.run parameters will "
                     f"be overriden by tune_params: {', '.join(user_overrides)}"
                     ". This may cause unexpected issues! If you experience "
-                    "issues, please try removing those paramters from "
+                    "issues, please try removing those parameters from "
                     "tune_params.")
             run_args = {**run_args, **tune_params}
         return run_args
