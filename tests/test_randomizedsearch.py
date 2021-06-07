@@ -22,7 +22,7 @@ from tune_sklearn import TuneSearchCV
 from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
                                           has_required_lightgbm_version)
 from tune_sklearn.utils import EarlyStopping
-from test_utils import SleepClassifier, PlateauClassifier
+from test_utils import SleepClassifier, PlateauClassifier, MockClassifier
 
 
 class RandomizedSearchTest(unittest.TestCase):
@@ -407,7 +407,7 @@ class RandomizedSearchTest(unittest.TestCase):
         X, y = make_classification(
             n_samples=50, n_features=50, n_informative=3, random_state=0)
 
-        clf = PlateauClassifier(converge_after=20)
+        clf = MockClassifier()
 
         search = TuneSearchCV(
             clf, {"foo_param": [2.0, 3.0, 4.0]}, cv=2, max_iters=2)
