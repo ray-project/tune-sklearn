@@ -234,8 +234,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             resources_per_trial (dict): Resources to use per trial within Ray.
                 Accepted keys are `cpu`, `gpu` and custom resources, and values
                 are integers specifying the number of each resource to use.
-            tune_params (dict, optional): User defined parameters passed to
-                ``tune.run``.
+            tune_params (dict): User defined parameters passed to
+                ``tune.run``. Parameters inside `tune_params` override
+                preset parameters.
 
         Returns:
             analysis (`ExperimentAnalysis`): Object returned by

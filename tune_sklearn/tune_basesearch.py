@@ -747,15 +747,15 @@ class TuneBaseSearchCV(BaseSearchCV):
                 configuration for `tune.run`.
             resources_per_trial (:obj:`dict` of int): dictionary specifying the
                 number of cpu's and gpu's to use to train the model.
-            tune_params (dict, optional): User defined parameters passed to
-                ``tune.run``.
+            tune_params (dict): User defined parameters passed to
+                ``tune.run``. Parameters inside `tune_params` override
+                preset parameters.
 
         """
         raise NotImplementedError("Define in child class")
 
     def _override_run_args_with_tune_params(self, run_args, tune_params):
-        """Helper method to override tune.run run arguments with user
-        supplied dict"""
+        """Helper to override tune.run run arguments with user supplied dict"""
 
         if tune_params:
             user_overrides = {k for k in tune_params if k in run_args}
@@ -766,7 +766,6 @@ class TuneBaseSearchCV(BaseSearchCV):
                     ". This may cause unexpected issues! If you experience "
                     "issues, please try removing those parameters from "
                     "tune_params.")
-            warnings.warn("Using user supplied tune_params.")
             run_args = {**run_args, **tune_params}
         return run_args
 
