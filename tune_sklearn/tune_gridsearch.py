@@ -223,7 +223,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         """
         return len(list(ParameterGrid(self.param_grid)))
 
-    def _tune_run(self, config, resources_per_trial):
+    def _tune_run(self, config, resources_per_trial, tune_params=None):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
         generated when  early stopping is not possible.
@@ -234,6 +234,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             resources_per_trial (dict): Resources to use per trial within Ray.
                 Accepted keys are `cpu`, `gpu` and custom resources, and values
                 are integers specifying the number of each resource to use.
+            tune_params (dict): User defined parameters passed to
+                ``tune.run``. Parameters inside `tune_params` override
+                preset parameters.
 
         Returns:
             analysis (`ExperimentAnalysis`): Object returned by
@@ -276,6 +279,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                 dict(
                     search_alg=ListSearcher(self.param_grid),
                     num_samples=self._list_grid_num_samples()))
+
+        run_args = self._override_run_args_with_tune_params(
+            run_args, tune_params)
 
         with warnings.catch_warnings():
             warnings.filterwarnings(

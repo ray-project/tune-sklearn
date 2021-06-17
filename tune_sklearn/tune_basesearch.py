@@ -483,7 +483,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         self.loggers = resolve_loggers(loggers)
         assert isinstance(self.n_jobs, int)
 
-    def _fit(self, X, y=None, groups=None, **fit_params):
+    def _fit(self, X, y=None, groups=None, tune_params=None, **fit_params):
         """Helper method to run fit procedure
 
         Args:
@@ -497,6 +497,8 @@ class TuneBaseSearchCV(BaseSearchCV):
                 Group labels for the samples used while splitting the dataset
                 into train/test set. Only used in conjunction with a "Group"
                 `cv` instance (e.g., `GroupKFold`).
+            tune_params (:obj:`dict`, optional):
+                Parameters passed to ``tune.run`` used for parameter search.
             **fit_params (:obj:`dict` of str): Parameters passed to
                 the ``fit`` method of the estimator.
 
@@ -564,7 +566,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         config["metric_name"] = self._metric_name
 
         self._fill_config_hyperparam(config)
-        analysis = self._tune_run(config, resources_per_trial)
+        analysis = self._tune_run(config, resources_per_trial, tune_params)
 
         self.cv_results_ = self._format_results(self.n_splits, analysis)
 
@@ -627,7 +629,7 @@ class TuneBaseSearchCV(BaseSearchCV):
 
         return self
 
-    def fit(self, X, y=None, groups=None, **fit_params):
+    def fit(self, X, y=None, groups=None, tune_params=None, **fit_params):
         """Run fit with all sets of parameters.
 
         ``tune.run`` is used to perform the fit procedure.
@@ -643,6 +645,8 @@ class TuneBaseSearchCV(BaseSearchCV):
                 Group labels for the samples used while splitting the dataset
                 into train/test set. Only used in conjunction with a "Group"
                 `cv` instance (e.g., `GroupKFold`).
+            tune_params (:obj:`dict`, optional):
+                Parameters passed to ``tune.run`` used for parameter search.
             **fit_params (:obj:`dict` of str): Parameters passed to
                 the ``fit`` method of the estimator.
 
@@ -670,7 +674,7 @@ class TuneBaseSearchCV(BaseSearchCV):
                         logger.info("TIP: Hiding process output by default. "
                                     "To show process output, set verbose=2.")
 
-            result = self._fit(X, y, groups, **fit_params)
+            result = self._fit(X, y, groups, tune_params, **fit_params)
 
             if not ray_init and ray.is_initialized():
                 ray.shutdown()
@@ -735,7 +739,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         """
         raise NotImplementedError("Define in child class")
 
-    def _tune_run(self, config, resources_per_trial):
+    def _tune_run(self, config, resources_per_trial, tune_params=None):
         """Wrapper to call ``tune.run``. Implement this in a child class.
 
         Args:
@@ -743,9 +747,27 @@ class TuneBaseSearchCV(BaseSearchCV):
                 configuration for `tune.run`.
             resources_per_trial (:obj:`dict` of int): dictionary specifying the
                 number of cpu's and gpu's to use to train the model.
+            tune_params (dict): User defined parameters passed to
+                ``tune.run``. Parameters inside `tune_params` override
+                preset parameters.
 
         """
         raise NotImplementedError("Define in child class")
+
+    def _override_run_args_with_tune_params(self, run_args, tune_params):
+        """Helper to override tune.run run arguments with user supplied dict"""
+
+        if tune_params:
+            user_overrides = {k for k in tune_params if k in run_args}
+            if user_overrides:
+                warnings.warn(
+                    "The following preset tune.run parameters will "
+                    f"be overriden by tune_params: {', '.join(user_overrides)}"
+                    ". This may cause unexpected issues! If you experience "
+                    "issues, please try removing those parameters from "
+                    "tune_params.")
+            run_args = {**run_args, **tune_params}
+        return run_args
 
     def _clean_config_dict(self, config):
         """Helper to remove keys from the ``config`` dictionary returned from

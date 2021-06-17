@@ -22,7 +22,7 @@ from tune_sklearn import TuneSearchCV
 from tune_sklearn._detect_booster import (has_xgboost, has_catboost,
                                           has_required_lightgbm_version)
 from tune_sklearn.utils import EarlyStopping
-from test_utils import SleepClassifier, PlateauClassifier
+from test_utils import SleepClassifier, PlateauClassifier, MockClassifier
 
 
 class RandomizedSearchTest(unittest.TestCase):
@@ -402,6 +402,21 @@ class RandomizedSearchTest(unittest.TestCase):
         with self.assertWarnsRegex(UserWarning, "max_iters = 1"):
             TuneSearchCV(
                 SGDClassifier(), {"epsilon": [0.1, 0.2]}, early_stopping=True)
+
+    def test_warn_user_params(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+
+        clf = MockClassifier()
+
+        search = TuneSearchCV(
+            clf, {"foo_param": [2.0, 3.0, 4.0]}, cv=2, max_iters=2)
+
+        with self.assertWarnsRegex(
+                UserWarning,
+                "The following preset tune.run parameters will be overriden "
+                "by tune_params: fail_fast."):
+            search.fit(X, y, tune_params={"fail_fast": "raise"})
 
     @unittest.skipIf(not has_xgboost(), "xgboost not installed")
     def test_early_stop_xgboost_warn(self):
