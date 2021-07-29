@@ -39,7 +39,8 @@ from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
                              Logger)
 
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
-                                check_is_pipeline, _check_multimetric_scoring)
+                                check_is_pipeline, _check_multimetric_scoring,
+                                ray_context)
 from tune_sklearn._detect_booster import is_lightgbm_model
 
 logger = logging.getLogger(__name__)
@@ -654,37 +655,14 @@ class TuneBaseSearchCV(BaseSearchCV):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
-        ray_init = ray.is_initialized()
-        try:
-            if not ray_init:
-                if self.n_jobs == 1:
-                    ray.init(
-                        local_mode=True,
-                        configure_logging=False,
-                        ignore_reinit_error=True,
-                        include_dashboard=False)
-                else:
-                    ray.init(
-                        ignore_reinit_error=True,
-                        configure_logging=False,
-                        include_dashboard=False
-                        # log_to_driver=self.verbose == 2
-                    )
-                    if self.verbose != 2:
-                        logger.info("TIP: Hiding process output by default. "
-                                    "To show process output, set verbose=2.")
-
-            result = self._fit(X, y, groups, tune_params, **fit_params)
-
-            if not ray_init and ray.is_initialized():
-                ray.shutdown()
-
-            return result
-
-        except Exception:
-            if not ray_init and ray.is_initialized():
-                ray.shutdown()
-            raise
+        ray_kwargs = dict(
+            configure_logging=False,
+            ignore_reinit_error=True,
+            include_dashboard=False)
+        if self.n_jobs == 1:
+            ray_kwargs["local_mode"] = True
+        with ray_context(**ray_kwargs):
+            return self._fit(X, y, groups, tune_params, **fit_params)
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.
