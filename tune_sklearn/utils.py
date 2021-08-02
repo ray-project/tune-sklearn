@@ -8,6 +8,8 @@ from tune_sklearn._detect_booster import (
 import numpy as np
 from enum import Enum, auto
 from collections.abc import Sequence
+import contextlib
+import ray
 
 try:
     from ray.tune.stopper import MaximumIterationStopper
@@ -261,3 +263,24 @@ def _check_param_grid_tune_grid_search(param_grid):
             if len(v) == 0:
                 raise ValueError("Parameter values for parameter ({0}) need "
                                  "to be a non-empty sequence.".format(name))
+
+
+class ray_context(contextlib.AbstractContextManager):
+    """Context to initialize and shutdown Ray."""
+
+    def __init__(self, force_reinit: bool = False, **kwargs) -> None:
+        self.ray_init_kwargs = kwargs
+        self.force_reinit = force_reinit
+
+    def __enter__(self):
+        self.was_ray_initialized_ = ray.is_initialized()
+        if self.force_reinit or not self.was_ray_initialized_:
+            kwargs = self.ray_init_kwargs.copy()
+            if self.force_reinit:
+                kwargs["ignore_reinit_error"] = True
+            ray.init(**kwargs)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if not self.was_ray_initialized_ and ray.is_initialized():
+            ray.shutdown()
