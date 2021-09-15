@@ -18,7 +18,7 @@ from ray.tune.suggest.bohb import TuneBOHB
 from ray.tune.schedulers import HyperBandForBOHB
 from ray.tune.suggest.skopt import SkOptSearch
 from ray.tune.suggest.hyperopt import HyperOptSearch
-from ray.tune.suggest.optuna import OptunaSearch, param
+from ray.tune.suggest.optuna import OptunaSearch
 
 from tune_sklearn.utils import check_is_pipeline, MaximumIterationStopper
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
@@ -520,7 +520,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         return config_space
 
     def _get_optuna_params(self):
-        config_space = []
+        config_space = {}
 
         for param_name, space in self.param_distributions.items():
             prior = "uniform"
@@ -541,17 +541,14 @@ class TuneSearchCV(TuneBaseSearchCV):
                             "prior needs to be either "
                             f"'uniform' or 'log-uniform', was {prior}")
                 if prior == "log-uniform":
-                    config_space.append(
-                        param.suggest_loguniform(param_name, low, high))
+                    config_space[param_name] = tune.loguniform(low, high)
                 else:
-                    config_space.append(
-                        param.suggest_uniform(param_name, low, high))
+                    config_space[param_name] = tune.uniform(low, high)
             elif isinstance(space, list):
-                config_space.append(
-                    param.suggest_categorical(param_name, space))
+                config_space[param_name] = tune.choice(space)
             else:
-                config_space.append(space)
-        return config_space
+                raise RuntimeError(f"Unknown Optuna search space: {space}")
+        return OptunaSearch.convert_search_space(config_space)
 
     def _get_hyperopt_params(self):
         from hyperopt import hp
