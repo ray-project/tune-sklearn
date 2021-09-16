@@ -365,13 +365,15 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         can_use_param_distributions = False
 
-        if search_optimization == "bohb":
+        if search_optimization == "bohb" or isinstance(search_optimization,
+                                                       TuneBOHB):
             import ConfigSpace as CS
             can_use_param_distributions = isinstance(check_param_distributions,
                                                      CS.ConfigurationSpace)
-            if early_stopping is False:
-                raise ValueError(
-                    "early_stopping must not be False when using BOHB")
+            if isinstance(early_stopping, bool):
+                if early_stopping is False:
+                    raise ValueError(
+                        "early_stopping must not be False when using BOHB")
             elif not isinstance(early_stopping, HyperBandForBOHB):
                 if early_stopping != "HyperBandForBOHB":
                     warnings.warn("Ignoring early_stopping value, "
