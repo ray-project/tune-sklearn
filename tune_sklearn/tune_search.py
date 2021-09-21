@@ -731,14 +731,8 @@ class TuneSearchCV(TuneBaseSearchCV):
             elif self.search_optimization == "bohb":
                 if override_search_space:
                     search_space = self._get_bohb_config_space()
-                if self.seed:
-                    warnings.warn("'seed' is not implemented for BOHB.")
-                if "max_concurrent" not in search_kwargs and isinstance(
-                        self.n_jobs, int) and self.n_jobs > 0:
-                    search_kwargs["max_concurrent"] = self.n_jobs
-                search_algo = TuneBOHB(space=search_space, **search_kwargs)
-                # search_algo = TuneBOHB(
-                #     space=search_space, seed=self.seed, **search_kwargs)
+                search_algo = TuneBOHB(
+                    space=search_space, seed=self.seed, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
             elif self.search_optimization == "optuna":
