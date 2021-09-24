@@ -165,7 +165,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
                  time_budget_s=None,
                  sk_n_jobs=None,
                  mode=None):
-        if sk_n_jobs is not None:
+        if sk_n_jobs not in (None, 1):
             raise ValueError(
                 "Tune-sklearn no longer supports nested parallelism "
                 "with new versions of joblib/sklearn. Don't set 'sk_n_jobs'.")
