@@ -567,9 +567,10 @@ class TuneBaseSearchCV(BaseSearchCV):
         config["metric_name"] = self._metric_name
 
         self._fill_config_hyperparam(config)
-        analysis = self._tune_run(config, resources_per_trial, tune_params)
+        self.analysis_ = self._tune_run(config, resources_per_trial,
+                                        tune_params)
 
-        self.cv_results_ = self._format_results(self.n_splits, analysis)
+        self.cv_results_ = self._format_results(self.n_splits, self.analysis_)
 
         metric = self._metric_name
         base_metric = self._base_metric_name
@@ -599,7 +600,7 @@ class TuneBaseSearchCV(BaseSearchCV):
                     f"rank_test_{base_metric}"].argmin()
                 self.best_score = self.cv_results_[f"mean_test_{base_metric}"][
                     self.best_index]
-            best_config = analysis.get_best_config(
+            best_config = self.analysis_.get_best_config(
                 metric=metric, mode="max", scope="last")
             self.best_params = self._clean_config_dict(best_config)
 
