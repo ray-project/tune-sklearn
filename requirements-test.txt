@@ -1,5 +1,5 @@
 numpy>=1.16
-scikit-learn
+scikit-learn<1.0
 pandas
 tabulate
 ray[tune]
