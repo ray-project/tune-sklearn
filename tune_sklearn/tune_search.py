@@ -714,7 +714,8 @@ class TuneSearchCV(TuneBaseSearchCV):
                 run_args["config"].update(self.param_distributions)
                 override_search_space = False
 
-            search_kwargs = self.search_kwargs.copy()
+            search_kwargs = self.search_kwargs or {}
+            search_kwargs = search_kwargs.copy()
             if override_search_space:
                 search_kwargs["metric"] = run_args.pop("metric")
                 search_kwargs["mode"] = run_args.pop("mode")
