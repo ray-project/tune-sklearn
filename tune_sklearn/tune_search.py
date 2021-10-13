@@ -298,7 +298,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             after receiving a result, i.e. after each training iteration.
         mode (str): One of {min, max}. Determines whether objective is
             minimizing or maximizing the metric attribute. Defaults to "max".
-        **search_kwargs (Any):
+        search_kwargs (dict):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
 
@@ -328,7 +328,16 @@ class TuneSearchCV(TuneBaseSearchCV):
                  time_budget_s=None,
                  sk_n_jobs=None,
                  mode=None,
-                 **search_kwargs):
+                 search_kwargs=None,
+                 **kwargs):
+        if kwargs:
+            raise ValueError(
+                "Passing kwargs is depreciated, as it causes issues with "
+                "sklearn cloning. Please use the 'search_kwargs' argument "
+                "instead.")
+        if search_kwargs is not None and not isinstance(search_kwargs, dict):
+            raise TypeError(
+                f"'search_kwargs' must be a dict, got {type(search_kwargs)}.")
         if sk_n_jobs not in (None, 1):
             raise ValueError(
                 "Tune-sklearn no longer supports nested parallelism "
