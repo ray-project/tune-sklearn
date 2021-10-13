@@ -111,7 +111,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         clf = SGDClassifier()
         parameter_grid = {
-            "alpha": Real(1e-4, 1e-1, 1),
+            "alpha": Real(1e-4, 1e-1, prior="log-uniform"),
             "epsilon": Real(0.01, 0.1)
         }
 
@@ -134,7 +134,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         clf = SGDClassifier()
         parameter_grid = {
-            "alpha": Real(1e-4, 1e-1, 1),
+            "alpha": Real(1e-4, 1e-1, prior="log-uniform"),
             "epsilon": Real(0.01, 0.1)
         }
         tune_search = TuneSearchCV(
@@ -278,7 +278,7 @@ class RandomizedSearchTest(unittest.TestCase):
             "must be the name of the scorer used to ") in str(exc.exception))
 
     def test_warm_start_detection(self):
-        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, prior="log-uniform")}
         from sklearn.ensemble import VotingClassifier, RandomForestClassifier
         clf = VotingClassifier(estimators=[(
             "rf", RandomForestClassifier(n_estimators=50, random_state=0))])
@@ -336,7 +336,7 @@ class RandomizedSearchTest(unittest.TestCase):
                          EarlyStopping.WARM_START_ENSEMBLE)
 
     def test_warm_start_error(self):
-        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, prior="log-uniform")}
         from sklearn.ensemble import VotingClassifier, RandomForestClassifier
         clf = VotingClassifier(estimators=[(
             "rf", RandomForestClassifier(n_estimators=50, random_state=0))])
@@ -382,7 +382,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 local_dir="./test-result")
 
     def test_warn_reduce_maxiters(self):
-        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, prior="log-uniform")}
         from sklearn.ensemble import RandomForestClassifier
         clf = RandomForestClassifier(max_depth=2, random_state=0)
         with self.assertWarnsRegex(UserWarning, "max_iters is set"):
