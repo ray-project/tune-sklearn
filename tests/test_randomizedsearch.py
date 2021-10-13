@@ -731,7 +731,7 @@ class TestSearchSpace(unittest.TestCase):
             n_trials=3,
             n_jobs=1,
             refit=True,
-            **kwargs)
+            search_kwargs=kwargs)
         tune_search.fit(x, y)
         self.assertEquals(len(tune_search.cv_results_["params"]), 3)
         params = tune_search.best_estimator_.get_params()
