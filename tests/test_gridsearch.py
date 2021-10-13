@@ -153,8 +153,7 @@ class GridSearchTest(unittest.TestCase):
         y = np.array([0] * 5 + [1] * 5)
         clf = CheckingClassifier(expected_fit_params=["spam", "eggs"])
         pipe = Pipeline([("clf", clf)])
-        searcher = cls(
-            pipe, {"clf__foo_param": [1, 2, 3]}, cv=2, search_kwargs=kwargs)
+        searcher = cls(pipe, {"clf__foo_param": [1, 2, 3]}, cv=2, **kwargs)
 
         # The CheckingClassifer generates an assertion error if
         # a parameter is missing or has length != len(X).
