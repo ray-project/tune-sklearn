@@ -9,6 +9,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.pipeline import Pipeline
+from sklearn.base import clone
 from sklearn import datasets
 from skopt.space.space import Real
 from ray import tune
@@ -26,6 +27,15 @@ from test_utils import SleepClassifier, PlateauClassifier, MockClassifier
 
 
 class RandomizedSearchTest(unittest.TestCase):
+    def test_check_estimator(self):
+        params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
+        random_search = TuneSearchCV(
+            SVC(),
+            param_distributions=params,
+            return_train_score=True,
+            n_jobs=2)
+        clone(random_search)
+
     def test_random_search_cv_results(self):
         # Make a dataset with a lot of noise to get various kind of prediction
         # errors across CV folds and parameter settings

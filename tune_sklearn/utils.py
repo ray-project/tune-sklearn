@@ -8,8 +8,11 @@ from tune_sklearn._detect_booster import (
 import numpy as np
 from enum import Enum, auto
 from collections.abc import Sequence
+import inspect
 import contextlib
 import ray
+from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
+                             Logger)
 
 try:
     from ray.tune.stopper import MaximumIterationStopper
@@ -284,3 +287,33 @@ class ray_context(contextlib.AbstractContextManager):
     def __exit__(self, exc_type, exc_value, traceback):
         if not self.was_ray_initialized_ and ray.is_initialized():
             ray.shutdown()
+
+
+def resolve_loggers(loggers, defined_schedulers):
+    init_loggers = {JsonLogger, CSVLogger}
+    if loggers is None:
+        return list(init_loggers)
+
+    if not isinstance(loggers, list):
+        raise TypeError("`loggers` must be a list of str or tune loggers.")
+
+    for log in loggers:
+        if isinstance(log, str):
+            if log == "tensorboard":
+                init_loggers.add(TBXLogger)
+            elif log == "csv":
+                init_loggers.add(CSVLogger)
+            elif log == "mlflow":
+                init_loggers.add(MLFLowLogger)
+            elif log == "json":
+                init_loggers.add(JsonLogger)
+            else:
+                raise ValueError(("{} is not one of the defined loggers. " +
+                                  str(defined_schedulers)).format(log))
+        elif inspect.isclass(log) and issubclass(log, Logger):
+            init_loggers.add(log)
+        else:
+            raise TypeError("`loggers` must be a list of str or tune "
+                            "loggers.")
+
+    return list(init_loggers)

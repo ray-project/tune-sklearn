@@ -24,7 +24,7 @@ from tune_sklearn.utils import check_is_pipeline, MaximumIterationStopper
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable, _PipelineTrainable
 from tune_sklearn.list_searcher import RandomListSearcher
-from tune_sklearn.utils import check_error_warm_start
+from tune_sklearn.utils import check_error_warm_start, resolve_loggers
 
 logger = logging.getLogger(__name__)
 
@@ -679,7 +679,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
             name=self.name,
-            loggers=self.loggers,
+            loggers=resolve_loggers(self.loggers, self.defined_schedulers),
             time_budget_s=self.time_budget_s,
             metric=self._metric_name,
             mode=self.mode)

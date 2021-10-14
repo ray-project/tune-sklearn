@@ -26,7 +26,6 @@ import pandas as pd
 import warnings
 import multiprocessing
 import os
-import inspect
 import time
 import numbers
 
@@ -35,8 +34,6 @@ from ray.tune.trial import Trial
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
-from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
-                             Logger)
 
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
                                 check_is_pipeline, _check_multimetric_scoring,
@@ -72,37 +69,6 @@ def resolve_early_stopping(early_stopping, max_iters, metric_name):
     else:
         raise TypeError("`early_stopping` must be a str, boolean, "
                         f"or tune scheduler. Got {type(early_stopping)}.")
-
-
-def resolve_loggers(loggers):
-    init_loggers = {JsonLogger, CSVLogger}
-    if loggers is None:
-        return list(init_loggers)
-
-    if not isinstance(loggers, list):
-        raise TypeError("`loggers` must be a list of str or tune loggers.")
-
-    for log in loggers:
-        if isinstance(log, str):
-            if log == "tensorboard":
-                init_loggers.add(TBXLogger)
-            elif log == "csv":
-                init_loggers.add(CSVLogger)
-            elif log == "mlflow":
-                init_loggers.add(MLFLowLogger)
-            elif log == "json":
-                init_loggers.add(JsonLogger)
-            else:
-                raise ValueError(("{} is not one of the defined loggers. " +
-                                  str(TuneBaseSearchCV.defined_schedulers))
-                                 .format(log))
-        elif inspect.isclass(log) and issubclass(log, Logger):
-            init_loggers.add(log)
-        else:
-            raise TypeError("`loggers` must be a list of str or tune "
-                            "loggers.")
-
-    return list(init_loggers)
 
 
 class TuneBaseSearchCV(BaseSearchCV):
@@ -481,7 +447,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         self.local_dir = local_dir
         self.name = name
         self.use_gpu = use_gpu
-        self.loggers = resolve_loggers(loggers)
+        self.loggers = loggers
         assert isinstance(self.n_jobs, int)
 
     def _fit(self, X, y=None, groups=None, tune_params=None, **fit_params):
