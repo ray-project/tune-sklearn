@@ -445,8 +445,8 @@ class TuneSearchCV(TuneBaseSearchCV):
     @property
     def _searcher_name(self):
         return available_optimizations.get(
-            type(self.self._search_optimization_lower),
-            self.self._search_optimization_lower)
+            type(self._search_optimization_lower),
+            self._search_optimization_lower)
 
     @property
     def _search_optimization_lower(self):
