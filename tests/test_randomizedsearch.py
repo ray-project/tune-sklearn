@@ -27,7 +27,7 @@ from test_utils import SleepClassifier, PlateauClassifier, MockClassifier
 
 
 class RandomizedSearchTest(unittest.TestCase):
-    def test_check_estimator(self):
+    def test_clone_estimator(self):
         params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
         random_search = TuneSearchCV(
             SVC(),
