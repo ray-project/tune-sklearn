@@ -26,7 +26,6 @@ import pandas as pd
 import warnings
 import multiprocessing
 import os
-import inspect
 import time
 import numbers
 
@@ -35,8 +34,6 @@ from ray.tune.trial import Trial
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
-from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
-                             Logger)
 
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
                                 check_is_pipeline, _check_multimetric_scoring,
@@ -72,37 +69,6 @@ def resolve_early_stopping(early_stopping, max_iters, metric_name):
     else:
         raise TypeError("`early_stopping` must be a str, boolean, "
                         f"or tune scheduler. Got {type(early_stopping)}.")
-
-
-def resolve_loggers(loggers):
-    init_loggers = {JsonLogger, CSVLogger}
-    if loggers is None:
-        return list(init_loggers)
-
-    if not isinstance(loggers, list):
-        raise TypeError("`loggers` must be a list of str or tune loggers.")
-
-    for log in loggers:
-        if isinstance(log, str):
-            if log == "tensorboard":
-                init_loggers.add(TBXLogger)
-            elif log == "csv":
-                init_loggers.add(CSVLogger)
-            elif log == "mlflow":
-                init_loggers.add(MLFLowLogger)
-            elif log == "json":
-                init_loggers.add(JsonLogger)
-            else:
-                raise ValueError(("{} is not one of the defined loggers. " +
-                                  str(TuneBaseSearchCV.defined_schedulers))
-                                 .format(log))
-        elif inspect.isclass(log) and issubclass(log, Logger):
-            init_loggers.add(log)
-        else:
-            raise TypeError("`loggers` must be a list of str or tune "
-                            "loggers.")
-
-    return list(init_loggers)
 
 
 class TuneBaseSearchCV(BaseSearchCV):
@@ -165,7 +131,7 @@ class TuneBaseSearchCV(BaseSearchCV):
     @property
     def multimetric_(self):
         """bool: Whether evaluation performed was multi-metric."""
-        return self.is_multi
+        return self._is_multi
 
     @property
     def classes_(self):
@@ -208,7 +174,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         For multi-metric evaluation, this attribute holds the validated
         ``scoring`` dict which maps the scorer key to the scorer callable.
         """
-        return self.scoring
+        return self.scoring_
 
     @property
     def decision_function(self):
@@ -325,7 +291,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         """
         if not self.refit:
             if check_refit == "multimetric":
-                if self.is_multi:
+                if self._is_multi:
                     msg = (
                         "This {0} instance was initialized with refit=False. "
                         "For multi-metric evaluation, {1} "
@@ -409,11 +375,11 @@ class TuneBaseSearchCV(BaseSearchCV):
         # Get metric scoring name
         self.scoring = scoring
         self.refit = refit
-        if not hasattr(self, "is_multi"):
-            self.scoring, self.is_multi = _check_multimetric_scoring(
+        if not hasattr(self, "_is_multi"):
+            _, self._is_multi = _check_multimetric_scoring(
                 self.estimator, self.scoring)
 
-        if self.is_multi:
+        if self._is_multi:
             self._base_metric_name = self.refit
         else:
             self._base_metric_name = "score"
@@ -481,7 +447,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         self.local_dir = local_dir
         self.name = name
         self.use_gpu = use_gpu
-        self.loggers = resolve_loggers(loggers)
+        self.loggers = loggers
         assert isinstance(self.n_jobs, int)
 
     def _fit(self, X, y=None, groups=None, tune_params=None, **fit_params):
@@ -510,16 +476,16 @@ class TuneBaseSearchCV(BaseSearchCV):
         classifier = is_classifier(self.estimator)
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
-        if not hasattr(self, "is_multi"):
-            self.scoring, self.is_multi = _check_multimetric_scoring(
+        if not hasattr(self, "_is_multi"):
+            self.scoring_, self._is_multi = _check_multimetric_scoring(
                 self.estimator, self.scoring)
         else:
-            self.scoring, _ = _check_multimetric_scoring(
+            self.scoring_, _ = _check_multimetric_scoring(
                 self.estimator, self.scoring)
 
-        if self.is_multi:
+        if self._is_multi:
             if not isinstance(self.refit,
-                              str) or self.refit not in self.scoring:
+                              str) or self.refit not in self.scoring_:
                 raise ValueError("When using multimetric scoring, refit "
                                  "must be the name of the scorer used to "
                                  "pick the best parameters.")
@@ -560,7 +526,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         config["groups"] = groups
         config["cv"] = cv
         config["fit_params"] = fit_params
-        config["scoring"] = self.scoring
+        config["scoring"] = self.scoring_
         config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
         config["n_jobs"] = self.sk_n_jobs
@@ -585,7 +551,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         # For multi-metric evaluation, store the best_index, best_params and
         # best_score iff refit is one of the scorer names
         # In single metric evaluation, refit_metric is "score"
-        if self.refit or not self.is_multi:
+        if self.refit or not self._is_multi:
             # If callable, refit is expected to return the index of the best
             # parameter set.
             if callable(self.refit):
@@ -682,11 +648,11 @@ class TuneBaseSearchCV(BaseSearchCV):
 
         """
         self._check_is_fitted(self._metric_name)
-        if self.is_multi:
+        if self._is_multi:
             scorer_name = self.refit
         else:
             scorer_name = "score"
-        return self.scoring[scorer_name](self.best_estimator_, X, y)
+        return self.scoring_[scorer_name](self.best_estimator_, X, y)
 
     def _can_early_stop(self):
         """Helper method to determine if it is possible to do early stopping.
@@ -818,7 +784,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         finished = [df.iloc[[-1]] for df in dfs]
         test_scores = {}
         train_scores = {}
-        for name in self.scoring:
+        for name in self.scoring_:
             test_scores[name] = [
                 df[[
                     col for col in dfs[0].columns
@@ -876,7 +842,7 @@ class TuneBaseSearchCV(BaseSearchCV):
                 results["rank_%s" % key_name] = np.asarray(
                     rankdata(-array_means, method="min"), dtype=np.int32)
 
-        for name in self.scoring:
+        for name in self.scoring_:
             _store(
                 results,
                 "test_%s" % name,
@@ -887,7 +853,7 @@ class TuneBaseSearchCV(BaseSearchCV):
                 rank=True,
             )
         if self.return_train_score:
-            for name in self.scoring:
+            for name in self.scoring_:
                 _store(
                     results,
                     "train_%s" % name,

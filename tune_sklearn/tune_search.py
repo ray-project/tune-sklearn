@@ -24,7 +24,7 @@ from tune_sklearn.utils import check_is_pipeline, MaximumIterationStopper
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable, _PipelineTrainable
 from tune_sklearn.list_searcher import RandomListSearcher
-from tune_sklearn.utils import check_error_warm_start
+from tune_sklearn.utils import check_error_warm_start, resolve_loggers
 
 logger = logging.getLogger(__name__)
 
@@ -298,7 +298,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             after receiving a result, i.e. after each training iteration.
         mode (str): One of {min, max}. Determines whether objective is
             minimizing or maximizing the metric attribute. Defaults to "max".
-        **search_kwargs (Any):
+        search_kwargs (dict):
             Additional arguments to pass to the SearchAlgorithms (tune.suggest)
             objects.
 
@@ -328,33 +328,43 @@ class TuneSearchCV(TuneBaseSearchCV):
                  time_budget_s=None,
                  sk_n_jobs=None,
                  mode=None,
-                 **search_kwargs):
-        if sk_n_jobs is not None:
+                 search_kwargs=None,
+                 **kwargs):
+        if kwargs:
+            raise ValueError(
+                "Passing kwargs is depreciated, as it causes issues with "
+                "sklearn cloning. Please use the 'search_kwargs' argument "
+                "instead.")
+        if search_kwargs is not None and not isinstance(search_kwargs, dict):
+            raise TypeError(
+                f"'search_kwargs' must be a dict, got {type(search_kwargs)}.")
+        if sk_n_jobs not in (None, 1):
             raise ValueError(
                 "Tune-sklearn no longer supports nested parallelism "
                 "with new versions of joblib/sklearn. Don't set 'sk_n_jobs'.")
-        if isinstance(search_optimization, str):
-            search_optimization = search_optimization.lower()
 
-        if (search_optimization not in set(
+        self.search_optimization = search_optimization
+
+        if (self._search_optimization_lower not in set(
                 available_optimizations.values())) and not isinstance(
-                    search_optimization, Searcher):
+                    self._search_optimization_lower, Searcher):
             raise ValueError(
                 "Search optimization must be one of "
                 f"{', '.join(list(available_optimizations.values()))} "
                 "or a ray.tune.suggest.Searcher instance.")
 
-        if isinstance(search_optimization, Searcher):
-            if not hasattr(search_optimization, "_mode") or not hasattr(
-                    search_optimization, "_metric"):
+        if isinstance(self._search_optimization_lower, Searcher):
+            if not hasattr(self._search_optimization_lower,
+                           "_mode") or not hasattr(
+                               self._search_optimization_lower, "_metric"):
                 raise ValueError(
                     "Searcher instance used as search optimization must have"
                     " '_mode' and '_metric' attributes.")
 
-        self._try_import_required_libraries(search_optimization)
+        self._try_import_required_libraries(self._search_optimization_lower)
 
         if isinstance(param_distributions, list):
-            if search_optimization != "random":
+            if self._search_optimization_lower != "random":
                 raise ValueError("list of dictionaries for parameters "
                                  "is not supported for non-random search")
 
@@ -365,8 +375,8 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         can_use_param_distributions = False
 
-        if search_optimization == "bohb" or isinstance(search_optimization,
-                                                       TuneBOHB):
+        if self._search_optimization_lower == "bohb" or isinstance(
+                self._search_optimization_lower, TuneBOHB):
             import ConfigSpace as CS
             can_use_param_distributions = isinstance(check_param_distributions,
                                                      CS.ConfigurationSpace)
@@ -388,7 +398,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         if not can_use_param_distributions:
             for p in check_param_distributions:
                 for dist in p.values():
-                    _check_distribution(dist, search_optimization)
+                    _check_distribution(dist, self._search_optimization_lower)
 
         super(TuneSearchCV, self).__init__(
             estimator=estimator,
@@ -424,18 +434,24 @@ class TuneSearchCV(TuneBaseSearchCV):
         else:
             self.seed = random_state
 
-        if search_optimization == "random" or isinstance(
-                search_optimization, type):
+        if self._search_optimization_lower == "random" or isinstance(
+                self._search_optimization_lower, type):
             if search_kwargs:
-                raise ValueError(f"{search_optimization} does not support "
-                                 f"extra args: {search_kwargs}")
-        self.search_optimization = search_optimization
+                raise ValueError(
+                    f"{self._search_optimization_lower} does not support "
+                    f"extra args: {search_kwargs}")
         self.search_kwargs = search_kwargs
 
     @property
     def _searcher_name(self):
         return available_optimizations.get(
-            type(self.search_optimization), self.search_optimization)
+            type(self._search_optimization_lower),
+            self._search_optimization_lower)
+
+    @property
+    def _search_optimization_lower(self):
+        return self.search_optimization.lower() if isinstance(
+            self.search_optimization, str) else self.search_optimization
 
     def _fill_config_hyperparam(self, config):
         """Fill in the ``config`` dictionary with the hyperparameters.
@@ -670,12 +686,12 @@ class TuneSearchCV(TuneBaseSearchCV):
             resources_per_trial=resources_per_trial,
             local_dir=os.path.expanduser(self.local_dir),
             name=self.name,
-            loggers=self.loggers,
+            loggers=resolve_loggers(self.loggers, self.defined_schedulers),
             time_budget_s=self.time_budget_s,
             metric=self._metric_name,
             mode=self.mode)
 
-        if self.search_optimization == "random":
+        if self._search_optimization_lower == "random":
             if isinstance(self.param_distributions, list):
                 search_algo = RandomListSearcher(self.param_distributions)
             else:
@@ -684,28 +700,31 @@ class TuneSearchCV(TuneBaseSearchCV):
         else:
             search_space = None
             override_search_space = True
-            if isinstance(self.search_optimization, Searcher) and hasattr(
-                    self.search_optimization,
-                    "_space") and self.search_optimization._space is not None:
-                if self.search_optimization._metric != self._metric_name:
+            if isinstance(
+                    self._search_optimization_lower, Searcher) and hasattr(
+                        self._search_optimization_lower, "_space"
+                    ) and self._search_optimization_lower._space is not None:
+                if (self._search_optimization_lower._metric !=
+                        self._metric_name):
                     raise ValueError(
                         "If a Searcher instance has been initialized with a "
                         "space, its metric "
-                        f"('{self.search_optimization._metric}') "
+                        f"('{self._search_optimization_lower._metric}') "
                         "must match the metric set in TuneSearchCV"
                         f" ('{self._metric_name}')")
-                if self.search_optimization._mode != self.mode:
+                if self._search_optimization_lower._mode != self.mode:
                     raise ValueError(
                         "If a Searcher instance has been initialized with a "
                         "space, its mode "
-                        f"('{self.search_optimization._mode}') "
+                        f"('{self._search_optimization_lower._mode}') "
                         "must match the mode set in TuneSearchCV"
                         f" ('{self.mode}')")
             elif self._is_param_distributions_all_tune_domains():
                 run_args["config"].update(self.param_distributions)
                 override_search_space = False
 
-            search_kwargs = self.search_kwargs.copy()
+            search_kwargs = self.search_kwargs or {}
+            search_kwargs = search_kwargs.copy()
             if override_search_space:
                 search_kwargs["metric"] = run_args.pop("metric")
                 search_kwargs["mode"] = run_args.pop("mode")
@@ -722,20 +741,20 @@ class TuneSearchCV(TuneBaseSearchCV):
                             "Ensure your Scheduler initializes with those "
                             "attributes.", UserWarning)
 
-            if self.search_optimization == "bayesian":
+            if self._search_optimization_lower == "bayesian":
                 if override_search_space:
                     search_space = self.param_distributions
                 search_algo = SkOptSearch(space=search_space, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
-            elif self.search_optimization == "bohb":
+            elif self._search_optimization_lower == "bohb":
                 if override_search_space:
                     search_space = self._get_bohb_config_space()
                 search_algo = TuneBOHB(
                     space=search_space, seed=self.seed, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
-            elif self.search_optimization == "optuna":
+            elif self._search_optimization_lower == "optuna":
                 from optuna.samplers import TPESampler
                 if "sampler" not in search_kwargs:
                     search_kwargs["sampler"] = TPESampler(seed=self.seed)
@@ -746,7 +765,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 search_algo = OptunaSearch(space=search_space, **search_kwargs)
                 run_args["search_alg"] = search_algo
 
-            elif self.search_optimization == "hyperopt":
+            elif self._search_optimization_lower == "hyperopt":
                 if override_search_space:
                     search_space = self._get_hyperopt_params()
                 search_algo = HyperOptSearch(
@@ -755,15 +774,15 @@ class TuneSearchCV(TuneBaseSearchCV):
                     **search_kwargs)
                 run_args["search_alg"] = search_algo
 
-            elif isinstance(self.search_optimization, Searcher):
-                search_algo = self.search_optimization
+            elif isinstance(self._search_optimization_lower, Searcher):
+                search_algo = self._search_optimization_lower
                 run_args["search_alg"] = search_algo
 
             else:
                 # This should not happen as we validate the input before
                 # this method. Still, just to be sure, raise an error here.
-                raise ValueError(
-                    f"Invalid search optimizer: {self.search_optimization}")
+                raise ValueError("Invalid search optimizer: "
+                                 f"{self._search_optimization_lower}")
 
         if isinstance(self.n_jobs, int) and self.n_jobs > 0 \
            and not self._searcher_name == "random":

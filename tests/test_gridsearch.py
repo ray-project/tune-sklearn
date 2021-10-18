@@ -27,6 +27,7 @@ from parameterized import parameterized
 from sklearn.cluster import KMeans
 from sklearn.svm import SVC, LinearSVC
 from sklearn import datasets
+from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 from sklearn import linear_model
 from sklearn.exceptions import NotFittedError
@@ -89,6 +90,11 @@ class GridSearchTest(unittest.TestCase):
 
     def tearDown(self):
         ray.shutdown()
+
+    def test_clone_estimator(self):
+        clf = MockClassifier()
+        grid_search = TuneGridSearchCV(clf, {"foo_param": [1, 2, 3]}, cv=3)
+        clone(grid_search)
 
     def test_grid_search(self):
         # Test that the best estimator contains the right value for foo_param

@@ -60,6 +60,13 @@ tool_version_check() {
 tool_version_check "flake8" $FLAKE8_VERSION $FLAKE8_VERSION_REQUIRED
 tool_version_check "yapf" $YAPF_VERSION $YAPF_VERSION_REQUIRED
 
+if which clang-format >/dev/null; then
+  CLANG_FORMAT_VERSION=$(clang-format --version | awk '{print $3}')
+  tool_version_check "clang-format" $CLANG_FORMAT_VERSION "7.0.0"
+else
+    echo "WARNING: clang-format is not installed!"
+fi
+
 # Only fetch master since that's the branch we're diffing against.
 git fetch upstream master || true
 
@@ -97,21 +104,22 @@ format_changed() {
              yapf --in-place "${YAPF_EXCLUDES[@]}" "${YAPF_FLAGS[@]}"
         if which flake8 >/dev/null; then
             git diff --name-only --diff-filter=ACRM "$MERGEBASE" -- '*.py' | xargs -P 5 \
-                 flake8 --inline-quotes '"' --no-avoid-escape --ignore=C408,E121,E123,E126,E226,E24,E704,W503,W504,W605
+                 flake8 --inline-quotes '"' --no-avoid-escape --ignore=N,I,C408,E121,E123,E126,E226,E24,E704,W503,W504,W605
         fi
     fi
 
     if ! git diff --diff-filter=ACRM --quiet --exit-code "$MERGEBASE" -- '*.pyx' '*.pxd' '*.pxi' &>/dev/null; then
         if which flake8 >/dev/null; then
             git diff --name-only --diff-filter=ACRM "$MERGEBASE" -- '*.pyx' '*.pxd' '*.pxi' | xargs -P 5 \
-                 flake8 --inline-quotes '"' --no-avoid-escape --ignore=C408,E121,E123,E126,E211,E225,E226,E227,E24,E704,E999,W503,W504,W605
+                 flake8 --inline-quotes '"' --no-avoid-escape --ignore=N,I,C408,E121,E123,E126,E211,E225,E226,E227,E24,E704,E999,W503,W504,W605
         fi
     fi
 }
 
-# Format all files, and print the diff to stdout for github actions.
+# Format all files, and print the diff to stdout for travis.
 format_all() {
     yapf --diff "${YAPF_FLAGS[@]}" "${YAPF_EXCLUDES[@]}" tune_sklearn
+    flake8 --inline-quotes '"' --no-avoid-escape --ignore=N,I,C408,E121,E123,E126,E211,E225,E226,E227,E24,E704,E999,W503,W504,W605 tune_sklearn
 }
 
 # This flag formats individual files. --files *must* be the first command line
@@ -136,3 +144,5 @@ if ! git diff --quiet &>/dev/null; then
 
     exit 1
 fi
+
+echo 'Linting check finished successfully.'

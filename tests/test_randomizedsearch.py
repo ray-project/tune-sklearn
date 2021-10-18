@@ -9,6 +9,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.pipeline import Pipeline
+from sklearn.base import clone
 from sklearn import datasets
 from skopt.space.space import Real
 from ray import tune
@@ -26,6 +27,15 @@ from test_utils import SleepClassifier, PlateauClassifier, MockClassifier
 
 
 class RandomizedSearchTest(unittest.TestCase):
+    def test_clone_estimator(self):
+        params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
+        random_search = TuneSearchCV(
+            SVC(),
+            param_distributions=params,
+            return_train_score=True,
+            n_jobs=2)
+        clone(random_search)
+
     def test_random_search_cv_results(self):
         # Make a dataset with a lot of noise to get various kind of prediction
         # errors across CV folds and parameter settings
@@ -111,7 +121,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         clf = SGDClassifier()
         parameter_grid = {
-            "alpha": Real(1e-4, 1e-1, 1),
+            "alpha": Real(1e-4, 1e-1, prior="log-uniform"),
             "epsilon": Real(0.01, 0.1)
         }
 
@@ -134,7 +144,7 @@ class RandomizedSearchTest(unittest.TestCase):
 
         clf = SGDClassifier()
         parameter_grid = {
-            "alpha": Real(1e-4, 1e-1, 1),
+            "alpha": Real(1e-4, 1e-1, prior="log-uniform"),
             "epsilon": Real(0.01, 0.1)
         }
         tune_search = TuneSearchCV(
@@ -278,7 +288,7 @@ class RandomizedSearchTest(unittest.TestCase):
             "must be the name of the scorer used to ") in str(exc.exception))
 
     def test_warm_start_detection(self):
-        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, prior="log-uniform")}
         from sklearn.ensemble import VotingClassifier, RandomForestClassifier
         clf = VotingClassifier(estimators=[(
             "rf", RandomForestClassifier(n_estimators=50, random_state=0))])
@@ -336,7 +346,7 @@ class RandomizedSearchTest(unittest.TestCase):
                          EarlyStopping.WARM_START_ENSEMBLE)
 
     def test_warm_start_error(self):
-        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, prior="log-uniform")}
         from sklearn.ensemble import VotingClassifier, RandomForestClassifier
         clf = VotingClassifier(estimators=[(
             "rf", RandomForestClassifier(n_estimators=50, random_state=0))])
@@ -382,7 +392,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 local_dir="./test-result")
 
     def test_warn_reduce_maxiters(self):
-        parameter_grid = {"alpha": Real(1e-4, 1e-1, 1)}
+        parameter_grid = {"alpha": Real(1e-4, 1e-1, prior="log-uniform")}
         from sklearn.ensemble import RandomForestClassifier
         clf = RandomForestClassifier(max_depth=2, random_state=0)
         with self.assertWarnsRegex(UserWarning, "max_iters is set"):
@@ -731,7 +741,7 @@ class TestSearchSpace(unittest.TestCase):
             n_trials=3,
             n_jobs=1,
             refit=True,
-            **kwargs)
+            search_kwargs=kwargs)
         tune_search.fit(x, y)
         self.assertEquals(len(tune_search.cv_results_["params"]), 3)
         params = tune_search.best_estimator_.get_params()
