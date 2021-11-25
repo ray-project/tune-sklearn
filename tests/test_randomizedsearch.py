@@ -707,7 +707,6 @@ class TestSearchSpace(unittest.TestCase):
     def testHyperopt(self):
         self._test_method("hyperopt")
 
-    @unittest.skip("bohb test currently failing")
     def testBohb(self):
         self._test_method("bohb")
 
@@ -859,7 +858,6 @@ class TestSearchSpace(unittest.TestCase):
             return
         self._test_points_to_evaluate("hyperopt")
 
-    @unittest.skip("bohb currently failing not installed")
     def testBOHBPointsToEvaluate(self):
         self._test_points_to_evaluate("bohb")
 
@@ -920,7 +918,6 @@ class TestSearchSpace(unittest.TestCase):
         self._test_seed_run("bayesian", seed=1234)
         self._test_seed_run("bayesian", seed="1234")
 
-    @unittest.skip("BOHB is currently failing")
     def test_seed_bohb(self):
         self._test_seed_run("bohb", seed=1234)
         self._test_seed_run("bohb", seed="1234")
