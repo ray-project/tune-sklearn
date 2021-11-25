@@ -386,52 +386,6 @@ class TuneBaseSearchCV(BaseSearchCV):
 
         self._metric_name = "average_test_%s" % self._base_metric_name
 
-        if early_stopping:
-            if not self._can_early_stop() and is_lightgbm_model(
-                    self.base_estimator):
-                warnings.warn("lightgbm>=3.0.0 required for early_stopping "
-                              "functionality.")
-            assert self._can_early_stop()
-            if max_iters == 1:
-                warnings.warn(
-                    "early_stopping is enabled but max_iters = 1. "
-                    "To enable partial training, set max_iters > 1.",
-                    category=UserWarning)
-            if self.early_stop_type == EarlyStopping.XGB:
-                warnings.warn(
-                    "tune-sklearn implements incremental learning "
-                    "for xgboost models following this: "
-                    "https://github.com/dmlc/xgboost/issues/1686. "
-                    "This may negatively impact performance. To "
-                    "disable, set `early_stopping=False`.",
-                    category=UserWarning)
-            elif self.early_stop_type == EarlyStopping.LGBM:
-                warnings.warn(
-                    "tune-sklearn implements incremental learning "
-                    "for lightgbm models following this: "
-                    "https://lightgbm.readthedocs.io/en/latest/pythonapi/"
-                    "lightgbm.LGBMModel.html#lightgbm.LGBMModel.fit "
-                    "This may negatively impact performance. To "
-                    "disable, set `early_stopping=False`.",
-                    category=UserWarning)
-            elif self.early_stop_type == EarlyStopping.CATBOOST:
-                warnings.warn(
-                    "tune-sklearn implements incremental learning "
-                    "for Catboost models following this: "
-                    "https://catboost.ai/docs/concepts/python-usages-"
-                    "examples.html#training-continuation "
-                    "This may negatively impact performance. To "
-                    "disable, set `early_stopping=False`.",
-                    category=UserWarning)
-            if early_stopping is True:
-                # Override the early_stopping variable so
-                # that it is resolved appropriately in
-                # the next block
-                early_stopping = "AsyncHyperBandScheduler"
-            # Resolve the early stopping object
-            early_stopping = resolve_early_stopping(early_stopping, max_iters,
-                                                    self._metric_name)
-
         self.early_stopping = early_stopping
         self.max_iters = max_iters
 
@@ -474,6 +428,55 @@ class TuneBaseSearchCV(BaseSearchCV):
         """
         self._check_params()
         classifier = is_classifier(self.estimator)
+
+        early_stopping = self.early_stopping
+        if early_stopping:
+            if not self._can_early_stop() and is_lightgbm_model(
+                    self.base_estimator):
+                warnings.warn("lightgbm>=3.0.0 required for early_stopping "
+                              "functionality.")
+            assert self._can_early_stop()
+            if self.max_iters == 1:
+                warnings.warn(
+                    "early_stopping is enabled but max_iters = 1. "
+                    "To enable partial training, set max_iters > 1.",
+                    category=UserWarning)
+            if self.early_stop_type == EarlyStopping.XGB:
+                warnings.warn(
+                    "tune-sklearn implements incremental learning "
+                    "for xgboost models following this: "
+                    "https://github.com/dmlc/xgboost/issues/1686. "
+                    "This may negatively impact performance. To "
+                    "disable, set `early_stopping=False`.",
+                    category=UserWarning)
+            elif self.early_stop_type == EarlyStopping.LGBM:
+                warnings.warn(
+                    "tune-sklearn implements incremental learning "
+                    "for lightgbm models following this: "
+                    "https://lightgbm.readthedocs.io/en/latest/pythonapi/"
+                    "lightgbm.LGBMModel.html#lightgbm.LGBMModel.fit "
+                    "This may negatively impact performance. To "
+                    "disable, set `early_stopping=False`.",
+                    category=UserWarning)
+            elif self.early_stop_type == EarlyStopping.CATBOOST:
+                warnings.warn(
+                    "tune-sklearn implements incremental learning "
+                    "for Catboost models following this: "
+                    "https://catboost.ai/docs/concepts/python-usages-"
+                    "examples.html#training-continuation "
+                    "This may negatively impact performance. To "
+                    "disable, set `early_stopping=False`.",
+                    category=UserWarning)
+            if self.early_stopping is True:
+                # Override the early_stopping variable so
+                # that it is resolved appropriately in
+                # the next block
+                early_stopping = "AsyncHyperBandScheduler"
+            # Resolve the early stopping object
+            early_stopping = resolve_early_stopping(
+                early_stopping, self.max_iters, self._metric_name)
+        self.early_stopping_ = early_stopping
+
         cv = check_cv(cv=self.cv, y=y, classifier=classifier)
         self.n_splits = cv.get_n_splits(X, y, groups)
         if not hasattr(self, "_is_multi"):
@@ -519,7 +522,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         y_id = ray.put(y)
 
         config = {}
-        config["early_stopping"] = bool(self.early_stopping)
+        config["early_stopping"] = bool(self.early_stopping_)
         config["early_stop_type"] = self.early_stop_type
         config["X_id"] = X_id
         config["y_id"] = y_id

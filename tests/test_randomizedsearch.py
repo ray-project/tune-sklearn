@@ -28,9 +28,34 @@ from test_utils import SleepClassifier, PlateauClassifier, MockClassifier
 
 class RandomizedSearchTest(unittest.TestCase):
     def test_clone_estimator(self):
-        params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
+        params = dict(lr=tune.loguniform(0.1, 1))
         random_search = TuneSearchCV(
-            SVC(),
+            SGDClassifier(),
+            param_distributions=params,
+            return_train_score=True,
+            n_jobs=2)
+        clone(random_search)
+
+        random_search = TuneSearchCV(
+            SGDClassifier(),
+            early_stopping=True,
+            param_distributions=params,
+            return_train_score=True,
+            n_jobs=2)
+        clone(random_search)
+
+        random_search = TuneSearchCV(
+            SGDClassifier(),
+            early_stopping="HyperBandScheduler",
+            param_distributions=params,
+            return_train_score=True,
+            n_jobs=2)
+        clone(random_search)
+
+        random_search = TuneSearchCV(
+            SGDClassifier(),
+            early_stopping=True,
+            search_optimization="bohb",
             param_distributions=params,
             return_train_score=True,
             n_jobs=2)

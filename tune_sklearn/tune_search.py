@@ -656,15 +656,15 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         trainable = _Trainable
         if self.pipeline_auto_early_stop and check_is_pipeline(
-                self.estimator) and self.early_stopping:
+                self.estimator) and self.early_stopping_:
             trainable = _PipelineTrainable
 
         max_iter = self.max_iters
-        if self.early_stopping is not None:
+        if self.early_stopping_ is not None:
             config["estimator_ids"] = [
                 ray.put(self.estimator) for _ in range(self.n_splits)
             ]
-            if hasattr(self.early_stopping, "_max_t_attr"):
+            if hasattr(self.early_stopping_, "_max_t_attr"):
                 # we want to delegate stopping to schedulers which
                 # support it, but we want it to stop eventually, just in case
                 # the solution is to make the stop condition very big
@@ -676,7 +676,7 @@ class TuneSearchCV(TuneBaseSearchCV):
         if self.stopper:
             stopper = CombinedStopper(stopper, self.stopper)
         run_args = dict(
-            scheduler=self.early_stopping,
+            scheduler=self.early_stopping_,
             reuse_actors=True,
             verbose=self.verbose,
             stop=stopper,

@@ -246,10 +246,10 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         """
         trainable = _Trainable
         if self.pipeline_auto_early_stop and check_is_pipeline(
-                self.estimator) and self.early_stopping:
+                self.estimator) and self.early_stopping_:
             trainable = _PipelineTrainable
 
-        if self.early_stopping is not None:
+        if self.early_stopping_ is not None:
             config["estimator_ids"] = [
                 ray.put(self.estimator) for _ in range(self.n_splits)
             ]
@@ -261,7 +261,7 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             stopper = CombinedStopper(stopper, self.stopper)
 
         run_args = dict(
-            scheduler=self.early_stopping,
+            scheduler=self.early_stopping_,
             reuse_actors=True,
             verbose=self.verbose,
             stop=stopper,
