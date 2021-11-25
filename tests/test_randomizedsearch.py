@@ -455,46 +455,67 @@ class RandomizedSearchTest(unittest.TestCase):
 
     @unittest.skipIf(not has_xgboost(), "xgboost not installed")
     def test_early_stop_xgboost_warn(self):
+        X, y = make_classification(
+            n_samples=50, n_features=5, n_informative=3, random_state=0)
+
         from xgboost.sklearn import XGBClassifier
         with self.assertWarnsRegex(UserWarning, "github.com"):
             TuneSearchCV(
-                XGBClassifier(), {"C": [1, 2]},
+                XGBClassifier(), {
+                    "C": [1, 2]
+                },
                 early_stopping=True,
-                max_iters=10)
+                max_iters=10).fit(X, y)
         with self.assertWarnsRegex(UserWarning, "max_iters"):
             TuneSearchCV(
-                XGBClassifier(), {"C": [1, 2]},
+                XGBClassifier(), {
+                    "C": [1, 2]
+                },
                 early_stopping=True,
-                max_iters=1)
+                max_iters=1).fit(X, y)
 
     @unittest.skipIf(not has_required_lightgbm_version(),
                      "lightgbm not installed")
     def test_early_stop_lightgbm_warn(self):
+        X, y = make_classification(
+            n_samples=50, n_features=5, n_informative=3, random_state=0)
+
         from lightgbm import LGBMClassifier
         with self.assertWarnsRegex(UserWarning, "lightgbm"):
             TuneSearchCV(
-                LGBMClassifier(), {"learning_rate": [0.1, 0.5]},
+                LGBMClassifier(), {
+                    "learning_rate": [0.1, 0.5]
+                },
                 early_stopping=True,
-                max_iters=10)
+                max_iters=10).fit(X, y)
         with self.assertWarnsRegex(UserWarning, "max_iters"):
             TuneSearchCV(
-                LGBMClassifier(), {"learning_rate": [0.1, 0.5]},
+                LGBMClassifier(), {
+                    "learning_rate": [0.1, 0.5]
+                },
                 early_stopping=True,
-                max_iters=1)
+                max_iters=1).fit(X, y)
 
     @unittest.skipIf(not has_catboost(), "catboost not installed")
     def test_early_stop_catboost_warn(self):
+        X, y = make_classification(
+            n_samples=50, n_features=5, n_informative=3, random_state=0)
+
         from catboost import CatBoostClassifier
         with self.assertWarnsRegex(UserWarning, "Catboost"):
             TuneSearchCV(
-                CatBoostClassifier(), {"learning_rate": [0.1, 0.5]},
+                CatBoostClassifier(), {
+                    "learning_rate": [0.1, 0.5]
+                },
                 early_stopping=True,
-                max_iters=10)
+                max_iters=10).fit(X, y)
         with self.assertWarnsRegex(UserWarning, "max_iters"):
             TuneSearchCV(
-                CatBoostClassifier(), {"learning_rate": [0.1, 0.5]},
+                CatBoostClassifier(), {
+                    "learning_rate": [0.1, 0.5]
+                },
                 early_stopping=True,
-                max_iters=1)
+                max_iters=1).fit(X, y)
 
     def test_pipeline_early_stop(self):
         digits = datasets.load_digits()
