@@ -431,12 +431,19 @@ class RandomizedSearchTest(unittest.TestCase):
                 local_dir="./test-result")
 
     def test_warn_early_stop(self):
+        X, y = make_classification(
+            n_samples=50, n_features=5, n_informative=3, random_state=0)
+
         with self.assertWarnsRegex(UserWarning, "max_iters = 1"):
             TuneSearchCV(
-                LogisticRegression(), {"C": [1, 2]}, early_stopping=True)
+                LogisticRegression(), {
+                    "C": [1, 2]
+                }, early_stopping=True).fit(X, y)
         with self.assertWarnsRegex(UserWarning, "max_iters = 1"):
             TuneSearchCV(
-                SGDClassifier(), {"epsilon": [0.1, 0.2]}, early_stopping=True)
+                SGDClassifier(), {
+                    "epsilon": [0.1, 0.2]
+                }, early_stopping=True).fit(X, y)
 
     def test_warn_user_params(self):
         X, y = make_classification(
