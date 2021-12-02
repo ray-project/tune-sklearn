@@ -28,9 +28,34 @@ from test_utils import SleepClassifier, PlateauClassifier, MockClassifier
 
 class RandomizedSearchTest(unittest.TestCase):
     def test_clone_estimator(self):
-        params = dict(C=expon(scale=10), gamma=expon(scale=0.1))
+        params = dict(lr=tune.loguniform(0.1, 1))
         random_search = TuneSearchCV(
-            SVC(),
+            SGDClassifier(),
+            param_distributions=params,
+            return_train_score=True,
+            n_jobs=2)
+        clone(random_search)
+
+        random_search = TuneSearchCV(
+            SGDClassifier(),
+            early_stopping=True,
+            param_distributions=params,
+            return_train_score=True,
+            n_jobs=2)
+        clone(random_search)
+
+        random_search = TuneSearchCV(
+            SGDClassifier(),
+            early_stopping="HyperBandScheduler",
+            param_distributions=params,
+            return_train_score=True,
+            n_jobs=2)
+        clone(random_search)
+
+        random_search = TuneSearchCV(
+            SGDClassifier(),
+            early_stopping=True,
+            search_optimization="bohb",
             param_distributions=params,
             return_train_score=True,
             n_jobs=2)
@@ -406,12 +431,19 @@ class RandomizedSearchTest(unittest.TestCase):
                 local_dir="./test-result")
 
     def test_warn_early_stop(self):
+        X, y = make_classification(
+            n_samples=50, n_features=5, n_informative=3, random_state=0)
+
         with self.assertWarnsRegex(UserWarning, "max_iters = 1"):
             TuneSearchCV(
-                LogisticRegression(), {"C": [1, 2]}, early_stopping=True)
+                LogisticRegression(), {
+                    "C": [1, 2]
+                }, early_stopping=True).fit(X, y)
         with self.assertWarnsRegex(UserWarning, "max_iters = 1"):
             TuneSearchCV(
-                SGDClassifier(), {"epsilon": [0.1, 0.2]}, early_stopping=True)
+                SGDClassifier(), {
+                    "epsilon": [0.1, 0.2]
+                }, early_stopping=True).fit(X, y)
 
     def test_warn_user_params(self):
         X, y = make_classification(
@@ -430,46 +462,67 @@ class RandomizedSearchTest(unittest.TestCase):
 
     @unittest.skipIf(not has_xgboost(), "xgboost not installed")
     def test_early_stop_xgboost_warn(self):
+        X, y = make_classification(
+            n_samples=50, n_features=5, n_informative=3, random_state=0)
+
         from xgboost.sklearn import XGBClassifier
         with self.assertWarnsRegex(UserWarning, "github.com"):
             TuneSearchCV(
-                XGBClassifier(), {"C": [1, 2]},
+                XGBClassifier(), {
+                    "C": [1, 2]
+                },
                 early_stopping=True,
-                max_iters=10)
+                max_iters=10).fit(X, y)
         with self.assertWarnsRegex(UserWarning, "max_iters"):
             TuneSearchCV(
-                XGBClassifier(), {"C": [1, 2]},
+                XGBClassifier(), {
+                    "C": [1, 2]
+                },
                 early_stopping=True,
-                max_iters=1)
+                max_iters=1).fit(X, y)
 
     @unittest.skipIf(not has_required_lightgbm_version(),
                      "lightgbm not installed")
     def test_early_stop_lightgbm_warn(self):
+        X, y = make_classification(
+            n_samples=50, n_features=5, n_informative=3, random_state=0)
+
         from lightgbm import LGBMClassifier
         with self.assertWarnsRegex(UserWarning, "lightgbm"):
             TuneSearchCV(
-                LGBMClassifier(), {"learning_rate": [0.1, 0.5]},
+                LGBMClassifier(), {
+                    "learning_rate": [0.1, 0.5]
+                },
                 early_stopping=True,
-                max_iters=10)
+                max_iters=10).fit(X, y)
         with self.assertWarnsRegex(UserWarning, "max_iters"):
             TuneSearchCV(
-                LGBMClassifier(), {"learning_rate": [0.1, 0.5]},
+                LGBMClassifier(), {
+                    "learning_rate": [0.1, 0.5]
+                },
                 early_stopping=True,
-                max_iters=1)
+                max_iters=1).fit(X, y)
 
     @unittest.skipIf(not has_catboost(), "catboost not installed")
     def test_early_stop_catboost_warn(self):
+        X, y = make_classification(
+            n_samples=50, n_features=5, n_informative=3, random_state=0)
+
         from catboost import CatBoostClassifier
         with self.assertWarnsRegex(UserWarning, "Catboost"):
             TuneSearchCV(
-                CatBoostClassifier(), {"learning_rate": [0.1, 0.5]},
+                CatBoostClassifier(), {
+                    "learning_rate": [0.1, 0.5]
+                },
                 early_stopping=True,
-                max_iters=10)
+                max_iters=10).fit(X, y)
         with self.assertWarnsRegex(UserWarning, "max_iters"):
             TuneSearchCV(
-                CatBoostClassifier(), {"learning_rate": [0.1, 0.5]},
+                CatBoostClassifier(), {
+                    "learning_rate": [0.1, 0.5]
+                },
                 early_stopping=True,
-                max_iters=1)
+                max_iters=1).fit(X, y)
 
     def test_pipeline_early_stop(self):
         digits = datasets.load_digits()
@@ -654,7 +707,6 @@ class TestSearchSpace(unittest.TestCase):
     def testHyperopt(self):
         self._test_method("hyperopt")
 
-    @unittest.skip("bohb test currently failing")
     def testBohb(self):
         self._test_method("bohb")
 
@@ -806,7 +858,6 @@ class TestSearchSpace(unittest.TestCase):
             return
         self._test_points_to_evaluate("hyperopt")
 
-    @unittest.skip("bohb currently failing not installed")
     def testBOHBPointsToEvaluate(self):
         self._test_points_to_evaluate("bohb")
 
@@ -867,7 +918,6 @@ class TestSearchSpace(unittest.TestCase):
         self._test_seed_run("bayesian", seed=1234)
         self._test_seed_run("bayesian", seed="1234")
 
-    @unittest.skip("BOHB is currently failing")
     def test_seed_bohb(self):
         self._test_seed_run("bohb", seed=1234)
         self._test_seed_run("bohb", seed="1234")
