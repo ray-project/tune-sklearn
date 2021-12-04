@@ -684,7 +684,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             config=config,
             fail_fast="raise",
             resources_per_trial=resources_per_trial,
-            local_dir=os.path.expanduser(self.local_dir),
+            local_dir=self.local_dir,
             name=self.name,
             loggers=resolve_loggers(self.loggers, self.defined_schedulers),
             time_budget_s=self.time_budget_s,
