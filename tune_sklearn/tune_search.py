@@ -8,7 +8,6 @@ import ray
 from ray.tune.stopper import CombinedStopper
 import numpy as np
 import warnings
-import os
 
 from ray import tune
 from ray.tune.sample import Domain

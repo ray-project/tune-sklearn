@@ -2,7 +2,6 @@
     -- Anthony Yu and Michael Chau
 """
 import warnings
-import os
 
 import ray
 from ray.tune.stopper import CombinedStopper
