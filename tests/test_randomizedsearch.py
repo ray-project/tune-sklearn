@@ -306,11 +306,7 @@ class RandomizedSearchTest(unittest.TestCase):
             n_jobs=1,
             refit=False)
 
-        with self.assertRaises(ValueError) as exc:
-            tune_search.fit(x, y)
-        self.assertTrue((
-            "When using multimetric scoring, refit "
-            "must be the name of the scorer used to ") in str(exc.exception))
+        tune_search.fit(x, y)
 
     def test_warm_start_detection(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, prior="log-uniform")}
