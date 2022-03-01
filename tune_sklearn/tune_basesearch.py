@@ -486,7 +486,7 @@ class TuneBaseSearchCV(BaseSearchCV):
             self.scoring_, _ = _check_multimetric_scoring(
                 self.estimator, self.scoring)
 
-        if self._is_multi:
+        if self._is_multi and self.refit:
             if not isinstance(self.refit,
                               str) or self.refit not in self.scoring_:
                 raise ValueError("When using multimetric scoring, refit "
