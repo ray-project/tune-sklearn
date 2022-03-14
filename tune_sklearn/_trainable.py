@@ -2,6 +2,7 @@
 """
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
+from sklearn.base import clone
 import numpy as np
 import os
 from pickle import PicklingError
@@ -58,6 +59,8 @@ class _Trainable(Trainable):
         self.train_accuracy = None
         self.test_accuracy = None
         self.saved_models = []  # XGBoost specific
+
+        self.estimator_list = [clone(est) for est in self.estimator_list]
 
         if self.early_stopping:
             n_splits = self._setup_early_stopping()
