@@ -8,7 +8,6 @@ from pickle import PicklingError
 import warnings
 import inspect
 
-import ray
 from ray.tune import Trainable
 import ray.cloudpickle as cpickle
 from tune_sklearn.utils import (EarlyStopping, _aggregate_score_dicts)
@@ -27,8 +26,11 @@ class _Trainable(Trainable):
     def main_estimator(self):
         return self.estimator_list[0]
 
-    def setup(self, config):
+    def setup(self, config, X=None, y=None, estimator_list=None):
         # forward-compatbility
+        self.X = X
+        self.y = y
+        self.estimator_list = estimator_list
         self._setup(config)
 
     def _setup(self, config):
@@ -42,15 +44,8 @@ class _Trainable(Trainable):
                 stopping if it is set to true.
 
         """
-        estimator_ids = list(config.pop("estimator_ids"))
-        self.estimator_list = ray.get(estimator_ids)
         self.early_stopping = config.pop("early_stopping")
         self.early_stop_type = config.pop("early_stop_type")
-        X_id = config.pop("X_id")
-        self.X = ray.get(X_id)
-
-        y_id = config.pop("y_id")
-        self.y = ray.get(y_id)
         self.groups = config.pop("groups")
         self.fit_params = config.pop("fit_params")
         self.scoring = config.pop("scoring")

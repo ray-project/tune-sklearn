@@ -168,3 +168,7 @@ class MockDataFrame:
         # input validation in cross-validation does not try to call that
         # method.
         return self.array
+
+    def take(self, key, axis=None, **kwargs):
+        indexer = self.iloc
+        return indexer[:, key] if axis else indexer[key]

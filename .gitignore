@@ -6,4 +6,5 @@ dist
 .DS_Store
 *.egg-info
 MANIFEST
-
+catboost_info
+test-result
