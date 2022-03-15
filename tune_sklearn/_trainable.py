@@ -31,7 +31,7 @@ class _Trainable(Trainable):
         # forward-compatbility
         self.X = X
         self.y = y
-        self.estimator_list = estimator_list
+        self.original_estimator_list = estimator_list
         self._setup(config)
 
     def _setup(self, config):
@@ -60,7 +60,9 @@ class _Trainable(Trainable):
         self.test_accuracy = None
         self.saved_models = []  # XGBoost specific
 
-        self.estimator_list = [clone(est) for est in self.estimator_list]
+        self.estimator_list = [
+            clone(est) for est in self.original_estimator_list
+        ]
 
         if self.early_stopping:
             n_splits = self._setup_early_stopping()
