@@ -36,8 +36,7 @@ from ray.tune.schedulers import (
     MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
 
 from tune_sklearn.utils import (EarlyStopping, get_early_stop_type,
-                                check_is_pipeline, _check_multimetric_scoring,
-                                ray_context)
+                                check_is_pipeline, _check_multimetric_scoring)
 from tune_sklearn._detect_booster import is_lightgbm_model
 
 logger = logging.getLogger(__name__)
@@ -625,14 +624,7 @@ class TuneBaseSearchCV(BaseSearchCV):
             :obj:`TuneBaseSearchCV` child instance, after fitting.
 
         """
-        ray_kwargs = dict(
-            configure_logging=False,
-            ignore_reinit_error=True,
-            include_dashboard=False)
-        if self.n_jobs == 1:
-            ray_kwargs["local_mode"] = True
-        with ray_context(**ray_kwargs):
-            return self._fit(X, y, groups, tune_params, **fit_params)
+        return self._fit(X, y, groups, tune_params, **fit_params)
 
     def score(self, X, y=None):
         """Compute the score(s) of an estimator on a given test set.

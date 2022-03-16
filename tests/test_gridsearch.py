@@ -22,7 +22,6 @@ from sklearn.datasets import (
 from sklearn.metrics import f1_score, make_scorer
 import pytest
 import unittest
-from unittest.mock import patch
 from parameterized import parameterized
 from sklearn.cluster import KMeans
 from sklearn.svm import SVC, LinearSVC
@@ -700,21 +699,6 @@ class GridSearchTest(unittest.TestCase):
         print(pred)
         error = sum(np.array(pred) - np.array(y_test)) / len(pred)
         print(error)
-
-    def test_local_mode(self):
-        # Pass X as list in dcv.GridSearchCV
-        X = np.arange(100).reshape(10, 10)
-        y = np.array([0] * 5 + [1] * 5)
-
-        clf = CheckingClassifier(check_X=lambda x: isinstance(x, list))
-        cv = KFold(n_splits=3)
-        with patch.object(ray, "init", wraps=ray.init) as wrapped_init:
-            grid_search = TuneGridSearchCV(
-                clf, {"foo_param": [1, 2, 3]}, n_jobs=1, cv=cv)
-            grid_search.fit(X.tolist(), y).score(X, y)
-
-        self.assertTrue(hasattr(grid_search, "cv_results_"))
-        self.assertTrue(wrapped_init.call_args[1]["local_mode"])
 
     def test_tune_search_spaces(self):
         # Test mixed search spaces
