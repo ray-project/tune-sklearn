@@ -4,10 +4,9 @@
 import logging
 import random
 
-import ray
-from ray.tune.stopper import CombinedStopper
 import numpy as np
 import warnings
+from sklearn.base import clone
 
 from ray import tune
 from ray.tune.sample import Domain
@@ -15,6 +14,7 @@ from ray.tune.suggest import (ConcurrencyLimiter, BasicVariantGenerator,
                               Searcher)
 from ray.tune.suggest.bohb import TuneBOHB
 from ray.tune.schedulers import HyperBandForBOHB
+from ray.tune.stopper import CombinedStopper
 from ray.tune.suggest.skopt import SkOptSearch
 from ray.tune.suggest.hyperopt import HyperOptSearch
 from ray.tune.suggest.optuna import OptunaSearch
@@ -629,12 +629,18 @@ class TuneSearchCV(TuneBaseSearchCV):
                 raise ImportError("It appears that optuna is not installed. "
                                   "Do: pip install optuna") from None
 
-    def _tune_run(self, config, resources_per_trial, tune_params=None):
+    def _tune_run(self, X, y, config, resources_per_trial, tune_params=None):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
         generated when early stopping is not possible.
 
         Args:
+            X (:obj:`array-like` (shape = [n_samples, n_features])):
+                Training vector, where n_samples is the number of samples and
+                n_features is the number of features.
+            y (:obj:`array-like`): Shape of array expected to be [n_samples]
+                or [n_samples, n_output]). Target relative to X for
+                classification or regression; None for unsupervised learning.
             config (dict): Configurations such as hyperparameters to run
             ``tune.run`` on.
             resources_per_trial (dict): Resources to use per trial within Ray.
@@ -660,8 +666,8 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         max_iter = self.max_iters
         if self.early_stopping_ is not None:
-            config["estimator_ids"] = [
-                ray.put(self.estimator) for _ in range(self.n_splits)
+            estimator_list = [
+                clone(self.estimator) for _ in range(self.n_splits)
             ]
             if hasattr(self.early_stopping_, "_max_t_attr"):
                 # we want to delegate stopping to schedulers which
@@ -669,7 +675,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 # the solution is to make the stop condition very big
                 max_iter = self.max_iters * 10
         else:
-            config["estimator_ids"] = [ray.put(self.estimator)]
+            estimator_list = [clone(self.estimator)]
 
         stopper = MaximumIterationStopper(max_iter=max_iter)
         if self.stopper:
@@ -791,6 +797,9 @@ class TuneSearchCV(TuneBaseSearchCV):
 
         run_args = self._override_run_args_with_tune_params(
             run_args, tune_params)
+
+        trainable = tune.with_parameters(
+            trainable, X=X, y=y, estimator_list=estimator_list)
 
         with warnings.catch_warnings():
             warnings.filterwarnings(

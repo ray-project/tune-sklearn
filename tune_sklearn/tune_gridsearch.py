@@ -3,10 +3,12 @@
 """
 import warnings
 
-import ray
-from ray.tune.stopper import CombinedStopper
 from sklearn.model_selection import ParameterGrid
+from sklearn.base import clone
+
 from ray import tune
+from ray.tune.stopper import CombinedStopper
+
 from tune_sklearn.list_searcher import ListSearcher
 from tune_sklearn.utils import (_check_param_grid_tune_grid_search,
                                 check_is_pipeline, check_error_warm_start,
@@ -223,12 +225,18 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         """
         return len(list(ParameterGrid(self.param_grid)))
 
-    def _tune_run(self, config, resources_per_trial, tune_params=None):
+    def _tune_run(self, X, y, config, resources_per_trial, tune_params=None):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
         generated when  early stopping is not possible.
 
         Args:
+            X (:obj:`array-like` (shape = [n_samples, n_features])):
+                Training vector, where n_samples is the number of samples and
+                n_features is the number of features.
+            y (:obj:`array-like`): Shape of array expected to be [n_samples]
+                or [n_samples, n_output]). Target relative to X for
+                classification or regression; None for unsupervised learning.
             config (dict): Configurations such as hyperparameters to run
                 ``tune.run`` on.
             resources_per_trial (dict): Resources to use per trial within Ray.
@@ -249,11 +257,11 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             trainable = _PipelineTrainable
 
         if self.early_stopping_ is not None:
-            config["estimator_ids"] = [
-                ray.put(self.estimator) for _ in range(self.n_splits)
+            estimator_list = [
+                clone(self.estimator) for _ in range(self.n_splits)
             ]
         else:
-            config["estimator_ids"] = [ray.put(self.estimator)]
+            estimator_list = [clone(self.estimator)]
 
         stopper = MaximumIterationStopper(max_iter=self.max_iters)
         if self.stopper:
@@ -282,6 +290,9 @@ class TuneGridSearchCV(TuneBaseSearchCV):
 
         run_args = self._override_run_args_with_tune_params(
             run_args, tune_params)
+
+        trainable = tune.with_parameters(
+            trainable, X=X, y=y, estimator_list=estimator_list)
 
         with warnings.catch_warnings():
             warnings.filterwarnings(

@@ -1,8 +1,9 @@
 import unittest
 import ray
+from ray import tune
 from tune_sklearn._trainable import _Trainable
-from tune_sklearn._detect_booster import (has_xgboost,
-                                          has_required_lightgbm_version)
+from tune_sklearn._detect_booster import (
+    has_xgboost, has_required_lightgbm_version, has_catboost)
 
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression, SGDClassifier
@@ -33,8 +34,6 @@ def create_catboost():
 
 
 class TrainableTest(unittest.TestCase):
-    X_id = None
-    y_id = None
     X = None
     y = None
 
@@ -43,7 +42,6 @@ class TrainableTest(unittest.TestCase):
         ray.init(local_mode=True)
         X, y = make_classification(
             n_samples=50, n_features=50, n_informative=3, random_state=0)
-        cls.X_id, cls.y_id = ray.put(X), ray.put(y)
         cls.y = y
         cls.X = X
 
@@ -52,15 +50,9 @@ class TrainableTest(unittest.TestCase):
         ray.shutdown()
 
     def base_params(self, estimator_list):
-        config = {
-            "estimator_ids": [
-                ray.put(estimator) for estimator in estimator_list
-            ]
-        }
+        config = {}
         cv = check_cv(
             cv=len(estimator_list), y=self.y, classifier=estimator_list[0])
-        config["X_id"] = self.X_id
-        config["y_id"] = self.y_id
         config["early_stopping"] = False
         config["early_stop_type"] = get_early_stop_type(
             estimator_list[0], False)
@@ -75,8 +67,11 @@ class TrainableTest(unittest.TestCase):
         return config
 
     def test_basic_train(self):
-        config = self.base_params(estimator_list=[SVC(), SVC()])
-        trainable = _Trainable(config)
+        estimator_list = [SVC(), SVC()]
+        config = self.base_params(estimator_list)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         trainable.stop()
 
@@ -87,7 +82,9 @@ class TrainableTest(unittest.TestCase):
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
             estimator_list[0], True)
-        trainable = _Trainable(config)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         assert all(trainable.saved_models)
         trainable.train()
@@ -96,11 +93,12 @@ class TrainableTest(unittest.TestCase):
 
     @unittest.skipIf(not has_xgboost(), "xgboost not installed")
     def testXGBoostNoEarlyStop(self):
-        config = self.base_params(
-            estimator_list=[create_xgboost(),
-                            create_xgboost()])
+        estimator_list = [create_xgboost(), create_xgboost()]
+        config = self.base_params(estimator_list=estimator_list)
         config["early_stopping"] = False
-        trainable = _Trainable(config)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         assert not any(trainable.saved_models)
         trainable.stop()
@@ -113,7 +111,9 @@ class TrainableTest(unittest.TestCase):
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
             estimator_list[0], True)
-        trainable = _Trainable(config)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         assert all(trainable.saved_models)
         trainable.train()
@@ -126,33 +126,37 @@ class TrainableTest(unittest.TestCase):
         estimator_list = [create_lightgbm(), create_lightgbm()]
         config = self.base_params(estimator_list=estimator_list)
         config["early_stopping"] = False
-        trainable = _Trainable(config)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         assert not any(trainable.saved_models)
         trainable.stop()
 
-    # @unittest.skipIf(not has_catboost(), "catboost not installed")
-    @unittest.skip("Catboost needs to be updated.")
+    @unittest.skipIf(not has_catboost(), "catboost not installed")
     def testCatboostEarlyStop(self):
         estimator_list = [create_catboost(), create_catboost()]
         config = self.base_params(estimator_list=estimator_list)
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
             estimator_list[0], True)
-        trainable = _Trainable(config)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         assert all(trainable.saved_models)
         trainable.train()
         assert all(trainable.saved_models)
         trainable.stop()
 
-    # @unittest.skipIf(not has_catboost(), "catboost not installed")
-    @unittest.skip("Catboost needs to be updated.")
+    @unittest.skipIf(not has_catboost(), "catboost not installed")
     def testCatboostNoEarlyStop(self):
         estimator_list = [create_catboost(), create_catboost()]
         config = self.base_params(estimator_list=estimator_list)
         config["early_stopping"] = False
-        trainable = _Trainable(config)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         assert not any(trainable.saved_models)
         trainable.stop()
@@ -163,7 +167,9 @@ class TrainableTest(unittest.TestCase):
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
             estimator_list[0], True)
-        trainable = _Trainable(config)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         assert trainable.estimator_list[0].t_ > 0
         previous_t = trainable.estimator_list[0].t_
@@ -175,7 +181,9 @@ class TrainableTest(unittest.TestCase):
         estimator_list = [SGDClassifier(), SGDClassifier()]
         config = self.base_params(estimator_list)
         config["early_stopping"] = False
-        trainable = _Trainable(config)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         assert not hasattr(trainable.estimator_list[0], "t_")
         trainable.train()
@@ -189,7 +197,9 @@ class TrainableTest(unittest.TestCase):
         config["early_stopping"] = True
         config["early_stop_type"] = get_early_stop_type(
             estimator_list[0], True)
-        trainable = _Trainable(config)
+        trainable = tune.with_parameters(
+            _Trainable, X=self.X, y=self.y,
+            estimator_list=estimator_list)(config)
         trainable.train()
         trainable.train()
         trainable.stop()

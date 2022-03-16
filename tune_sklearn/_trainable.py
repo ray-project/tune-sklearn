@@ -2,13 +2,13 @@
 """
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
+from sklearn.base import clone
 import numpy as np
 import os
 from pickle import PicklingError
 import warnings
 import inspect
 
-import ray
 from ray.tune import Trainable
 import ray.cloudpickle as cpickle
 from tune_sklearn.utils import (EarlyStopping, _aggregate_score_dicts)
@@ -27,8 +27,11 @@ class _Trainable(Trainable):
     def main_estimator(self):
         return self.estimator_list[0]
 
-    def setup(self, config):
+    def setup(self, config, X=None, y=None, estimator_list=None):
         # forward-compatbility
+        self.X = X
+        self.y = y
+        self.original_estimator_list = estimator_list
         self._setup(config)
 
     def _setup(self, config):
@@ -42,15 +45,8 @@ class _Trainable(Trainable):
                 stopping if it is set to true.
 
         """
-        estimator_ids = list(config.pop("estimator_ids"))
-        self.estimator_list = ray.get(estimator_ids)
         self.early_stopping = config.pop("early_stopping")
         self.early_stop_type = config.pop("early_stop_type")
-        X_id = config.pop("X_id")
-        self.X = ray.get(X_id)
-
-        y_id = config.pop("y_id")
-        self.y = ray.get(y_id)
         self.groups = config.pop("groups")
         self.fit_params = config.pop("fit_params")
         self.scoring = config.pop("scoring")
@@ -63,6 +59,10 @@ class _Trainable(Trainable):
         self.train_accuracy = None
         self.test_accuracy = None
         self.saved_models = []  # XGBoost specific
+
+        self.estimator_list = [
+            clone(est) for est in self.original_estimator_list
+        ]
 
         if self.early_stopping:
             n_splits = self._setup_early_stopping()

@@ -517,14 +517,9 @@ class TuneBaseSearchCV(BaseSearchCV):
                 gpu_fraction = int(np.ceil(gpu_fraction))
             resources_per_trial = {"cpu": cpu_fraction, "gpu": gpu_fraction}
 
-        X_id = ray.put(X)
-        y_id = ray.put(y)
-
         config = {}
         config["early_stopping"] = bool(self.early_stopping_)
         config["early_stop_type"] = self.early_stop_type
-        config["X_id"] = X_id
-        config["y_id"] = y_id
         config["groups"] = groups
         config["cv"] = cv
         config["fit_params"] = fit_params
@@ -535,7 +530,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         config["metric_name"] = self._metric_name
 
         self._fill_config_hyperparam(config)
-        self.analysis_ = self._tune_run(config, resources_per_trial,
+        self.analysis_ = self._tune_run(X, y, config, resources_per_trial,
                                         tune_params)
 
         self.cv_results_ = self._format_results(self.n_splits, self.analysis_)
@@ -679,10 +674,16 @@ class TuneBaseSearchCV(BaseSearchCV):
         """
         raise NotImplementedError("Define in child class")
 
-    def _tune_run(self, config, resources_per_trial, tune_params=None):
+    def _tune_run(self, X, y, config, resources_per_trial, tune_params=None):
         """Wrapper to call ``tune.run``. Implement this in a child class.
 
         Args:
+            X (:obj:`array-like` (shape = [n_samples, n_features])):
+                Training vector, where n_samples is the number of samples and
+                n_features is the number of features.
+            y (:obj:`array-like`): Shape of array expected to be [n_samples]
+                or [n_samples, n_output]). Target relative to X for
+                classification or regression; None for unsupervised learning.
             config (:obj:`dict`): dictionary to be passed in as the
                 configuration for `tune.run`.
             resources_per_trial (:obj:`dict` of int): dictionary specifying the
@@ -726,9 +727,8 @@ class TuneBaseSearchCV(BaseSearchCV):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "estimator_ids", "early_stopping", "X_id", "y_id", "groups",
-                "cv", "fit_params", "scoring", "max_iters",
-                "return_train_score", "n_jobs", "metric_name",
+                "early_stopping", "groups", "cv", "fit_params", "scoring",
+                "max_iters", "return_train_score", "n_jobs", "metric_name",
                 "early_stop_type"
         ]:
             config.pop(key, None)
