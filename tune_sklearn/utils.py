@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import Dict
 
+from sklearn.compose import TransformedTargetRegressor
 from sklearn.metrics import check_scoring
 from sklearn.pipeline import Pipeline
 from tune_sklearn._detect_booster import (
@@ -94,6 +95,10 @@ def check_error_warm_start(early_stop_type, estimator_config, estimator):
 
 
 def get_early_stop_type(estimator, early_stopping):
+    # If estimator is TransformedTargetRegressor we should get the wrapped regressor.
+    if isinstance(estimator, TransformedTargetRegressor):
+        estimator = estimator.regressor
+
     if not early_stopping:
         return EarlyStopping.NO_EARLY_STOP
     can_partial_fit = check_partial_fit(estimator)
