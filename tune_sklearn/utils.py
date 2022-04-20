@@ -1,9 +1,11 @@
 from collections import defaultdict
 from typing import Dict
 
+from sklearn.base import RegressorMixin
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.metrics import check_scoring
 from sklearn.pipeline import Pipeline
+
 from tune_sklearn._detect_booster import (
     is_xgboost_model, is_lightgbm_model_of_required_version, is_catboost_model)
 import numpy as np
@@ -101,6 +103,14 @@ def get_early_stop_type(estimator, early_stopping):
 
     if not early_stopping:
         return EarlyStopping.NO_EARLY_STOP
+
+    if check_is_pipeline(estimator):
+        for step_name, step in estimator.steps:
+            is_regressor = isinstance(step, RegressorMixin)
+            if is_regressor:
+                estimator = step
+                break
+
     can_partial_fit = check_partial_fit(estimator)
     can_warm_start_iter = check_warm_start_iter(estimator)
     can_warm_start_ensemble = check_warm_start_ensemble(estimator)
