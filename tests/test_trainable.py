@@ -5,12 +5,15 @@ from tune_sklearn._trainable import _Trainable
 from tune_sklearn._detect_booster import (
     has_xgboost, has_required_lightgbm_version, has_catboost)
 
+from lightgbm import LGBMRegressor
+from ray.tune.schedulers import AsyncHyperBandScheduler
+from sklearn.compose import TransformedTargetRegressor
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.model_selection import check_cv
 from sklearn.svm import SVC
 
-from tune_sklearn.utils import _check_multimetric_scoring, get_early_stop_type
+from tune_sklearn.utils import _check_multimetric_scoring, get_early_stop_type, EarlyStopping
 
 
 def create_xgboost():
@@ -203,3 +206,14 @@ class TrainableTest(unittest.TestCase):
         trainable.train()
         trainable.train()
         trainable.stop()
+
+
+class TestGetEarlyStopType(unittest.TestCase):
+    def testLGBMRegressor(self):
+        lgbm_regressor = LGBMRegressor()
+        transformed_target_regressor = TransformedTargetRegressor(lgbm_regressor)
+        early_stopping_type = get_early_stop_type(
+            estimator=transformed_target_regressor,
+            early_stopping=AsyncHyperBandScheduler(),
+        )
+        self.assertEqual(early_stopping_type, EarlyStopping.LGBM)
