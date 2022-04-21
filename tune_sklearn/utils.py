@@ -282,18 +282,20 @@ def resolve_logger_callbacks(loggers, defined_loggers) -> List[Callback]:
     for log in loggers:
         if isinstance(log, str):
             if log == "tensorboard":
-                init_loggers.add(TBXLoggerCallback)
+                init_loggers.add(TBXLoggerCallback())
             elif log == "csv":
-                init_loggers.add(CSVLoggerCallback)
+                init_loggers.add(CSVLoggerCallback())
             elif log == "mlflow":
-                init_loggers.add(MLflowLoggerCallback)
+                init_loggers.add(MLflowLoggerCallback())
             elif log == "json":
-                init_loggers.add(JsonLoggerCallback)
+                init_loggers.add(JsonLoggerCallback())
             else:
                 raise ValueError(f"{log} is not one of the defined loggers: "
                                  f"{defined_loggers}")
-        elif inspect.isclass(log) and issubclass(log, LoggerCallback):
+        elif isinstance(log, LoggerCallback):
             init_loggers.add(log)
+        elif inspect.isclass(log) and issubclass(log, LoggerCallback):
+            init_loggers.add(log())
         elif inspect.isclass(log) and issubclass(log, Logger):
             warnings.warn(
                 "Passing `Logger`s is deprecated - please use "
