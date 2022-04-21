@@ -13,7 +13,7 @@ from tune_sklearn.list_searcher import ListSearcher
 from tune_sklearn.utils import (_check_param_grid_tune_grid_search,
                                 check_is_pipeline, check_error_warm_start,
                                 is_tune_grid_search, MaximumIterationStopper,
-                                resolve_loggers)
+                                resolve_logger_callbacks)
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
 from tune_sklearn._trainable import _Trainable
 from tune_sklearn._trainable import _PipelineTrainable
@@ -277,7 +277,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             resources_per_trial=resources_per_trial,
             local_dir=self.local_dir,
             name=self.name,
-            loggers=resolve_loggers(self.loggers, self.defined_schedulers),
+            callbacks=resolve_logger_callbacks(self.loggers,
+                                               self.defined_loggers),
             time_budget_s=self.time_budget_s,
             metric=self._metric_name,
             mode=self.mode)

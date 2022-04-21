@@ -1,6 +1,9 @@
+import warnings
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, List
 
+from ray.train.callbacks import MLflowLoggerCallback
+from ray.tune import Callback
 from sklearn.metrics import check_scoring
 from sklearn.pipeline import Pipeline
 from tune_sklearn._detect_booster import (
@@ -9,8 +12,9 @@ import numpy as np
 from enum import Enum, auto
 from collections.abc import Sequence
 import inspect
-from ray.tune.logger import (TBXLogger, JsonLogger, CSVLogger, MLFLowLogger,
-                             Logger)
+from ray.tune.logger import (Logger, JsonLoggerCallback, CSVLoggerCallback,
+                             TBXLoggerCallback, LegacyLoggerCallback,
+                             LoggerCallback)
 
 try:
     from ray.tune.stopper import MaximumIterationStopper
@@ -266,31 +270,37 @@ def _check_param_grid_tune_grid_search(param_grid):
                                  "to be a non-empty sequence.".format(name))
 
 
-def resolve_loggers(loggers, defined_schedulers):
-    init_loggers = {JsonLogger, CSVLogger}
+def resolve_logger_callbacks(loggers, defined_loggers) -> List[Callback]:
+    init_loggers = {JsonLoggerCallback, CSVLoggerCallback}
     if loggers is None:
         return list(init_loggers)
 
     if not isinstance(loggers, list):
-        raise TypeError("`loggers` must be a list of str or tune loggers.")
+        raise TypeError(
+            "`loggers` must be a list of str or tune logger callbacks.")
 
     for log in loggers:
         if isinstance(log, str):
             if log == "tensorboard":
-                init_loggers.add(TBXLogger)
+                init_loggers.add(TBXLoggerCallback)
             elif log == "csv":
-                init_loggers.add(CSVLogger)
+                init_loggers.add(CSVLoggerCallback)
             elif log == "mlflow":
-                init_loggers.add(MLFLowLogger)
+                init_loggers.add(MLflowLoggerCallback)
             elif log == "json":
-                init_loggers.add(JsonLogger)
+                init_loggers.add(JsonLoggerCallback)
             else:
-                raise ValueError(("{} is not one of the defined loggers. " +
-                                  str(defined_schedulers)).format(log))
-        elif inspect.isclass(log) and issubclass(log, Logger):
+                raise ValueError(f"{log} is not one of the defined loggers: "
+                                 f"{defined_loggers}")
+        elif inspect.isclass(log) and issubclass(log, LoggerCallback):
             init_loggers.add(log)
+        elif inspect.isclass(log) and issubclass(log, Logger):
+            warnings.warn(
+                "Passing `Logger`s is deprecated - please use "
+                "`LoggerCallback`s instead.", DeprecationWarning)
+            init_loggers.add(LegacyLoggerCallback(log))
         else:
             raise TypeError("`loggers` must be a list of str or tune "
-                            "loggers.")
+                            "logger callbacks.")
 
     return list(init_loggers)
