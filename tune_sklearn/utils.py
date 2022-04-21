@@ -271,7 +271,7 @@ def _check_param_grid_tune_grid_search(param_grid):
 
 
 def resolve_logger_callbacks(loggers, defined_loggers) -> List[Callback]:
-    init_loggers = {JsonLoggerCallback, CSVLoggerCallback}
+    init_loggers = {JsonLoggerCallback(), CSVLoggerCallback()}
     if loggers is None:
         return list(init_loggers)
 
