@@ -707,6 +707,13 @@ class TuneBaseSearchCV(BaseSearchCV):
                     ". This may cause unexpected issues! If you experience "
                     "issues, please try removing those parameters from "
                     "tune_params.")
+
+            # Merge library-provided and user-provided callbacks
+            library_callbacks = run_args.get("callbacks", None)
+            user_callbacks = tune_params.get("callbacks", None)
+            if library_callbacks and user_callbacks:
+                tune_params["callbacks"] = library_callbacks + user_callbacks
+
             run_args = {**run_args, **tune_params}
         return run_args
 
