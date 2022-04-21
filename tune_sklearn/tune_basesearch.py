@@ -700,7 +700,7 @@ class TuneBaseSearchCV(BaseSearchCV):
 
         if tune_params:
             user_overrides = {k for k in tune_params if k in run_args}
-            user_overrides.pop("callbacks", None)
+            user_overrides.discard("callbacks")
             if user_overrides:
                 warnings.warn(
                     "The following preset tune.run parameters will "
@@ -714,7 +714,8 @@ class TuneBaseSearchCV(BaseSearchCV):
             user_callbacks = tune_params.get("callbacks", None)
             if library_callbacks and user_callbacks:
                 tune_params["callbacks"] = library_callbacks + user_callbacks
-                logger.info("Merging default and user provided tune callbacks.")
+                logger.info(
+                    "Merging default and user provided tune callbacks.")
 
             run_args = {**run_args, **tune_params}
         return run_args
