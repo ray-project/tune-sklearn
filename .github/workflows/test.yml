@@ -67,35 +67,6 @@ jobs:
         chmod +x ./run_examples.sh
         bash ./run_examples.sh
 
-  build_docs:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.7
-    - name: Check out Ray
-      uses: actions/checkout@v2
-      with:
-        repository: ray-project/ray
-        path: ray
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install --use-deprecated=legacy-resolver -U -r ray/python/requirements.txt
-        python -m pip install --use-deprecated=legacy-resolver -U -r ray/doc/requirements-rtd.txt
-        python -m pip install --use-deprecated=legacy-resolver -r ray/doc/requirements-doc.txt
-    - name: Install package
-      run: |
-        python -m pip install -e .
-    - name: Build the documentation
-      run: |
-        export DOC_BUILD=1 PYTHONWARNINGS=ignore
-        cd ray/doc/ && sphinx-build -q -E -W -T -b html source _build/html
-
   test_lint:
 
     runs-on: ubuntu-latest
