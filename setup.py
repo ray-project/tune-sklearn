@@ -22,6 +22,7 @@ setup(
     description=("A drop-in replacement for Scikit-Learn's "
                  "GridSearchCV / RandomizedSearchCV with cutting edge "
                  "hyperparameter tuning techniques."),
+    license="Apache 2.0",
     long_description=io.open(
         os.path.join(ROOT_DIR, "README.md"), "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
