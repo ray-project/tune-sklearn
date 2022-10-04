@@ -9,15 +9,15 @@ import warnings
 from sklearn.base import clone
 
 from ray import tune
-from ray.tune.sample import Domain
-from ray.tune.suggest import (ConcurrencyLimiter, BasicVariantGenerator,
-                              Searcher)
-from ray.tune.suggest.bohb import TuneBOHB
+from ray.tune.search.sample import Domain
+from ray.tune.search import (ConcurrencyLimiter, BasicVariantGenerator,
+                             Searcher)
+from ray.tune.search.bohb import TuneBOHB
 from ray.tune.schedulers import HyperBandForBOHB
 from ray.tune.stopper import CombinedStopper
-from ray.tune.suggest.skopt import SkOptSearch
-from ray.tune.suggest.hyperopt import HyperOptSearch
-from ray.tune.suggest.optuna import OptunaSearch
+from ray.tune.search.skopt import SkOptSearch
+from ray.tune.search.hyperopt import HyperOptSearch
+from ray.tune.search.optuna import OptunaSearch
 
 from tune_sklearn.utils import check_is_pipeline, MaximumIterationStopper
 from tune_sklearn.tune_basesearch import TuneBaseSearchCV
@@ -254,7 +254,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             resource_param (max_iter or n_estimators) is
             incremented by `max resource value // max_iters`.
         search_optimization ("random" or "bayesian" or "bohb" or "hyperopt"
-            or "optuna" or `ray.tune.suggest.Searcher` instance):
+            or "optuna" or `ray.tune.search.Searcher` instance):
             Randomized search is invoked with ``search_optimization`` set to
             ``"random"`` and behaves like scikit-learn's
             ``RandomizedSearchCV``.
@@ -350,7 +350,7 @@ class TuneSearchCV(TuneBaseSearchCV):
             raise ValueError(
                 "Search optimization must be one of "
                 f"{', '.join(list(available_optimizations.values()))} "
-                "or a ray.tune.suggest.Searcher instance.")
+                "or a ray.tune.search.Searcher instance.")
 
         if isinstance(self._search_optimization_lower, Searcher):
             if not hasattr(self._search_optimization_lower,
@@ -806,5 +806,6 @@ class TuneSearchCV(TuneBaseSearchCV):
             warnings.filterwarnings(
                 "ignore", message="fail_fast='raise' "
                 "detected.")
+            print(run_args)
             analysis = tune.run(trainable, **run_args)
         return analysis

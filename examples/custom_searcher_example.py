@@ -5,7 +5,7 @@ directly in TuneSearchCV.
 
 from tune_sklearn import TuneSearchCV
 from ray import tune
-from ray.tune.suggest.hebo import HEBOSearch
+from ray.tune.search.hebo import HEBOSearch
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
@@ -28,7 +28,7 @@ param_distributions = {
 searcher = HEBOSearch()
 
 # It is also possible to use user-defined Searchers, as long as
-# they inherit from ray.tune.suggest.Searcher and have the following
+# they inherit from ray.tune.search.Searcher and have the following
 # attributes: _space, _metric, _mode
 
 tune_search = TuneSearchCV(

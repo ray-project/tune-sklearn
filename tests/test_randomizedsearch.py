@@ -692,7 +692,7 @@ class TestSearchSpace(unittest.TestCase):
         self._test_method("optuna")
 
     def testCustomSearcher(self):
-        from ray.tune.suggest.hyperopt import HyperOptSearch
+        from ray.tune.search.hyperopt import HyperOptSearch
 
         class CustomSearcher(HyperOptSearch):
             pass
@@ -708,7 +708,7 @@ class TestSearchSpace(unittest.TestCase):
         self._test_method(CustomSearcher())
 
     def testCustomSearcherWithSearchSpaceException(self):
-        from ray.tune.suggest.hyperopt import HyperOptSearch
+        from ray.tune.search.hyperopt import HyperOptSearch
         from hyperopt import hp
 
         class CustomSearcher(HyperOptSearch):
@@ -737,7 +737,7 @@ class TestSearchSpace(unittest.TestCase):
             " its mode") in str(exc.exception))
 
     def testCustomSearcherWithSearchSpace(self):
-        from ray.tune.suggest.hyperopt import HyperOptSearch
+        from ray.tune.search.hyperopt import HyperOptSearch
         from hyperopt import hp
 
         class CustomSearcher(HyperOptSearch):
@@ -827,7 +827,7 @@ class TestSearchSpace(unittest.TestCase):
         self._test_points_to_evaluate("bayesian")
 
     def testHyperoptPointsToEvaluate(self):
-        from ray.tune.suggest.hyperopt import HyperOptSearch
+        from ray.tune.search.hyperopt import HyperOptSearch
         # Skip test if category conversion is not available
         if not hasattr(HyperOptSearch, "_convert_categories_to_indices"):
             self.skipTest(f"The current version of Ray does not support the "

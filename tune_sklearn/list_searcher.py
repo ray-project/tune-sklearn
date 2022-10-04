@@ -4,7 +4,7 @@ list of dictionaries for hyperparameters
 """
 
 from sklearn.model_selection import ParameterGrid
-from ray.tune.suggest.suggestion import Searcher
+from ray.tune.search.searcher import Searcher
 import random
 
 
