@@ -2,7 +2,6 @@ import warnings
 from collections import defaultdict
 from typing import Dict, List
 
-from ray.train.callbacks import MLflowLoggerCallback
 from ray.tune import Callback
 from sklearn.metrics import check_scoring
 from sklearn.pipeline import Pipeline
@@ -15,6 +14,7 @@ import inspect
 from ray.tune.logger import (Logger, JsonLoggerCallback, CSVLoggerCallback,
                              TBXLoggerCallback, LegacyLoggerCallback,
                              LoggerCallback)
+from ray.tune.integration.mlflow import MLflowLoggerCallback
 
 try:
     from ray.tune.stopper import MaximumIterationStopper
