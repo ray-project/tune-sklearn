@@ -27,4 +27,6 @@ setup(
         os.path.join(ROOT_DIR, "README.md"), "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/ray-project/tune-sklearn",
-    install_requires=["scikit-learn", "scipy", "ray[tune]", "numpy>=1.16"])
+    install_requires=[
+        "scikit-learn", "scipy", "ray[tune]>=2.0.0", "numpy>=1.16"
+    ])
