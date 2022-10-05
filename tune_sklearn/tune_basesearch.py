@@ -30,7 +30,7 @@ import time
 import numbers
 
 import ray
-from ray.tune.trial import Trial
+from ray.tune.experiment.trial import Trial
 from ray.tune.schedulers import (
     PopulationBasedTraining, AsyncHyperBandScheduler, HyperBandScheduler,
     MedianStoppingRule, TrialScheduler, ASHAScheduler, HyperBandForBOHB)
