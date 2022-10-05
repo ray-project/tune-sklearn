@@ -383,6 +383,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                 if early_stopping is False:
                     raise ValueError(
                         "early_stopping must not be False when using BOHB")
+                early_stopping = "HyperBandForBOHB"
             elif not isinstance(early_stopping, HyperBandForBOHB):
                 if early_stopping != "HyperBandForBOHB":
                     warnings.warn("Ignoring early_stopping value, "
