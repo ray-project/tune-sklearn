@@ -171,10 +171,6 @@ class RandomizedSearchTest(unittest.TestCase):
         scoring = ("accuracy", "f1_micro")
         search_methods = ["random", "bayesian", "hyperopt", "bohb", "optuna"]
         for search_method in search_methods:
-            if search_method == "bohb":
-                print("bobh test currently failing")
-                continue
-
             tune_search = TuneSearchCV(
                 model,
                 parameter_grid,
@@ -206,9 +202,6 @@ class RandomizedSearchTest(unittest.TestCase):
         scoring = {"acc": "accuracy", "f1": "f1_micro"}
         search_methods = ["random", "bayesian", "hyperopt", "bohb", "optuna"]
         for search_method in search_methods:
-            if search_method == "bohb":
-                print("bobh test currently failing")
-                continue
             tune_search = TuneSearchCV(
                 model,
                 parameter_grid,
@@ -239,9 +232,6 @@ class RandomizedSearchTest(unittest.TestCase):
 
         search_methods = ["random", "bayesian", "hyperopt", "bohb", "optuna"]
         for search_method in search_methods:
-            if search_method == "bohb":
-                print("bobh test currently failing")
-                continue
             tune_search = TuneSearchCV(
                 model,
                 parameter_grid,
