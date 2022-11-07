@@ -44,6 +44,7 @@ class TrainableTest(unittest.TestCase):
             n_samples=50, n_features=50, n_informative=3, random_state=0)
         cls.y = y
         cls.X = X
+        cls.fit_params = None
 
     @classmethod
     def tearDownClass(cls):
@@ -59,7 +60,6 @@ class TrainableTest(unittest.TestCase):
         config["max_iters"] = 1
         config["groups"] = None
         config["cv"] = cv
-        config["fit_params"] = None
         config["scoring"], _ = _check_multimetric_scoring(
             estimator_list[0], scoring=None)
         config["return_train_score"] = False

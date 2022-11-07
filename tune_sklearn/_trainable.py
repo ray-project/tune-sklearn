@@ -27,11 +27,17 @@ class _Trainable(Trainable):
     def main_estimator(self):
         return self.estimator_list[0]
 
-    def setup(self, config, X=None, y=None, estimator_list=None):
+    def setup(self,
+              config,
+              X=None,
+              y=None,
+              estimator_list=None,
+              fit_params=None):
         # forward-compatbility
         self.X = X
         self.y = y
         self.original_estimator_list = estimator_list
+        self.fit_params = fit_params
         self._setup(config)
 
     def _setup(self, config):
@@ -48,7 +54,6 @@ class _Trainable(Trainable):
         self.early_stopping = config.pop("early_stopping")
         self.early_stop_type = config.pop("early_stop_type")
         self.groups = config.pop("groups")
-        self.fit_params = config.pop("fit_params")
         self.scoring = config.pop("scoring")
         self.max_iters = config.pop("max_iters")
         self.cv = config.pop("cv")
