@@ -522,7 +522,6 @@ class TuneBaseSearchCV(BaseSearchCV):
         config["early_stop_type"] = self.early_stop_type
         config["groups"] = groups
         config["cv"] = cv
-        config["fit_params"] = fit_params
         config["scoring"] = self.scoring_
         config["max_iters"] = self.max_iters
         config["return_train_score"] = self.return_train_score
@@ -531,7 +530,7 @@ class TuneBaseSearchCV(BaseSearchCV):
 
         self._fill_config_hyperparam(config)
         self.analysis_ = self._tune_run(X, y, config, resources_per_trial,
-                                        tune_params)
+                                        tune_params, fit_params)
 
         self.cv_results_ = self._format_results(self.n_splits, self.analysis_)
 
@@ -674,7 +673,13 @@ class TuneBaseSearchCV(BaseSearchCV):
         """
         raise NotImplementedError("Define in child class")
 
-    def _tune_run(self, X, y, config, resources_per_trial, tune_params=None):
+    def _tune_run(self,
+                  X,
+                  y,
+                  config,
+                  resources_per_trial,
+                  tune_params=None,
+                  fit_params=None):
         """Wrapper to call ``tune.run``. Implement this in a child class.
 
         Args:
@@ -691,6 +696,8 @@ class TuneBaseSearchCV(BaseSearchCV):
             tune_params (dict): User defined parameters passed to
                 ``tune.run``. Parameters inside `tune_params` override
                 preset parameters.
+            fit_params (dict): Parameters passed to the ``fit`` method
+                of the estimator.
 
         """
         raise NotImplementedError("Define in child class")
@@ -737,8 +744,8 @@ class TuneBaseSearchCV(BaseSearchCV):
                 and the values are the numeric values set to those variables.
         """
         for key in [
-                "early_stopping", "groups", "cv", "fit_params", "scoring",
-                "max_iters", "return_train_score", "n_jobs", "metric_name",
+                "early_stopping", "groups", "cv", "scoring", "max_iters",
+                "return_train_score", "n_jobs", "metric_name",
                 "early_stop_type"
         ]:
             config.pop(key, None)

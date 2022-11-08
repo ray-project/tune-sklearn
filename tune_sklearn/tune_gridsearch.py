@@ -225,7 +225,13 @@ class TuneGridSearchCV(TuneBaseSearchCV):
         """
         return len(list(ParameterGrid(self.param_grid)))
 
-    def _tune_run(self, X, y, config, resources_per_trial, tune_params=None):
+    def _tune_run(self,
+                  X,
+                  y,
+                  config,
+                  resources_per_trial,
+                  tune_params=None,
+                  fit_params=None):
         """Wrapper to call ``tune.run``. Multiple estimators are generated when
         early stopping is possible, whereas a single estimator is
         generated when  early stopping is not possible.
@@ -245,6 +251,8 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             tune_params (dict): User defined parameters passed to
                 ``tune.run``. Parameters inside `tune_params` override
                 preset parameters.
+            fit_params (dict): Parameters passed to the ``fit`` method
+                of the estimator.
 
         Returns:
             analysis (`ExperimentAnalysis`): Object returned by
@@ -293,7 +301,11 @@ class TuneGridSearchCV(TuneBaseSearchCV):
             run_args, tune_params)
 
         trainable = tune.with_parameters(
-            trainable, X=X, y=y, estimator_list=estimator_list)
+            trainable,
+            X=X,
+            y=y,
+            estimator_list=estimator_list,
+            fit_params=fit_params)
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
