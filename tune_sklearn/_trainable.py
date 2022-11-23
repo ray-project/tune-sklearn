@@ -2,16 +2,26 @@
 """
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
+from sklearn.model_selection._validation import _score
 from sklearn.base import clone
 import numpy as np
 import os
 from pickle import PicklingError
 import warnings
+import traceback
 import inspect
 
 from ray.tune import Trainable
 import ray.cloudpickle as cpickle
 from tune_sklearn.utils import (EarlyStopping, _aggregate_score_dicts)
+
+
+def _replace_score_warning_details(warning: warnings.WarningMessage,
+                                   new_traceback: str):
+    idx = warning.message.args[0].find("Traceback")
+    if idx > -1:
+        message = warning.message.args[0][:idx] + new_traceback
+        warning.message.args = (message, ) + warning.message.args[1:]
 
 
 class _Trainable(Trainable):
@@ -60,6 +70,7 @@ class _Trainable(Trainable):
         self.return_train_score = config.pop("return_train_score")
         self.n_jobs = config.pop("n_jobs")
         self.metric_name = config.pop("metric_name", "average_test_score")
+        self.error_score = config.pop("error_score", "raise")
         self.estimator_config = config
         self.train_accuracy = None
         self.test_accuracy = None
@@ -177,6 +188,7 @@ class _Trainable(Trainable):
                 ``cv_results_`` for one of the cross-validation interfaces.
 
         """
+        fit_failed = False
         if self.early_stopping:
             for i, (train, test) in enumerate(
                     self.cv.split(self.X, self.y, groups=self.groups)):
@@ -185,35 +197,65 @@ class _Trainable(Trainable):
                                                train)
                 X_test, y_test = _safe_split(
                     estimator, self.X, self.y, test, train_indices=train)
-                if self.early_stop_type == EarlyStopping.PARTIAL_FIT:
-                    self._early_stopping_partial_fit(i, estimator, X_train,
-                                                     y_train)
-                elif self.early_stop_type == EarlyStopping.XGB:
-                    self._early_stopping_xgb(i, estimator, X_train, y_train)
-                elif self.early_stop_type == EarlyStopping.LGBM:
-                    self._early_stopping_lgbm(i, estimator, X_train, y_train)
-                elif self.early_stop_type == EarlyStopping.CATBOOST:
-                    self._early_stopping_catboost(i, estimator, X_train,
+                bad_early_stop_type = False
+                fit_exception_traceback_str = None
+                try:
+                    if self.early_stop_type == EarlyStopping.PARTIAL_FIT:
+                        self._early_stopping_partial_fit(
+                            i, estimator, X_train, y_train)
+                    elif self.early_stop_type == EarlyStopping.XGB:
+                        self._early_stopping_xgb(i, estimator, X_train,
+                                                 y_train)
+                    elif self.early_stop_type == EarlyStopping.LGBM:
+                        self._early_stopping_lgbm(i, estimator, X_train,
                                                   y_train)
-                elif self.early_stop_type == EarlyStopping.WARM_START_ITER:
-                    self._early_stopping_iter(i, estimator, X_train, y_train)
-                elif self.early_stop_type == EarlyStopping.WARM_START_ENSEMBLE:
-                    self._early_stopping_ensemble(i, estimator, X_train,
+                    elif self.early_stop_type == EarlyStopping.CATBOOST:
+                        self._early_stopping_catboost(i, estimator, X_train,
+                                                      y_train)
+                    elif self.early_stop_type == EarlyStopping.WARM_START_ITER:
+                        self._early_stopping_iter(i, estimator, X_train,
                                                   y_train)
-                else:
+                    elif (self.early_stop_type ==
+                          EarlyStopping.WARM_START_ENSEMBLE):
+                        self._early_stopping_ensemble(i, estimator, X_train,
+                                                      y_train)
+                    else:
+                        bad_early_stop_type = True
+                except Exception as e:
+                    if self.error_score == "raise":
+                        raise e
+                    fit_failed = True
+                    fit_exception_traceback_str = traceback.format_exc()
+
+                if bad_early_stop_type:
                     raise RuntimeError(
                         "Early stopping set but model is not: "
                         "xgb model, supports partial fit, or warm-startable.")
 
-                if self.return_train_score:
-                    self.fold_train_scores[i] = {
-                        name: score(estimator, X_train, y_train)
-                        for name, score in self.scoring.items()
-                    }
-                self.fold_scores[i] = {
-                    name: score(estimator, X_test, y_test)
-                    for name, score in self.scoring.items()
-                }
+                with warnings.catch_warnings(record=True) as caught_warnings:
+                    if self.return_train_score:
+                        self.fold_train_scores[i] = _score(
+                            estimator,
+                            X_train,
+                            y_train,
+                            self.scoring,
+                            error_score=self.error_score)
+                        if fit_exception_traceback_str:
+                            _replace_score_warning_details(
+                                caught_warnings[-1],
+                                fit_exception_traceback_str)
+                    self.fold_scores[i] = _score(
+                        estimator,
+                        X_test,
+                        y_test,
+                        self.scoring,
+                        error_score=self.error_score)
+                    if fit_exception_traceback_str:
+                        _replace_score_warning_details(
+                            caught_warnings[-1], fit_exception_traceback_str)
+
+                for warning in caught_warnings:
+                    warnings.warn(warning.message)
 
             ret = {}
             agg_fold_scores = _aggregate_score_dicts(self.fold_scores)
@@ -239,31 +281,53 @@ class _Trainable(Trainable):
                     ret["average_train_%s" % name] = self.mean_train_score
         else:
             try:
-                scores = cross_validate(
-                    self.main_estimator,
-                    self.X,
-                    self.y,
-                    cv=self.cv,
-                    n_jobs=self.n_jobs,
-                    fit_params=self.fit_params,
-                    groups=self.groups,
-                    scoring=self.scoring,
-                    return_train_score=self.return_train_score,
-                    error_score="raise")
-            except PicklingError:
-                warnings.warn("An error occurred in parallelizing the cross "
-                              "validation. Proceeding to cross validate with "
-                              "one core.")
-                scores = cross_validate(
-                    self.main_estimator,
-                    self.X,
-                    self.y,
-                    cv=self.cv,
-                    fit_params=self.fit_params,
-                    groups=self.groups,
-                    scoring=self.scoring,
-                    return_train_score=self.return_train_score,
-                    error_score="raise")
+                try:
+                    scores = cross_validate(
+                        self.main_estimator,
+                        self.X,
+                        self.y,
+                        cv=self.cv,
+                        n_jobs=self.n_jobs,
+                        fit_params=self.fit_params,
+                        groups=self.groups,
+                        scoring=self.scoring,
+                        return_train_score=self.return_train_score,
+                        error_score=self.error_score)
+                except PicklingError:
+                    warnings.warn(
+                        "An error occurred in parallelizing the cross "
+                        "validation. Proceeding to cross validate with "
+                        "one core.")
+                    scores = cross_validate(
+                        self.main_estimator,
+                        self.X,
+                        self.y,
+                        cv=self.cv,
+                        fit_params=self.fit_params,
+                        groups=self.groups,
+                        scoring=self.scoring,
+                        return_train_score=self.return_train_score,
+                        error_score=self.error_score)
+            except ValueError as e:
+                if ("It is very likely that your"
+                        "model is misconfigured") not in str(e):
+                    raise e
+                fit_failed = True
+
+            if fit_failed:
+                # If all folds fail, sklearn will raise an error.
+                # We want to fail gracefully instead.
+                fake_test_scores = {
+                    f"test_{name}": [self.error_score] * self.cv.get_n_splits(
+                        self.X, self.y, self.groups)
+                    for name in self.scoring
+                }
+                fake_train_scores = {
+                    f"train_{name}": [self.error_score] * self.cv.get_n_splits(
+                        self.X, self.y, self.groups)
+                    for name in self.scoring
+                }
+                scores = {**fake_test_scores, **fake_train_scores}
 
             ret = {}
             for name in self.scoring:
