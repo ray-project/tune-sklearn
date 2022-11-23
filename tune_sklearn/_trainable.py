@@ -232,6 +232,12 @@ class _Trainable(Trainable):
                         "Early stopping set but model is not: "
                         "xgb model, supports partial fit, or warm-startable.")
 
+                # If fit_exception_traceback_str is set, the warnings raised
+                # by _score will have a NotFittedError, because
+                # the model couldn't have been fitted due to a fit error.
+                # We want to show the actual cause to the user, so we replace
+                # the traceback with the one stored in
+                # fit_exception_traceback_str.
                 with warnings.catch_warnings(record=True) as caught_warnings:
                     if self.return_train_score:
                         self.fold_train_scores[i] = _score(
@@ -315,8 +321,10 @@ class _Trainable(Trainable):
                 fit_failed = True
 
             if fit_failed:
-                # If all folds fail, sklearn will raise an error.
-                # We want to fail gracefully instead.
+                # If all folds fail, sklearn will raise an error, even
+                # if error_score is not set to "raise".
+                # We want to fail gracefully instead by setting
+                # everything to error score.
                 fake_test_scores = {
                     f"test_{name}": [self.error_score] * self.cv.get_n_splits(
                         self.X, self.y, self.groups)
