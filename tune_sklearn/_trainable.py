@@ -2,7 +2,7 @@
 """
 from sklearn.model_selection import cross_validate
 from sklearn.utils.metaestimators import _safe_split
-from sklearn.model_selection._validation import _score
+from sklearn.model_selection._validation import _score, check_cv, is_classifier
 from sklearn.base import clone
 import numpy as np
 import os
@@ -66,7 +66,6 @@ class _Trainable(Trainable):
         self.groups = config.pop("groups")
         self.scoring = config.pop("scoring")
         self.max_iters = config.pop("max_iters")
-        self.cv = config.pop("cv")
         self.return_train_score = config.pop("return_train_score")
         self.n_jobs = config.pop("n_jobs")
         self.metric_name = config.pop("metric_name", "average_test_score")
@@ -79,6 +78,11 @@ class _Trainable(Trainable):
         self.estimator_list = [
             clone(est) for est in self.original_estimator_list
         ]
+
+        self.cv = check_cv(
+            config.pop("cv"),
+            self.y,
+            classifier=is_classifier(self.main_estimator))
 
         if self.early_stopping:
             n_splits = self._setup_early_stopping()
@@ -330,11 +334,15 @@ class _Trainable(Trainable):
                         self.X, self.y, self.groups)
                     for name in self.scoring
                 }
-                fake_train_scores = {
-                    f"train_{name}": [self.error_score] * self.cv.get_n_splits(
-                        self.X, self.y, self.groups)
-                    for name in self.scoring
-                }
+                if self.return_train_score:
+                    fake_train_scores = {
+                        f"train_{name}":
+                        [self.error_score] * self.cv.get_n_splits(
+                            self.X, self.y, self.groups)
+                        for name in self.scoring
+                    }
+                else:
+                    fake_train_scores = {}
                 scores = {**fake_test_scores, **fake_train_scores}
 
             ret = {}
