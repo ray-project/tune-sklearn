@@ -527,6 +527,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         config["return_train_score"] = self.return_train_score
         config["n_jobs"] = self.sk_n_jobs
         config["metric_name"] = self._metric_name
+        config["error_score"] = self.error_score
 
         self._fill_config_hyperparam(config)
         self.analysis_ = self._tune_run(X, y, config, resources_per_trial,
@@ -545,7 +546,7 @@ class TuneBaseSearchCV(BaseSearchCV):
             return self
 
         # For multi-metric evaluation, store the best_index, best_params and
-        # best_score iff refit is one of the scorer names
+        # best_score if refit is one of the scorer names
         # In single metric evaluation, refit_metric is "score"
         if self.refit or not self._is_multi:
             # If callable, refit is expected to return the index of the best
@@ -564,6 +565,11 @@ class TuneBaseSearchCV(BaseSearchCV):
                     self.best_index]
             best_config = self.analysis_.get_best_config(
                 metric=metric, mode="max", scope="last")
+            if best_config is None:
+                raise ValueError("Couldn't obtain best config. "
+                                 "This usually means that all trials "
+                                 "have failed. Set `error_score=\"raise\" "
+                                 "to debug the issue.")
             self.best_params = self._clean_config_dict(best_config)
 
         if self.refit:
@@ -746,7 +752,7 @@ class TuneBaseSearchCV(BaseSearchCV):
         for key in [
                 "early_stopping", "groups", "cv", "scoring", "max_iters",
                 "return_train_score", "n_jobs", "metric_name",
-                "early_stop_type"
+                "early_stop_type", "error_score"
         ]:
             config.pop(key, None)
         return config

@@ -5,7 +5,7 @@ from numpy.testing import assert_array_equal
 from sklearn.datasets import make_classification, make_regression
 from sklearn.decomposition import PCA
 from scipy.stats import expon
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.pipeline import Pipeline
@@ -655,6 +655,79 @@ class RandomizedSearchTest(unittest.TestCase):
                 mode="this_is_an_invalid_mode")
         self.assertTrue((
             "`mode` must be 'min' or 'max'") in str(exc.exception))
+
+    def test_all_trials_failed(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+        model = LinearSVC()
+
+        parameter_grid = {
+            "penalty": ["l2"],
+            "loss": ["hinge"],
+            "dual": [False],
+            "C": [0.0001, 0.001]
+        }
+
+        search = TuneSearchCV(
+            estimator=model,
+            param_distributions=parameter_grid,
+            search_optimization="random",
+            n_trials=2,
+            error_score=np.nan,
+            verbose=True,
+            random_state=130,
+            refit=False)
+
+        with self.assertRaises(ValueError) as exc:
+            search.fit(X, y)
+        self.assertTrue("Couldn't obtain best config" in str(exc.exception))
+
+    def test_error_score(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+        model = LinearSVC()
+
+        parameter_grid = {
+            "penalty": ["l2"],
+            "loss": ["hinge"],
+            "dual": [True, False]
+        }
+
+        search = TuneSearchCV(
+            estimator=model,
+            param_distributions=parameter_grid,
+            search_optimization="random",
+            n_trials=2,
+            error_score=np.nan,
+            verbose=True,
+            random_state=110,
+            refit=False)
+
+        search.fit(X, y)
+        self.assertTrue(np.isnan(search.cv_results_["split0_test_score"][1]))
+
+    def test_error_score_early_stop(self):
+        X, y = make_classification(
+            n_samples=50, n_features=50, n_informative=3, random_state=0)
+        model = SGDClassifier()
+
+        parameter_grid = {
+            "l1_ratio": [0.9, 1.2],
+        }
+
+        search = TuneSearchCV(
+            estimator=model,
+            param_distributions=parameter_grid,
+            search_optimization="random",
+            n_trials=2,
+            error_score=np.nan,
+            verbose=True,
+            early_stopping=True,
+            random_state=110,
+            refit=False)
+
+        search.fit(X, y)
+        self.assertTrue(np.isnan(search.cv_results_["split0_test_score"][1]))
 
 
 class TestSearchSpace(unittest.TestCase):
