@@ -14,7 +14,7 @@ import inspect
 from ray.tune.logger import (Logger, JsonLoggerCallback, CSVLoggerCallback,
                              TBXLoggerCallback, LegacyLoggerCallback,
                              LoggerCallback)
-from ray.tune.integration.mlflow import MLflowLoggerCallback
+from ray.air.integrations.mlflow import MLflowLoggerCallback
 
 try:
     from ray.tune.stopper import MaximumIterationStopper
