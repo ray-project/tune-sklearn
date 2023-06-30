@@ -8,7 +8,7 @@ ROOT_DIR = os.path.dirname(__file__)
 # depends on Ray, then we create a cyclic dep.
 # workaround from: https://stackoverflow.com/a/17626524
 with open("tune_sklearn/_version.py") as f:
-    text = f.readlines()  # Returns ['__version__ = "0.4.5"']
+    text = f.readlines()  # Returns ['__version__ = "0.4.6"']
     __version__ = text[-1].split()[-1].strip("\"'")
 
 VERSION = os.environ.get("TSK_RELEASE_VERSION", __version__)
@@ -29,4 +29,5 @@ setup(
     url="https://github.com/ray-project/tune-sklearn",
     install_requires=[
         "scikit-learn", "scipy", "ray[tune]>=2.0.0", "numpy>=1.16"
-    ])
+    ],
+)
