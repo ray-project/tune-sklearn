@@ -18,7 +18,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install -U pytest
         python -m pip install codecov
-        python -m pip install -U https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-3.0.0.dev0-cp37-cp37m-manylinux2014_x86_64.whl
+        python -m pip install -U https://ray-ci-artifact-branch-public.s3.amazonaws.com/0db7f95394de8f63e64b764ab5cea178fe02cc8c/tmp/artifacts/.whl/ray-3.0.0.dev0-cp37-cp37m-manylinux2014_x86_64.whl
         python -m pip install -U -q scikit-learn scikit-optimize hyperopt hpbandster ConfigSpace scipy dataclasses optuna keras
         if [ -f requirements-test.txt ]; then python -m pip install -r requirements-test.txt; fi
     - name: Install package
