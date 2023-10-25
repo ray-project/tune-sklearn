@@ -896,9 +896,9 @@ class TestSearchSpace(unittest.TestCase):
         from ray.tune.search.hyperopt import HyperOptSearch
         # Skip test if category conversion is not available
         if not hasattr(HyperOptSearch, "_convert_categories_to_indices"):
-            self.skipTest(f"The current version of Ray does not support the "
-                          f"`points_to_evaluate` argument for search method "
-                          f"`hyperopt`. Skipping test.")
+            self.skipTest("The current version of Ray does not support the "
+                          "`points_to_evaluate` argument for search method "
+                          "`hyperopt`. Skipping test.")
             return
         self._test_points_to_evaluate("hyperopt")
 
