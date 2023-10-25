@@ -327,7 +327,7 @@ class TuneBaseSearchCV(BaseSearchCV):
                  verbose=0,
                  error_score="raise",
                  return_train_score=False,
-                 local_dir="~/ray_results",
+                 local_dir=None,
                  name=None,
                  max_iters=1,
                  use_gpu=False,
