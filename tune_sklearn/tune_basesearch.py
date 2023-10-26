@@ -327,7 +327,7 @@ class TuneBaseSearchCV(BaseSearchCV):
                  verbose=0,
                  error_score="raise",
                  return_train_score=False,
-                 local_dir="~/ray_results",
+                 local_dir=None,
                  name=None,
                  max_iters=1,
                  use_gpu=False,
@@ -773,32 +773,31 @@ class TuneBaseSearchCV(BaseSearchCV):
         trials = [
             trial for trial in out.trials if trial.status == Trial.TERMINATED
         ]
-        trial_dirs = [trial.logdir for trial in trials]
-        # The result dtaframes are indexed by their trial logdir
-        trial_dfs = out.fetch_trial_dataframes()
+        trial_dfs = out.trial_dataframes
+        trial_ids = list(trial_dfs)
 
         # Try to find a template df to use for trials that did not return
         # any results. These trials should copy the structure and fill it
         # with NaNs so that the later reshape actions work.
         template_df = None
-        fix_trial_dirs = []  # Holds trial dirs with no results
-        for trial_dir in trial_dirs:
-            if trial_dir in trial_dfs and template_df is None:
-                template_df = trial_dfs[trial_dir]
-            elif trial_dir not in trial_dfs:
-                fix_trial_dirs.append(trial_dir)
+        fix_trial_ids = []  # Holds trial_ids with no results
+        for trial_id, trial_df in trial_dfs.items():
+            if template_df is None and not trial_df.empty:
+                template_df = trial_df
+            elif trial_df.empty:
+                fix_trial_ids.append(trial_id)
 
         # Create NaN dataframes for trials without results
-        if fix_trial_dirs:
+        if fix_trial_ids:
             if template_df is None:
                 # No trial returned any results
                 return {}
-            for trial_dir in fix_trial_dirs:
+            for trial_id in fix_trial_ids:
                 trial_df = pd.DataFrame().reindex_like(template_df)
-                trial_dfs[trial_dir] = trial_df
+                trial_dfs[trial_id] = trial_df
 
         # Keep right order
-        dfs = [trial_dfs[trial_dir] for trial_dir in trial_dirs]
+        dfs = [trial_dfs[trial_id] for trial_id in trial_ids]
         finished = [df.iloc[[-1]] for df in dfs]
         test_scores = {}
         train_scores = {}

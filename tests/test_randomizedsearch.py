@@ -156,7 +156,7 @@ class RandomizedSearchTest(unittest.TestCase):
             parameter_grid,
             early_stopping=scheduler,
             max_iters=10,
-            local_dir="./test-result")
+            local_dir=os.path.abspath("./test-result"))
         tune_search.fit(x, y)
 
         self.assertTrue(len(os.listdir("./test-result")) != 0)
@@ -290,7 +290,7 @@ class RandomizedSearchTest(unittest.TestCase):
             parameter_grid,
             n_jobs=1,
             max_iters=10,
-            local_dir="./test-result")
+            local_dir=os.path.abspath("./test-result"))
         self.assertEqual(tune_search.early_stop_type,
                          EarlyStopping.NO_EARLY_STOP)
 
@@ -301,7 +301,7 @@ class RandomizedSearchTest(unittest.TestCase):
             parameter_grid,
             n_jobs=1,
             max_iters=10,
-            local_dir="./test-result")
+            local_dir=os.path.abspath("./test-result"))
         self.assertEqual(tune_search2.early_stop_type,
                          EarlyStopping.NO_EARLY_STOP)
 
@@ -312,7 +312,7 @@ class RandomizedSearchTest(unittest.TestCase):
             parameter_grid,
             n_jobs=1,
             max_iters=10,
-            local_dir="./test-result")
+            local_dir=os.path.abspath("./test-result"))
 
         self.assertEqual(tune_search3.early_stop_type,
                          EarlyStopping.NO_EARLY_STOP)
@@ -323,7 +323,7 @@ class RandomizedSearchTest(unittest.TestCase):
             early_stopping=True,
             n_jobs=1,
             max_iters=10,
-            local_dir="./test-result")
+            local_dir=os.path.abspath("./test-result"))
         self.assertEqual(tune_search4.early_stop_type,
                          EarlyStopping.WARM_START_ITER)
 
@@ -334,7 +334,7 @@ class RandomizedSearchTest(unittest.TestCase):
             early_stopping=True,
             n_jobs=1,
             max_iters=10,
-            local_dir="./test-result")
+            local_dir=os.path.abspath("./test-result"))
         self.assertEqual(tune_search5.early_stop_type,
                          EarlyStopping.WARM_START_ENSEMBLE)
 
@@ -349,7 +349,7 @@ class RandomizedSearchTest(unittest.TestCase):
             n_jobs=1,
             early_stopping=False,
             max_iters=10,
-            local_dir="./test-result")
+            local_dir=os.path.abspath("./test-result"))
         self.assertFalse(tune_search._can_early_stop())
         with self.assertRaises(ValueError):
             tune_search = TuneSearchCV(
@@ -358,7 +358,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 n_jobs=1,
                 early_stopping=True,
                 max_iters=10,
-                local_dir="./test-result")
+                local_dir=os.path.abspath("./test-result"))
 
         from sklearn.linear_model import LogisticRegression
         clf = LogisticRegression()
@@ -370,7 +370,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 early_stopping=True,
                 n_jobs=1,
                 max_iters=10,
-                local_dir="./test-result")
+                local_dir=os.path.abspath("./test-result"))
 
         from sklearn.ensemble import RandomForestClassifier
         clf = RandomForestClassifier()
@@ -382,7 +382,7 @@ class RandomizedSearchTest(unittest.TestCase):
                 early_stopping=True,
                 n_jobs=1,
                 max_iters=10,
-                local_dir="./test-result")
+                local_dir=os.path.abspath("./test-result"))
 
     def test_warn_reduce_maxiters(self):
         parameter_grid = {"alpha": Real(1e-4, 1e-1, prior="log-uniform")}
@@ -390,13 +390,16 @@ class RandomizedSearchTest(unittest.TestCase):
         clf = RandomForestClassifier(max_depth=2, random_state=0)
         with self.assertWarnsRegex(UserWarning, "max_iters is set"):
             TuneSearchCV(
-                clf, parameter_grid, max_iters=10, local_dir="./test-result")
+                clf,
+                parameter_grid,
+                max_iters=10,
+                local_dir=os.path.abspath("./test-result"))
         with self.assertWarnsRegex(UserWarning, "max_iters is set"):
             TuneSearchCV(
                 SGDClassifier(),
                 parameter_grid,
                 max_iters=10,
-                local_dir="./test-result")
+                local_dir=os.path.abspath("./test-result"))
 
     def test_warn_early_stop(self):
         X, y = make_classification(
@@ -893,9 +896,9 @@ class TestSearchSpace(unittest.TestCase):
         from ray.tune.search.hyperopt import HyperOptSearch
         # Skip test if category conversion is not available
         if not hasattr(HyperOptSearch, "_convert_categories_to_indices"):
-            self.skipTest(f"The current version of Ray does not support the "
-                          f"`points_to_evaluate` argument for search method "
-                          f"`hyperopt`. Skipping test.")
+            self.skipTest("The current version of Ray does not support the "
+                          "`points_to_evaluate` argument for search method "
+                          "`hyperopt`. Skipping test.")
             return
         self._test_points_to_evaluate("hyperopt")
 

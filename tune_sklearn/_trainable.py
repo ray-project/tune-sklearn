@@ -319,8 +319,8 @@ class _Trainable(Trainable):
                         return_train_score=self.return_train_score,
                         error_score=self.error_score)
             except ValueError as e:
-                if ("It is very likely that your"
-                        "model is misconfigured") not in str(e):
+                if ("It is very likely that your model is misconfigured" not in
+                        str(e)):
                     raise e
                 fit_failed = True
 
@@ -367,9 +367,9 @@ class _Trainable(Trainable):
 
         return ret
 
-    def save_checkpoint(self, checkpoint_dir):
+    def save_checkpoint(self, checkpoint_dir: str):
         # forward-compatbility
-        return self._save(checkpoint_dir)
+        self._save(checkpoint_dir)
 
     def _save(self, checkpoint_dir):
         """Creates a checkpoint in ``checkpoint_dir``, creating a pickle file.
@@ -387,21 +387,21 @@ class _Trainable(Trainable):
                 cpickle.dump(self.estimator_list, f)
         except Exception:
             warnings.warn("Unable to save estimator.", category=RuntimeWarning)
-        return path
 
-    def load_checkpoint(self, checkpoint):
+    def load_checkpoint(self, checkpoint_dir: str):
         # forward-compatbility
-        return self._restore(checkpoint)
+        self._restore(checkpoint_dir)
 
-    def _restore(self, checkpoint):
+    def _restore(self, checkpoint_dir):
         """Loads a checkpoint created from `save`.
 
         Args:
             checkpoint (str): file path to pickled checkpoint file.
 
         """
+        path = os.path.join(checkpoint_dir, "checkpoint")
         try:
-            with open(checkpoint, "rb") as f:
+            with open(path, "rb") as f:
                 self.estimator_list = cpickle.load(f)
         except Exception:
             warnings.warn("No estimator restored", category=RuntimeWarning)

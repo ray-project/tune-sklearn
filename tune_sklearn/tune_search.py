@@ -316,7 +316,7 @@ class TuneSearchCV(TuneBaseSearchCV):
                  random_state=None,
                  error_score=np.nan,
                  return_train_score=False,
-                 local_dir="~/ray_results",
+                 local_dir=None,
                  name=None,
                  max_iters=1,
                  search_optimization="random",
