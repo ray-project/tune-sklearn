@@ -11,13 +11,13 @@ Here’s what tune-sklearn has to offer:
  * **Framework support**: tune-sklearn is used primarily for tuning Scikit-Learn models, but it also supports and provides examples for many other frameworks with Scikit-Learn wrappers such as Skorch (Pytorch) [[example](https://github.com/ray-project/tune-sklearn/blob/master/examples/torch_nn.py)], KerasClassifier (Keras) [[example](https://github.com/ray-project/tune-sklearn/blob/master/examples/keras_example.py)], and XGBoostClassifier (XGBoost) [[example](https://github.com/ray-project/tune-sklearn/blob/master/examples/xgbclassifier.py)].
  * **Scale up**: Tune-sklearn leverages [Ray Tune](http://tune.io/), a library for distributed hyperparameter tuning, to parallelize cross validation on multiple cores and even multiple machines without changing your code.
 
-Check out our [API Documentation](https://docs.ray.io/en/master/tune/api_docs/sklearn.html) and [Walkthrough](https://docs.ray.io/en/master/tune/tutorials/tune-sklearn.html) (for `master` branch).
+Check out our [API Documentation](docs) and [Walkthrough](https://docs.ray.io/en/master/tune/examples/tune-sklearn.html) (for `master` branch).
 
 ## Installation
 
 ### Dependencies
 - numpy (>=1.16)
-- [ray](http://docs.ray.io/)
+- [ray](http://docs.ray.io/) (>=2.7.0)
 - scikit-learn (>=0.23)
 
 ### User Installation
@@ -48,10 +48,10 @@ See [the Ray documentation for an overview of available stoppers](https://docs.r
 
 ## Examples
 
-#### TuneGridSearchCV
+#### [TuneGridSearchCV](docs/tune_gridsearch.md)
 To start out, it’s as easy as changing our import statement to get Tune’s grid search cross validation interface, and the rest is almost identical!
 
-`TuneGridSearchCV` accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `GridSearchCV`. The distribution can also be the output of Ray Tune's [`tune.grid_search`](https://docs.ray.io/en/master/tune/api_docs/search_space.html#grid-search-api).
+`TuneGridSearchCV` accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `GridSearchCV`. The distribution can also be the output of Ray Tune's [`tune.grid_search`](https://docs.ray.io/en/master/tune/api/search_space.html).
 
 ```python
 # from sklearn.model_selection import GridSearchCV
@@ -110,11 +110,11 @@ accuracy = np.count_nonzero(np.array(pred) == np.array(y_test)) / len(pred)
 print("Sklearn Accuracy:", accuracy)
 ```
 
-#### TuneSearchCV
+#### [TuneSearchCV](docs/tune_search.md)
 
 `TuneSearchCV` is an upgraded version of scikit-learn's `RandomizedSearchCV`.
 
-It also provides a wrapper for several search optimization algorithms from Ray Tune's [`tune.suggest`](https://docs.ray.io/en/master/tune/api_docs/suggestion.html), which in turn are wrappers for other libraries. The selection of the search algorithm is controlled by the `search_optimization` parameter. In order to use other algorithms, you need to install the libraries they depend on (`pip install` column). The search algorithms are as follows:
+It also provides a wrapper for several search optimization algorithms from Ray Tune's [searchers](https://docs.ray.io/en/master/tune/api/suggestion.html), which in turn are wrappers for other libraries. The selection of the search algorithm is controlled by the `search_optimization` parameter. In order to use other algorithms, you need to install the libraries they depend on (`pip install` column). The search algorithms are as follows:
 
 | Algorithm          | `search_optimization` value | Summary                | Website                                                 | `pip install`              |
 |--------------------|-----------------------------|------------------------|---------------------------------------------------------|--------------------------|
@@ -126,7 +126,7 @@ It also provides a wrapper for several search optimization algorithms from Ray T
 
 All algorithms other than RandomListSearcher accept parameter distributions in the form of dictionaries in the format `{ param_name: str : distribution: tuple or list }`.
 
-Tuples represent real distributions and should be two-element or three-element, in the format `(lower_bound: float, upper_bound: float, Optional: "uniform" (default) or "log-uniform")`. Lists represent categorical distributions. [Ray Tune Search Spaces](https://docs.ray.io/en/master/tune/api_docs/search_space.html) are also supported and provide a rich set of potential distributions. Search spaces allow for users to specify complex, potentially nested search spaces and parameter distributions. Furthermore, each algorithm also accepts parameters in their own specific format. More information in [Tune documentation](https://docs.ray.io/en/master/tune/api_docs/suggestion.html).
+Tuples represent real distributions and should be two-element or three-element, in the format `(lower_bound: float, upper_bound: float, Optional: "uniform" (default) or "log-uniform")`. Lists represent categorical distributions. [Ray Tune Search Spaces](https://docs.ray.io/en/master/tune/api/search_space.html) are also supported and provide a rich set of potential distributions. Search spaces allow for users to specify complex, potentially nested search spaces and parameter distributions. Furthermore, each algorithm also accepts parameters in their own specific format. More information in [Tune documentation](https://docs.ray.io/en/master/tune/api/suggestion.html).
 
 Random Search (default) accepts dictionaries in the format `{ param_name: str : distribution: list }` or a list of such dictionaries, just like scikit-learn's `RandomizedSearchCV`.
 
@@ -193,3 +193,12 @@ Tune-sklearn also supports the use of other machine learning libraries such as P
 
 ## More information
 [Ray Tune](https://docs.ray.io/en/latest/tune/index.html)
+
+## Documentation
+
+See the auto-generated docs [here](docs). These are generated by `lazydocs` and should be updated on every release:
+
+```bash
+pip install lazydocs
+lazydocs /path/to/tune-sklearn/tune-sklearn --src-base-url="https://github.com/ray-project/tune-sklearn/blob/master" --overview-file="README.md"
+```
