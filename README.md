@@ -3,6 +3,16 @@
 
 Tune-sklearn is a drop-in replacement for Scikit-Learn’s model selection module (GridSearchCV, RandomizedSearchCV) with cutting edge hyperparameter tuning techniques.
 
+## ⚠️ `tune-sklearn` is no longer being maintained
+
+The latest release `0.5.0` is the last version of the library that will be released by the Ray team, and it is compatible
+with `ray>=2.7.x, ray<=2.9.x`. The library will not be guaranteed to work with future Ray versions.
+
+The recommended alternative to keep up with the latest version of Ray is to migrate `tune-sklearn` usage
+to the [Ray Tune APIs](https://docs.ray.io/en/latest/tune/getting-started.html) to accomplish the same thing.
+
+Feel free to post an issue on the [Ray Github](https://github.com/ray-project/ray) if you run into any issues in migrating.
+
 ## Features
 Here’s what tune-sklearn has to offer:
 
